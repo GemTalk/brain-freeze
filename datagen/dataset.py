@@ -27,12 +27,14 @@ and the small chance of a denial for a reason the rules do not model. Keeping
 those apart is what stops the app's quote and the sample data from drifting
 into disagreement.
 
-Run: python3 generate_brain_freeze_insurance_data.py
+Run: python3 -m datagen
 """
+
+from datetime import date, timedelta
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from datetime import date, timedelta
 
 from brainfreeze import (
     ANNUAL_CLAIM_LIMIT,
@@ -46,18 +48,29 @@ from brainfreeze import (
     risk_tier,
 )
 
+#: Where the CSVs go: `data/` at the repo root, not the working directory.
+#: seed.py and the tests read them from there, so writing them anywhere else
+#: produces a dataset nothing loads.
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+POLICYHOLDERS_CSV = DATA_DIR / "policyholders.csv"
+CLAIMS_CSV = DATA_DIR / "claims.csv"
+
 RNG = np.random.default_rng(20260828)
 
 N_POLICIES = 900
 EVENTS_PER_POLICY = (2, 9)  # cold-treat events during the ~1yr policy term
 POLICY_TERM_MONTHS = 12
 
+#: The earliest day of the term a policy may lapse on.
+LAPSE_EARLIEST_DAY = 30
+
 #: Where each policyholder's score starts, before their answers move it.
-#: NOTE: this is sampled and then thrown away -- the drawn value is not a
-#: column, so a score in the output cannot be reproduced from the answers that
-#: are. The app has to quote from brainfreeze.BASE_RISK instead, which means an
-#: applicant who matches an existing row can get a different tier. Recording
-#: this as a column is the fix; it is a dataset change, so it is not made here.
+#: This is sampled per policyholder and written out as `underwriting_base`,
+#: which is what makes a score in the dataset reproducible: the app scores an
+#: applicant's answers from the same starting point, so someone matching an
+#: existing row lands in that row's tier. It is written at full precision on
+#: purpose -- the score column is derived from it, and rounding here would
+#: let the two disagree in the last decimal.
 BASE_RISK_MEAN, BASE_RISK_SD = 45, 15
 
 #: Multiplicative jitter on a premium, so the sample book is not uniform.
@@ -129,6 +142,19 @@ def make_policyholders(n):
 
     start_dates = [date(2026, 1, 1) + timedelta(days=int(d)) for d in RNG.integers(0, 300, size=n)]
 
+    # A lapsed policy needs a date it lapsed on. Without one, "Lapsed" was a
+    # label with nothing behind it while claims went on being paid to the end
+    # of the term. Lapses fall at least a month in -- nobody's cover ends the
+    # week they buy it -- and cover runs to that date inclusive.
+    status = RNG.choice(["Active", "Active", "Active", "Lapsed"], size=n)
+    term_days = 30 * POLICY_TERM_MONTHS
+    lapse_offsets = RNG.integers(LAPSE_EARLIEST_DAY, term_days, size=n)
+    lapse_dates = [
+        (start_dates[i] + timedelta(days=int(lapse_offsets[i]))).isoformat()
+        if status[i] == "Lapsed" else None
+        for i in range(n)
+    ]
+
     policies = pd.DataFrame({
         "policy_id": [f"BF-{100000+i}" for i in range(n)],
         "age": age,
@@ -137,6 +163,7 @@ def make_policyholders(n):
         "tension_type_headache_history": tth_history,
         "typical_consumption_speed": typical_speed,
         "favorite_trigger": favorite_trigger,
+        "underwriting_base": base,
         "underwriting_risk_score": np.round(scores, 1),
         "risk_tier": tiers,
         "coverage_plan": coverage_plan,
@@ -146,7 +173,8 @@ def make_policyholders(n):
         "monthly_premium_usd": np.round(annual_premiums / 12, 2),
         "policy_start_date": start_dates,
         "policy_term_months": POLICY_TERM_MONTHS,
-        "policy_status": RNG.choice(["Active", "Active", "Active", "Lapsed"], size=n),
+        "policy_status": status,
+        "policy_lapse_date": lapse_dates,
         "_risk_score_raw": scores,
     })
     return policies
@@ -160,7 +188,12 @@ def make_claims(policies):
         event_dates = random_dates_in_term(pol["policy_start_date"], pol["policy_term_months"], n_events)
         approved_claims_this_year = 0
 
+        lapse_date = pol["policy_lapse_date"]
+        # pandas can hand back NaN rather than None here, and NaN is truthy.
+        lapse_date = date.fromisoformat(lapse_date) if isinstance(lapse_date, str) else None
+
         for event_date in event_dates:
+            in_force = lapse_date is None or event_date <= lapse_date
             trigger = RNG.choice(TRIGGER_TYPES)
             temp_lo, temp_hi = TRIGGER_TEMP_RANGE_C[trigger]
             item_temp_c = RNG.uniform(temp_lo, temp_hi)
@@ -234,7 +267,19 @@ def make_claims(policies):
                         pain_intensity, duration_sec, jitter=RNG.normal(0, 5)
                     )
 
-                    if approved_claims_this_year >= ANNUAL_CLAIM_LIMIT:
+                    if not in_force:
+                        # Refused for the lapse, not for paperwork or the cap:
+                        # those would be true too, but they are not the reason.
+                        decision = adjudicate(
+                            claim_amount_requested,
+                            pol["coverage_limit_per_incident_usd"],
+                            pol["deductible_per_incident_usd"],
+                            approved_claims_this_year,
+                            policy_in_force=False,
+                        )
+                        claim_status, claim_amount_approved = decision.status, decision.amount
+                        denial_reason = decision.reason
+                    elif approved_claims_this_year >= ANNUAL_CLAIM_LIMIT:
                         decision = adjudicate(
                             claim_amount_requested,
                             pol["coverage_limit_per_incident_usd"],
@@ -278,16 +323,16 @@ def make_claims(policies):
     return claims
 
 
-if __name__ == "__main__":
+def main():
     policies = make_policyholders(N_POLICIES)
     claims = make_claims(policies)
 
     policies_out = policies.drop(columns=["_risk_score_raw"])
-    policies_out.to_csv("policyholders.csv", index=False)
-    claims.to_csv("claims.csv", index=False)
+    policies_out.to_csv(POLICYHOLDERS_CSV, index=False)
+    claims.to_csv(CLAIMS_CSV, index=False)
 
-    print(f"Wrote {len(policies_out):,} policyholders -> policyholders.csv")
-    print(f"Wrote {len(claims):,} events -> claims.csv")
+    print(f"Wrote {len(policies_out):,} policyholders -> {POLICYHOLDERS_CSV.name}")
+    print(f"Wrote {len(claims):,} events -> {CLAIMS_CSV.name}")
 
     print("\nRisk tier distribution:")
     print(policies_out["risk_tier"].value_counts())
