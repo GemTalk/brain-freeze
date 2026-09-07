@@ -1,7 +1,7 @@
 """Adjudication: what a claim is worth, and whether it is paid.
 
-Three rules, in order: the annual cap, the per-incident coverage limit, then
-the deductible. Nothing here is random -- a claimant is entitled to a reason
+Four rules, in order: whether the policy was in force at all, the annual cap,
+the per-incident coverage limit, then the deductible. Nothing here is random -- a claimant is entitled to a reason
 that follows from what they told us, and an agent asked "why was CLM-000123
 turned down?" has to be able to answer it.
 
@@ -19,6 +19,7 @@ ANNUAL_CLAIM_LIMIT = 4
 #: Reasons this module can return.
 REASON_ANNUAL_LIMIT = "Exceeded annual claim limit"
 REASON_BELOW_DEDUCTIBLE = "Claim amount below deductible"
+REASON_POLICY_LAPSED = "Policy lapsed"
 
 
 class Decision(NamedTuple):
@@ -53,12 +54,22 @@ def adjudicate(
     deductible_per_incident: float,
     approved_claims_this_year: int,
     annual_claim_limit: int = ANNUAL_CLAIM_LIMIT,
+    policy_in_force: bool = True,
 ) -> Decision:
     """Run one claim through the rules and say what happens.
 
-    The annual cap is checked first and short-circuits: a policy that has used
-    its four approvals is turned down whatever the episode was worth.
+    Cover is checked before anything else: a claim on a policy that had already
+    lapsed is refused for that reason and not for whatever else would also have
+    refused it. The annual cap is next and short-circuits the same way -- a
+    policy that has used its four approvals is turned down whatever the episode
+    was worth.
+
+    `policy_in_force` defaults to True so that a caller who has no lapse to
+    consider reads exactly as before.
     """
+    if not policy_in_force:
+        return Decision("Denied", 0.0, REASON_POLICY_LAPSED, assessed, 0.0, 0.0)
+
     if approved_claims_this_year >= annual_claim_limit:
         return Decision("Denied", 0.0, REASON_ANNUAL_LIMIT, assessed, 0.0, 0.0)
 

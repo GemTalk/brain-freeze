@@ -21,8 +21,17 @@ from .underwriting import (
     risk_tier,
     score_breakdown,
 )
+from .model import (
+    Book,
+    Claim,
+    Event,
+    Policyholder,
+)
 from .adjudication import (
     ANNUAL_CLAIM_LIMIT,
+    REASON_ANNUAL_LIMIT,
+    REASON_BELOW_DEDUCTIBLE,
+    REASON_POLICY_LAPSED,
     Decision,
     adjudicate,
     assess_amount,
@@ -32,5 +41,7 @@ __all__ = [
     "COVERAGE_PLANS", "RISK_TIER_MULT", "TRIGGER_RISK_MULT", "TRIGGER_TYPES",
     "BASE_RISK", "Plan", "Quote", "annual_premium", "quote", "risk_score",
     "risk_tier", "score_breakdown", "ANNUAL_CLAIM_LIMIT", "Decision",
+    "REASON_ANNUAL_LIMIT", "REASON_BELOW_DEDUCTIBLE", "REASON_POLICY_LAPSED",
     "adjudicate", "assess_amount",
+    "Book", "Claim", "Event", "Policyholder",
 ]
