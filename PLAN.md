@@ -62,7 +62,9 @@ PLAN.md        this file
 | `tests/test_seed.py` | 22 tests pinning the load | done |
 | `tests/test_packaging.py` | 1 test pinning the numpy/pandas boundary | done |
 | `mockups/` | nine screens + insurer sketch, and `build_c.py` | done, **redrawn for BF-100539** |
-| the app | — | **not started** |
+| `app.py` | seven routes over `gemdb.root`, templates inline | done, **runs and serves** |
+| `tests/test_app.py` | 18 tests through Flask's test client | done |
+| `run_app_tests.py` | runs those inside the database | done |
 | the notebook | — | **not started** |
 | the MCP analysis helpers | — | **not started** |
 | the README that sequences CUJ-0→4 | — | **not started** |
@@ -76,7 +78,9 @@ which is worse than not having them. They are still in git history at
 ### The two commands that must keep working
 
 ```sh
-python3 -m unittest discover                       # 39 tests
+python3 -m unittest discover                       # 39 tests (18 skip)
+gemdb run_app_tests.py                             # 18 more, in the DB
+gemdb app.py                                       # serve on :5000
 python3 -m datagen                                 # rewrites both CSVs
 ```
 
@@ -525,41 +529,65 @@ package binds to the same class as the committed instances, and a second
 
 Nothing here blocks work item 2 any more.
 
-### 2. The Flask app
+### 2. The Flask app — **DONE (2026-09-08)**
 
-One module, no blueprints, no extensions, no ORM. Templates as module
-constants. `threaded=False`, `CloseAfterResponseHandler`. Import
-`brainfreeze` for every number — never recompute a premium or a payout in a
-handler.
+`gemdb app.py` serves seven routes on :5000. A quote is taken end to end, a
+policy created, a claim filed and adjudicated, and both persist. Verified over
+real HTTP, not just the test client:
 
-**Start it from the project directory.** `sys.path[0]` is the script's
-directory, and an import that cannot find `brainfreeze/` on disk resolves out
-of the database to whatever class was last compiled there, silently. See
-"Editing a class does not update the database".
+```
+POST /quote      -> 75.0, High, $171.00, with the breakdown
+POST /policies   -> BF-100901, committed, "Nothing yet" history
+POST .../claims  -> CLM-002176: assessed $73.00, -$13.00 to the $60 cap,
+                    -$5.00 deductible, "$55.00 is yours"
+same, lapsed     -> warned first, then "Not this time / Policy lapsed"
+```
 
-The claim handler now has a second refusal to render: `Policy lapsed`, from
-`adjudicate(..., policy_in_force=policyholder.is_in_force_on(event_date))`.
-`Decision.dc.html` shows it.
+Every figure is `brainfreeze`'s: `assess_amount(8, 300)` is 73.00, and
+`adjudicate` does the rest. `tests/test_app.py` has 18 tests through Flask's
+test client, run by `gemdb run_app_tests.py`; under CPython the module skips
+itself so `python3 -m unittest discover` stays green.
 
-Screens, in `mockups/` and in flow order:
+**Five things worth knowing before touching it.**
 
-| Route | Mockup | Notes |
-| --- | --- | --- |
-| `GET /` | `Picker.dc.html` | stands in for the sign-in the demo does not have; 900 real policyholders |
-| `GET /quote` | `Main.dc.html` | five questions; `sex` is deliberately absent |
-| `POST /quote` | `Plans.dc.html` | `brainfreeze.quote()`; show `score_breakdown()` |
-| `POST /policies` | `Accepted.dc.html` | FR-5.5; creates BF-100900 |
-| `GET /policies/<id>` | `History.dc.html`, `EmptyHistory.dc.html` | all events, not just claims |
-| `GET /policies/<id>/claims/new` | `FileClaim.dc.html` | bands, not readings; no amount field |
-| `POST /policies/<id>/claims` | `Decision.dc.html` | `assess_amount()` then `adjudicate()` |
+*The `__main__` guard has to be the last thing in the file.* `gemdb app.py`
+executes top to bottom, so a guard next to `main()` starts the server before
+the template constants exist and every route raises `NameError`. Importing the
+module hides this completely -- an import finishes the file before any route
+runs -- so the test suite passed while the server was broken. Run it, do not
+just test it.
 
-Every write is a POST that mutates, commits, and redirects — POST/redirect/GET,
-so a refresh never re-submits.
+*Grail's logging masks the real error.* When a view raises, Flask's handler
+calls `Logger.error(..., exc_info=...)`, and Grail's Logger has no `exc_info`,
+so the console shows `TypeError: Logger.error() got an unexpected keyword
+argument 'exc_info'` and the actual exception is further up the log. Scroll
+past the last traceback to the first.
 
-**Done when:** a quote can be taken out end to end and a claim filed and
-adjudicated, both persisted, and `tests/test_brainfreeze.py`'s pinned numbers appear
-on screen unchanged. The mockups' `README.md` records the design decisions;
-honour them or change them deliberately.
+*Rendering 900 rows takes about a minute.* Grail renders each Jinja template
+in a forked green thread and 900 table rows is not what that is for. The
+picker pages 25 at a time with a lookup box, and answers in ~1.6s. The count
+is the point, not the scroll.
+
+*`policy_status` is not "is there cover today".* The sample book's terms run
+either side of the present: of 217 policies marked Lapsed, only 53 have
+actually reached their lapse date. A screen reading the stored status calls a
+policy lapsed while it is still paying claims, so `app.cover_state()` compares
+against the date and says "Active", "Lapses <date>" or "Lapsed <date>".
+
+*A package submodule can go stale where a top-level module does not.* Editing
+`tests/test_app.py` had no effect run after run -- `from tests import
+test_app` kept returning the previously compiled module -- while edits to
+top-level `app.py` in the same tree took effect immediately. `run_app_tests.py`
+therefore reads the file and execs it rather than importing it. This is the
+same family as "Editing a class does not update the database", and the
+difference between the two cases is not yet explained; it is worth pinning
+down before CUJ-4 asks anyone to edit a module and watch the database notice.
+
+**Still open:** the claim form warns for both the cap and the lapse (decision
+4, settled), and the demo's two exemplars are BF-100092 (Active, one approval
+left) and BF-100746 (lapsed 2026-07-12, cap not spent, so its refusal is
+unambiguous). BF-100539 remains the mockups' policy but lapses in 2027, so it
+cannot demonstrate a live lapse refusal.
 
 ### 3. The notebook
 
