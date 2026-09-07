@@ -1,0 +1,140 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito+Sans:wght@400;600;700;800&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Nunito Sans', system-ui, -apple-system, sans-serif;
+           color: #10243a; background: #d8ecf7; -webkit-font-smoothing: antialiased; }
+    a { color: #0e6ba8; text-decoration: none; font-weight: 700; }
+    a:hover { color: #084d7a; text-decoration: underline; }
+    .rnd { font-family: 'Baloo 2', 'Nunito Sans', system-ui, sans-serif; }
+    .num { font-variant-numeric: tabular-nums }
+    .hint { font-size: 14px; color: #3f5f7a; line-height: 1.55; font-weight: 600 }
+    .card { background: #fff; border-radius: 22px; box-shadow: 0 3px 0 #b9d9ec }
+    .lbl { font-family: 'Baloo 2', 'Nunito Sans', sans-serif; font-size: 21px; font-weight: 700; color: #10243a }
+    .opt { display: flex; align-items: center; gap: 12px; background: #fff; border: 3px solid #fff;
+           border-radius: 16px; padding: 0 18px; min-height: 60px; font-size: 17px; font-weight: 700;
+           color: #10243a; box-shadow: 0 3px 0 #b9d9ec; text-align: left }
+    .opt-on { border-color: #0e6ba8; background: #eaf6fd; box-shadow: 0 3px 0 #0e6ba8 }
+    .dot { width: 22px; height: 22px; border-radius: 50%; border: 3px solid #c3dced; flex-shrink: 0 }
+    .dot-on { border-color: #0e6ba8; background: #0e6ba8; box-shadow: inset 0 0 0 3px #eaf6fd }
+    .btn { font-family: 'Baloo 2', 'Nunito Sans', sans-serif; display: inline-flex; align-items: center;
+           justify-content: center; min-height: 60px; padding: 0 32px; background: #0e6ba8; color: #fff;
+           border-radius: 18px; font-size: 22px; font-weight: 700; box-shadow: 0 4px 0 #084d7a }
+    .btn2 { font-family: 'Baloo 2', 'Nunito Sans', sans-serif; display: inline-flex; align-items: center;
+            justify-content: center; min-height: 60px; padding: 0 26px; background: #fff; color: #10243a;
+            border-radius: 18px; font-size: 20px; font-weight: 700; box-shadow: 0 3px 0 #b9d9ec }
+    .tag { display: inline-flex; align-items: center; gap: 7px; border-radius: 999px; padding: 6px 14px;
+           font-size: 14px; font-weight: 800 }
+    .new { display: inline-flex; align-items: center; background: #0e6ba8; color: #fff; font-size: 12px;
+           font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 9px; border-radius: 7px }
+  </style>
+</helmet>
+
+<div style="display: flex; flex-direction: column; min-height: 100%; background: #d8ecf7; position: relative; overflow: hidden">
+
+  <div style="position: absolute; top: -90px; right: -70px; width: 300px; height: 300px; border-radius: 50%; background: #c9e6f6"></div>
+  <div style="position: absolute; bottom: -110px; left: -80px; width: 360px; height: 360px; border-radius: 50%; background: #cde9f7"></div>
+
+  <div style="position: relative; padding: 20px 40px 0">
+    <div class="card" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 22px; border-radius: 20px">
+      <div style="display: flex; align-items: center; gap: 11px">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0e6ba8" stroke-width="2" stroke-linecap="round"><path d="M12 2.5v19"/><path d="M3.8 7.2l16.4 9.6"/><path d="M20.2 7.2L3.8 16.8"/><path d="M12 6.6l2.3-2.3M12 6.6L9.7 4.3M12 17.4l2.3 2.3M12 17.4l-2.3 2.3"/></svg>
+        <span class="rnd" style="font-weight: 800; font-size: 23px; letter-spacing: -0.01em">Brain&nbsp;Freeze</span>
+      </div>
+      <div style="display: flex; gap: 6px; align-items: center"><a href="#" style="font-size: 15px; padding: 9px 15px; border-radius: 12px; background: #eaf6fd; color: #084d7a">Get a quote</a><a href="#" style="font-size: 15px; padding: 9px 15px; border-radius: 12px; color: #3f5f7a">File a claim</a><a href="#" style="font-size: 15px; padding: 9px 15px; border-radius: 12px; color: #3f5f7a">My policy</a></div>
+    </div>
+  </div>
+
+  <div style="position: relative; display: flex; flex-direction: column; align-items: center; padding: 34px 40px 56px">
+    <div style="width: 100%; max-width: 880px; display: flex; flex-direction: column; gap: 26px">
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <h1 class="rnd" style="margin: 0; font-size: 50px; line-height: 1.04; font-weight: 800; letter-spacing: -0.02em; text-wrap: pretty">You're a 75.</h1>
+        <p class="hint" style="margin: 0; font-size: 17px; max-width: 30em">Age 11, eats fast, loves a slushie, no headache history. That lands in the High band &mdash; here is what it costs.</p>
+      </div>
+      <div class="card" style="padding: 26px 28px; display: flex; align-items: center; gap: 30px">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; flex-shrink: 0">
+          <span class="rnd num" style="font-size: 68px; font-weight: 800; line-height: 0.95; letter-spacing: -0.03em; color: #0e6ba8">75</span>
+          <span class="tag" style="background: #fdeae5; color: #8a2c17">High band</span>
+        </div>
+        <div style="width: 3px; align-self: stretch; background: #eaf6fd; border-radius: 2px"></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 10px">
+          <span class="lbl" style="font-size: 19px">Where it came from</span>
+          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 15.5px; font-weight: 700">
+            <div style="display: flex; justify-content: space-between"><span class="hint" style="font-weight: 600">Everyone starts here</span><span class="num">45</span></div>
+            <div style="display: flex; justify-content: space-between"><span class="hint" style="font-weight: 600">Eats it all immediately</span><span class="num" style="color: #8a2c17">+18</span></div>
+            <div style="display: flex; justify-content: space-between"><span class="hint" style="font-weight: 600">Slushies are the worst offender</span><span class="num" style="color: #8a2c17">+12</span></div>
+            <div style="display: flex; justify-content: space-between"><span class="hint" style="font-weight: 600">Age 11, no headache history</span><span class="num">0</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+        <div class="card" style="padding: 24px 22px; display: flex; flex-direction: column; gap: 15px; box-shadow: 0 3px 0 #b9d9ec; border: 4px solid #fff; position: relative">
+          
+          <span class="rnd" style="font-size: 26px; font-weight: 800">Basic</span>
+          <div style="display: flex; align-items: baseline; gap: 5px">
+            <span class="rnd num" style="font-size: 42px; font-weight: 800; letter-spacing: -0.025em; line-height: 1">$7.12</span>
+            <span class="hint" style="font-size: 15px">/ mo</span>
+          </div>
+          <span class="hint num" style="font-size: 13.5px; margin-top: -10px">$85.50 a year</span>
+          <div style="height: 3px; background: #eaf6fd; border-radius: 2px"></div>
+          <div style="display: flex; flex-direction: column; gap: 9px; font-size: 15px; font-weight: 700">
+            <div style="display: flex; justify-content: space-between"><span class="hint" style="font-weight: 600">Per episode</span><span class="num">$25</span></div>
+            <div style="display: flex; justify-content: space-between"><span class="hint" style="font-weight: 600">Deductible</span><span class="num">$10</span></div>
+            <div style="display: flex; justify-content: space-between"><span class="hint" style="font-weight: 600">Claims a year</span><span class="num">4</span></div>
+          </div>
+          <div class="btn2" style="min-height: 54px; font-size: 19px; margin-top: auto; box-shadow: 0 3px 0 #c3dced">Pick Basic</div>
+        </div>
+        <div class="card" style="padding: 24px 22px; display: flex; flex-direction: column; gap: 15px; box-shadow: 0 5px 0 #084d7a; border: 4px solid #0e6ba8; position: relative">
+          <span class="tag" style="position: absolute; top: -15px; left: 20px; background: #0e6ba8; color: #fff">Most picked</span>
+          <span class="rnd" style="font-size: 26px; font-weight: 800">Standard</span>
+          <div style="display: flex; align-items: baseline; gap: 5px">
+            <span class="rnd num" style="font-size: 42px; font-weight: 800; letter-spacing: -0.025em; line-height: 1">$14.25</span>
+            <span class="hint" style="font-size: 15px">/ mo</span>
+          </div>
+          <span class="hint num" style="font-size: 13.5px; margin-top: -10px">$171.00 a year</span>
+          <div style="height: 3px; background: #eaf6fd; border-radius: 2px"></div>
+          <div style="display: flex; flex-direction: column; gap: 9px; font-size: 15px; font-weight: 700">
+            <div style="display: flex; justify-content: space-between"><span class="hint" style="font-weight: 600">Per episode</span><span class="num">$60</span></div>
+            <div style="display: flex; justify-content: space-between"><span class="hint" style="font-weight: 600">Deductible</span><span class="num">$5</span></div>
+            <div style="display: flex; justify-content: space-between"><span class="hint" style="font-weight: 600">Claims a year</span><span class="num">4</span></div>
+          </div>
+          <div class="btn" style="min-height: 54px; font-size: 19px; margin-top: auto">Pick Standard</div>
+        </div>
+        <div class="card" style="padding: 24px 22px; display: flex; flex-direction: column; gap: 15px; box-shadow: 0 3px 0 #b9d9ec; border: 4px solid #fff; position: relative">
+          
+          <span class="rnd" style="font-size: 26px; font-weight: 800">Premium</span>
+          <div style="display: flex; align-items: baseline; gap: 5px">
+            <span class="rnd num" style="font-size: 42px; font-weight: 800; letter-spacing: -0.025em; line-height: 1">$28.50</span>
+            <span class="hint" style="font-size: 15px">/ mo</span>
+          </div>
+          <span class="hint num" style="font-size: 13.5px; margin-top: -10px">$342.00 a year</span>
+          <div style="height: 3px; background: #eaf6fd; border-radius: 2px"></div>
+          <div style="display: flex; flex-direction: column; gap: 9px; font-size: 15px; font-weight: 700">
+            <div style="display: flex; justify-content: space-between"><span class="hint" style="font-weight: 600">Per episode</span><span class="num">$150</span></div>
+            <div style="display: flex; justify-content: space-between"><span class="hint" style="font-weight: 600">Deductible</span><span class="num">none</span></div>
+            <div style="display: flex; justify-content: space-between"><span class="hint" style="font-weight: 600">Claims a year</span><span class="num">4</span></div>
+          </div>
+          <div class="btn2" style="min-height: 54px; font-size: 19px; margin-top: auto; box-shadow: 0 3px 0 #c3dced">Pick Premium</div>
+        </div>
+      </div>
+
+      <span class="hint" style="font-size: 13.5px">The High band nearly doubles the base rate. A Low-band 16-year-old who sips a smoothie pays $31.50, $63.00 or $126.00 a year.</span>
+
+    </div>
+  </div>
+
+  <div style="position: relative; text-align: center; padding: 0 40px 18px">
+    <span style="font-size: 13px; font-weight: 700; color: #3f5f7a">Sample application &mdash; every policy and claim here lives in a GemDB database.</span>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #1c1c1e; background: #eceded; }
+    a { color: #0a5c8a; text-decoration: none; }
+    a:hover { color: #073f5e; text-decoration: underline; }
+    .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums }
+    .nav { font-size: 13px; color: #9aa0a6; padding: 13px 14px; border-radius: 5px }
+    .nav-on { background: #2c3033; color: #fff; font-weight: 500 }
+    .th { font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #7c8288 }
+    .cell { font-size: 12.5px; padding: 9px 12px; border-bottom: 1px solid #e3e5e6; white-space: nowrap }
+  </style>
+</helmet>
+
+<div style="display: flex; flex-direction: column; height: 100%; background: #eceded">
+
+  <div style="display: flex; align-items: center; gap: 10px; padding: 12px 20px; background: #fff; border-bottom: 1px solid #d9dcde">
+    <span style="background: #1c1c1e; color: #fff; font-size: 10.5px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; padding: 4px 9px; border-radius: 4px">Direction B</span>
+    <span style="font-size: 13px; color: #5c6266">Claims console &mdash; dense, tabular, built for someone who reads this all day</span>
+  </div>
+
+  <div style="display: flex; flex-grow: 1; min-height: 0">
+
+    <div style="width: 168px; background: #1c1c1e; padding: 18px 12px; display: flex; flex-direction: column; gap: 4px; flex-shrink: 0">
+      <span class="mono" style="color: #fff; font-size: 13px; font-weight: 600; padding: 0 14px 16px">bf&#8209;claims</span>
+      <div class="nav nav-on">Policies</div>
+      <div class="nav">Claims queue</div>
+      <div class="nav">Adjudication</div>
+      <div class="nav">Exposure events</div>
+      <div class="nav">Loss ratios</div>
+      <div style="margin-top: auto; padding: 0 14px">
+        <span class="mono" style="font-size: 11px; color: #6b7176">900 policies<br>5,017 events<br>9 for this one</span>
+      </div>
+    </div>
+
+    <div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0">
+
+      <div style="display: flex; align-items: center; gap: 14px; padding: 12px 20px; background: #fff; border-bottom: 1px solid #d9dcde">
+        <div class="mono" style="flex-grow: 1; max-width: 300px; height: 44px; border: 1px solid #d9dcde; border-radius: 5px; display: flex; align-items: center; padding: 0 10px; font-size: 12px; color: #9aa0a6">BF-100023</div>
+        <span class="th">Tier</span><span class="mono" style="font-size: 12px">MEDIUM</span>
+        <span class="th">Plan</span><span class="mono" style="font-size: 12px">STANDARD</span>
+        <span class="th">Cap</span><span class="mono" style="font-size: 12px; color: #a2410b; font-weight: 600">4/4</span>
+      </div>
+
+      <div style="display: flex; flex-grow: 1; min-height: 0">
+        <div style="flex-grow: 1; background: #fff; padding: 0; min-width: 0; overflow: hidden">
+          <div style="display: grid; grid-template-columns: 112px 1fr 56px 56px 116px 78px; padding: 10px 12px; border-bottom: 1px solid #d9dcde; background: #f6f7f7">
+            <span class="th">Date</span><span class="th">Event</span><span class="th">NRS</span><span class="th">Dur</span><span class="th">Claim</span><span class="th" style="text-align: right">Paid</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 112px 1fr 56px 56px 116px 78px" class="mono">
+            <span class="cell">2026-02-18</span><span class="cell" style="font-family: 'IBM Plex Sans'">iced soda</span><span class="cell" style="color: #9aa0a6">&ndash;</span><span class="cell" style="color: #9aa0a6">&ndash;</span><span class="cell" style="color: #9aa0a6">&ndash;</span><span class="cell" style="text-align: right; color: #9aa0a6">&ndash;</span>
+            <span class="cell">2026-04-25</span><span class="cell" style="font-family: 'IBM Plex Sans'">popsicle</span><span class="cell">2.2</span><span class="cell">20s</span><span class="cell" style="color: #9aa0a6">&ndash;</span><span class="cell" style="text-align: right; color: #9aa0a6">&ndash;</span>
+            <span class="cell">2026-05-31</span><span class="cell" style="font-family: 'IBM Plex Sans'">ice cream</span><span class="cell">3.2</span><span class="cell">565s</span><span class="cell">CLM-000056</span><span class="cell" style="text-align: right; font-weight: 600">55.00</span>
+            <span class="cell">2026-06-01</span><span class="cell" style="font-family: 'IBM Plex Sans'">iced soda</span><span class="cell">5.0</span><span class="cell">13s</span><span class="cell">CLM-000057</span><span class="cell" style="text-align: right; font-weight: 600">32.70</span>
+            <span class="cell">2026-08-06</span><span class="cell" style="font-family: 'IBM Plex Sans'">slushie</span><span class="cell">3.2</span><span class="cell">430s</span><span class="cell">CLM-000058</span><span class="cell" style="text-align: right; font-weight: 600">50.73</span>
+            <span class="cell">2026-09-19</span><span class="cell" style="font-family: 'IBM Plex Sans'">smoothie</span><span class="cell" style="color: #9aa0a6">&ndash;</span><span class="cell" style="color: #9aa0a6">&ndash;</span><span class="cell" style="color: #9aa0a6">&ndash;</span><span class="cell" style="text-align: right; color: #9aa0a6">&ndash;</span>
+            <span class="cell">2026-10-18</span><span class="cell" style="font-family: 'IBM Plex Sans'">popsicle</span><span class="cell">3.2</span><span class="cell">20s</span><span class="cell" style="color: #9aa0a6">&ndash;</span><span class="cell" style="text-align: right; color: #9aa0a6">&ndash;</span>
+            <span class="cell">2026-10-24</span><span class="cell" style="font-family: 'IBM Plex Sans'">iced soda</span><span class="cell">4.9</span><span class="cell">522s</span><span class="cell">CLM-000059</span><span class="cell" style="text-align: right; font-weight: 600">55.00</span>
+            <span class="cell" style="background: #fdf6ec">2026-11-06</span><span class="cell" style="font-family: 'IBM Plex Sans'; background: #fdf6ec">smoothie</span><span class="cell" style="background: #fdf6ec">4.6</span><span class="cell" style="background: #fdf6ec">22s</span><span class="cell" style="background: #fdf6ec">CLM-000060</span><span class="cell" style="text-align: right; background: #fdf6ec; color: #a2410b; font-weight: 600">DENIED</span>
+          </div>
+        </div>
+
+        <div style="width: 210px; background: #f6f7f7; border-left: 1px solid #d9dcde; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; flex-shrink: 0">
+          <div style="display: flex; flex-direction: column; gap: 5px">
+            <span class="th">Adjudication</span>
+            <span class="mono" style="font-size: 12px; line-height: 1.7">requested&nbsp;&nbsp;38.68<br>limit&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;60.00<br>deductible&nbsp;&nbsp;5.00<br>cap&nbsp;used&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;4/4</span>
+          </div>
+          <div style="height: 1px; background: #dfe1e3"></div>
+          <div style="display: flex; flex-direction: column; gap: 5px">
+            <span class="th">Result</span>
+            <span class="mono" style="font-size: 13px; font-weight: 600; color: #a2410b">DENIED &mdash; 0.00</span>
+            <span style="font-size: 11.5px; color: #5c6266; line-height: 1.45">ANNUAL_CLAIM_LIMIT</span>
+          </div>
+          <div style="height: 1px; background: #dfe1e3"></div>
+          <div style="display: flex; flex-direction: column; gap: 5px">
+            <span class="th">Policy loss ratio</span>
+            <span class="mono" style="font-size: 19px; font-weight: 600; color: #a2410b">2.06</span>
+            <span style="font-size: 11.5px; color: #5c6266">193.43 paid on 93.87 premium</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

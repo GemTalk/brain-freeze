@@ -1,0 +1,44 @@
+{
+  "pages": [
+    { "id": "page-1", "name": "Screens" },
+    { "id": "page-2", "name": "Insurer view" }
+  ],
+  "artboards": [
+    { "file": "Picker.dc.html",       "page": "page-1", "title": "0 · Who are you today?",       "x": 0,    "y": 0,    "w": 1000, "h": 1180 },
+    { "file": "Main.dc.html",         "page": "page-1", "title": "1 · Get a quote",              "x": 1240, "y": 0,    "w": 1000, "h": 1660 },
+    { "file": "Plans.dc.html",        "page": "page-1", "title": "2 · Compare plans",            "x": 2480, "y": 0,    "w": 1000, "h": 1280 },
+
+    { "file": "Accepted.dc.html",     "page": "page-1", "title": "3 · You're covered",           "x": 0,    "y": 2100, "w": 1000, "h": 1020 },
+    { "file": "FileClaim.dc.html",    "page": "page-1", "title": "4 · File a claim",             "x": 1240, "y": 2100, "w": 1000, "h": 2450 },
+    { "file": "Decision.dc.html",     "page": "page-1", "title": "5 · The decision",             "x": 2480, "y": 2100, "w": 1000, "h": 1240 },
+
+    { "file": "History.dc.html",      "page": "page-1", "title": "6 · Policy history",           "x": 0,    "y": 4950, "w": 1000, "h": 1560 },
+    { "file": "EmptyHistory.dc.html", "page": "page-1", "title": "6b · A policy with no events", "x": 1240, "y": 4950, "w": 1000, "h": 980 },
+    { "file": "ClaimV2.dc.html",      "page": "page-1", "title": "CUJ-4 · Flavour and toppings", "x": 2480, "y": 4950, "w": 1000, "h": 3200 },
+
+    { "file": "DirectionB.dc.html",   "page": "page-2", "title": "Direction B · insurer console", "x": 0,   "y": 0,    "w": 1040, "h": 780 }
+  ],
+  "annotations": [
+    { "id": "note-picker",   "page": "page-1", "x": 0,    "y": -260, "w": 380,
+      "text": "No sign-in by design, so something has to stand in. A picker over the 900 real policyholders is the honest answer, and it doubles as the front door." },
+    { "id": "note-quote",    "page": "page-1", "x": 1240, "y": -260, "w": 380,
+      "text": "Direction C's look on a single form, not one question per screen — five round trips to get a quote is tedious in a demo you walk someone through in fifteen minutes.\n\nSex is in the CSVs but carries no weight in the risk model, so it is off the form." },
+    { "id": "note-plans",    "page": "page-1", "x": 2480, "y": -260, "w": 380,
+      "text": "The breakdown is exact: 45 + 18 + 12 = 75.\n\nBut the generator adds a random N(45,15) base per policyholder, so the app can never reproduce a score already in the data." },
+    { "id": "note-accepted", "page": "page-1", "x": 0,    "y": 1740, "w": 400,
+      "text": "The CSVs carry no names, only policy_id, so a policy is identified by number alone rather than inventing a field the dataset does not have.\n\nA new policy also gets an exact premium, where every generated one carries ±5% noise." },
+    { "id": "note-claim",    "page": "page-1", "x": 1240, "y": 1740, "w": 380,
+      "text": "Temperature and portion are bands, not readings. Severity drives the assessed amount, so the claimant never types a figure.\n\nStill open: whether to warn here when the annual cap is already spent." },
+    { "id": "note-decision", "page": "page-1", "x": 2480, "y": 1740, "w": 380,
+      "text": "$62.77 assessed → trimmed to the $60 cap → less the $5 deductible → $55.00. Real numbers from CLM-000059, and the refusal beneath it is the claim that actually followed, CLM-000060." },
+    { "id": "note-history",  "page": "page-1", "x": 0,    "y": 4650, "w": 400,
+      "text": "All nine events, not just the five claims. Attach only filed claims to the policyholder object and claim frequency stops being computable.\n\nThis policy paid out $193.43 against $93.87 of premium — a loss ratio of 2.06." },
+    { "id": "note-empty",    "page": "page-1", "x": 1240, "y": 4650, "w": 380,
+      "text": "Reachable within a minute of starting the app: accept a quote and this is what you see. A policy with zero events is a valid state, not an error." },
+    { "id": "note-cuj4",     "page": "page-1", "x": 2480, "y": 4650, "w": 420,
+      "text": "The screen the developer edits in journey 4. Identical to screen 4 but for the two questions and the banner — which is the point: Grail keeps Python attributes in dynamic instance variables, so there is nothing to migrate.\n\nThe one real lesson is that older claims need a class-level default, or reading claim.flavour raises AttributeError." },
+    { "id": "note-console",  "page": "page-2", "x": 0,    "y": -220, "w": 480,
+      "text": "Not an alternative look — a second audience. The policyholder screens answer \"what am I owed\"; this answers \"which plan is losing money\", which is exactly what CUJ-2 asks the AI. Sketched in its own idiom; it would want reworking into C's vocabulary if we build it." }
+  ],
+  "launch": { "view": "canvas", "page": "page-1" }
+}

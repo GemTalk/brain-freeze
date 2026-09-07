@@ -1,5 +1,4 @@
-"""
-Synthetic "Brain Freeze Insurance" dataset generator.
+"""Synthetic "Brain Freeze Insurance" dataset generator.
 
 Produces two linked CSVs for a fun insurance/risk-analytics demo aimed at
 kids & teens:
@@ -19,6 +18,15 @@ effect sizes, dollar amounts, and risk scores are exaggerated/tuned for
 demo drama rather than epidemiological accuracy. Treat every number here
 as "for building a fun product demo," not a real actuarial filing.
 
+WHAT THIS FILE DOES AND DOES NOT OWN. The underwriting weights, the tier
+bands, the plan terms and the claim rules live in the `brainfreeze` package,
+which is pure standard-library Python so the web app can import the same
+functions inside the database. This file owns the *sampling* -- how many
+policyholders, how their answers are drawn, how much noise sits on a premium,
+and the small chance of a denial for a reason the rules do not model. Keeping
+those apart is what stops the app's quote and the sample data from drifting
+into disagreement.
+
 Run: python3 generate_brain_freeze_insurance_data.py
 """
 
@@ -26,22 +34,38 @@ import numpy as np
 import pandas as pd
 from datetime import date, timedelta
 
+from brainfreeze import (
+    ANNUAL_CLAIM_LIMIT,
+    COVERAGE_PLANS,
+    TRIGGER_RISK_MULT,
+    TRIGGER_TYPES,
+    adjudicate,
+    annual_premium,
+    assess_amount,
+    risk_score,
+    risk_tier,
+)
+
 RNG = np.random.default_rng(20260828)
 
 N_POLICIES = 900
 EVENTS_PER_POLICY = (2, 9)  # cold-treat events during the ~1yr policy term
 POLICY_TERM_MONTHS = 12
 
-TRIGGER_TYPES = ["ice cream", "slushie", "popsicle", "iced soda", "smoothie", "cold plunge"]
-# playful per-trigger risk multiplier (how likely this trigger is to cause brain freeze)
-TRIGGER_RISK_MULT = {
-    "ice cream": 1.3,
-    "slushie": 1.6,
-    "popsicle": 1.5,
-    "iced soda": 0.8,
-    "smoothie": 0.7,
-    "cold plunge": 1.1,
-}
+#: Where each policyholder's score starts, before their answers move it.
+#: NOTE: this is sampled and then thrown away -- the drawn value is not a
+#: column, so a score in the output cannot be reproduced from the answers that
+#: are. The app has to quote from brainfreeze.BASE_RISK instead, which means an
+#: applicant who matches an existing row can get a different tier. Recording
+#: this as a column is the fix; it is a dataset change, so it is not made here.
+BASE_RISK_MEAN, BASE_RISK_SD = 45, 15
+
+#: Multiplicative jitter on a premium, so the sample book is not uniform.
+PREMIUM_NOISE_SD = 0.05
+
+#: Chance a claim is turned down for something the rules do not model.
+UNMODELLED_DENIAL_RATE = 0.04
+
 TRIGGER_TEMP_RANGE_C = {
     "ice cream": (-15, -8),
     "slushie": (-6, -2),
@@ -51,21 +75,13 @@ TRIGGER_TEMP_RANGE_C = {
     "cold plunge": (10, 18),
 }
 
-COVERAGE_PLANS = {
-    # plan: (annual base premium $, per-incident coverage limit $, per-incident deductible $)
-    "Basic": (45.0, 25.0, 10.0),
-    "Standard": (90.0, 60.0, 5.0),
-    "Premium": (180.0, 150.0, 0.0),
-}
-
-RISK_TIER_MULT = {"Low": 0.7, "Medium": 1.0, "High": 1.9}  # exaggerated on purpose
-
 PAIN_LOCATIONS = ["forehead", "temple", "occipital", "whole head"]
 PAIN_LOCATION_PROBS = [0.42, 0.33, 0.13, 0.12]
 
 PAIN_QUALITIES = ["stabbing", "pulling", "dull/pressing"]
 PAIN_QUALITY_PROBS = [0.52, 0.28, 0.20]
 
+#: Reasons only the generator can produce -- see UNMODELLED_DENIAL_RATE.
 DENIAL_REASONS = [
     "Pre-existing headache condition exclusion",
     "Claim amount exceeds per-incident coverage limit",
@@ -73,8 +89,6 @@ DENIAL_REASONS = [
     "Filed outside claim window",
     "Exceeded annual claim limit",
 ]
-
-ANNUAL_CLAIM_LIMIT = 4  # max approved claims per policy per year, playful cap
 
 
 def random_dates_in_term(start, months, n):
@@ -92,30 +106,14 @@ def make_policyholders(n):
     typical_speed = RNG.choice(["slow", "moderate", "fast"], size=n, p=[0.28, 0.44, 0.28])
     favorite_trigger = RNG.choice(TRIGGER_TYPES, size=n)
 
-    # underwriting risk score 0-100, playful/exaggerated weighting
-    speed_pts = np.select(
-        [typical_speed == "slow", typical_speed == "moderate", typical_speed == "fast"],
-        [-8, 0, 18],
-    )
-    age_pts = np.where(age <= 9, 10, np.where(age >= 15, -6, 0))  # younger = eats recklessly
-    trigger_pts = np.array([(TRIGGER_RISK_MULT[t] - 1) * 20 for t in favorite_trigger])
-
-    base = RNG.normal(45, 15, size=n)
-    risk_score = (
-        base
-        + np.where(migraine_history, 22, 0)
-        + np.where(tth_history, 10, 0)
-        + speed_pts
-        + age_pts
-        + trigger_pts
-    )
-    risk_score = np.clip(risk_score, 1, 100)
-
-    risk_tier = np.select(
-        [risk_score < 34, risk_score < 67],
-        ["Low", "Medium"],
-        default="High",
-    )
+    # Each policyholder's starting point. Sampled here, scored in brainfreeze.
+    base = RNG.normal(BASE_RISK_MEAN, BASE_RISK_SD, size=n)
+    scores = np.array([
+        risk_score(int(age[i]), bool(migraine_history[i]), bool(tth_history[i]),
+                   str(typical_speed[i]), str(favorite_trigger[i]), float(base[i]))
+        for i in range(n)
+    ])
+    tiers = np.array([risk_tier(float(s)) for s in scores])
 
     coverage_plan = RNG.choice(list(COVERAGE_PLANS.keys()), size=n, p=[0.45, 0.4, 0.15])
 
@@ -123,12 +121,11 @@ def make_policyholders(n):
     coverage_limits = np.zeros(n)
     deductibles = np.zeros(n)
     for i in range(n):
-        base_prem, cov_limit, ded = COVERAGE_PLANS[coverage_plan[i]]
-        tier_mult = RISK_TIER_MULT[risk_tier[i]]
-        noise = RNG.normal(1.0, 0.05)
-        annual_premiums[i] = round(base_prem * tier_mult * noise, 2)
-        coverage_limits[i] = cov_limit
-        deductibles[i] = ded
+        plan = COVERAGE_PLANS[coverage_plan[i]]
+        noise = RNG.normal(1.0, PREMIUM_NOISE_SD)
+        annual_premiums[i] = round(annual_premium(coverage_plan[i], tiers[i]) * noise, 2)
+        coverage_limits[i] = plan.coverage_limit_per_incident
+        deductibles[i] = plan.deductible_per_incident
 
     start_dates = [date(2026, 1, 1) + timedelta(days=int(d)) for d in RNG.integers(0, 300, size=n)]
 
@@ -140,8 +137,8 @@ def make_policyholders(n):
         "tension_type_headache_history": tth_history,
         "typical_consumption_speed": typical_speed,
         "favorite_trigger": favorite_trigger,
-        "underwriting_risk_score": np.round(risk_score, 1),
-        "risk_tier": risk_tier,
+        "underwriting_risk_score": np.round(scores, 1),
+        "risk_tier": tiers,
         "coverage_plan": coverage_plan,
         "coverage_limit_per_incident_usd": coverage_limits,
         "deductible_per_incident_usd": deductibles,
@@ -150,7 +147,7 @@ def make_policyholders(n):
         "policy_start_date": start_dates,
         "policy_term_months": POLICY_TERM_MONTHS,
         "policy_status": RNG.choice(["Active", "Active", "Active", "Lapsed"], size=n),
-        "_risk_score_raw": risk_score,
+        "_risk_score_raw": scores,
     })
     return policies
 
@@ -177,11 +174,9 @@ def make_claims(policies):
             )
             speed_factor = {"slow": -0.15, "moderate": 0.0, "fast": 0.30}[speed]
             portion_ml = float(np.clip(RNG.normal(160, 65), 30, 420))
-            temp_factor = -item_temp_c / 45  # colder = riskier, exaggerated vs. the research-grounded version
+            temp_factor = -item_temp_c / 45  # colder = riskier
             trigger_factor = (TRIGGER_RISK_MULT[trigger] - 1) * 0.6
 
-            # playful/exaggerated: personal risk score dominates, pushed harder than a
-            # "research-grounded" model would justify
             logit = (
                 -1.0
                 + 3.2 * (pol["_risk_score_raw"] / 100)
@@ -212,7 +207,6 @@ def make_claims(policies):
 
             if brain_freeze_occurred:
                 onset_sec = float(np.clip(RNG.lognormal(mean=np.log(30), sigma=0.6), 5, 300))
-                # playful: duration tail runs a bit longer/more dramatic than clinical reports
                 if RNG.random() < 0.8:
                     duration_sec = float(np.clip(RNG.lognormal(mean=np.log(22), sigma=0.65), 3, 120))
                 else:
@@ -235,27 +229,34 @@ def make_claims(policies):
                     claim_counter += 1
                     row["claim_id"] = f"CLM-{claim_counter:06d}"
 
-                    # requested amount scales with severity, playful dollar range
-                    claim_amount_requested = round(float(np.clip(
-                        10 + pain_intensity * 6 + duration_sec / 20 + RNG.normal(0, 5), 5, 200
-                    )), 2)
-
-                    cov_limit = pol["coverage_limit_per_incident_usd"]
-                    deductible = pol["deductible_per_incident_usd"]
+                    # What the episode is worth. The jitter is the generator's.
+                    claim_amount_requested = assess_amount(
+                        pain_intensity, duration_sec, jitter=RNG.normal(0, 5)
+                    )
 
                     if approved_claims_this_year >= ANNUAL_CLAIM_LIMIT:
-                        claim_status = "Denied"
-                        denial_reason = "Exceeded annual claim limit"
-                    elif RNG.random() < 0.04:
+                        decision = adjudicate(
+                            claim_amount_requested,
+                            pol["coverage_limit_per_incident_usd"],
+                            pol["deductible_per_incident_usd"],
+                            approved_claims_this_year,
+                        )
+                        claim_status, claim_amount_approved = decision.status, decision.amount
+                        denial_reason = decision.reason
+                    elif RNG.random() < UNMODELLED_DENIAL_RATE:
+                        # Not a rule -- paperwork, an exclusion, a late filing.
                         claim_status = "Denied"
                         denial_reason = RNG.choice(DENIAL_REASONS)
                     else:
-                        payable = max(0.0, min(claim_amount_requested, cov_limit) - deductible)
-                        claim_amount_approved = round(payable, 2)
-                        claim_status = "Approved" if payable > 0 else "Denied"
-                        if payable <= 0:
-                            denial_reason = "Claim amount below deductible"
-                        else:
+                        decision = adjudicate(
+                            claim_amount_requested,
+                            pol["coverage_limit_per_incident_usd"],
+                            pol["deductible_per_incident_usd"],
+                            approved_claims_this_year,
+                        )
+                        claim_status, claim_amount_approved = decision.status, decision.amount
+                        denial_reason = decision.reason
+                        if decision.approved:
                             approved_claims_this_year += 1
 
             row.update({
@@ -273,7 +274,6 @@ def make_claims(policies):
             rows.append(row)
 
     claims = pd.DataFrame(rows)
-    # give every row a stable event id even when no claim was filed
     claims.insert(0, "event_id", [f"EVT-{i+1:06d}" for i in range(len(claims))])
     return claims
 

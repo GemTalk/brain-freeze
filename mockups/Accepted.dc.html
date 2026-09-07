@@ -1,0 +1,116 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito+Sans:wght@400;600;700;800&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Nunito Sans', system-ui, -apple-system, sans-serif;
+           color: #10243a; background: #d8ecf7; -webkit-font-smoothing: antialiased; }
+    a { color: #0e6ba8; text-decoration: none; font-weight: 700; }
+    a:hover { color: #084d7a; text-decoration: underline; }
+    .rnd { font-family: 'Baloo 2', 'Nunito Sans', system-ui, sans-serif; }
+    .num { font-variant-numeric: tabular-nums }
+    .hint { font-size: 14px; color: #3f5f7a; line-height: 1.55; font-weight: 600 }
+    .card { background: #fff; border-radius: 22px; box-shadow: 0 3px 0 #b9d9ec }
+    .lbl { font-family: 'Baloo 2', 'Nunito Sans', sans-serif; font-size: 21px; font-weight: 700; color: #10243a }
+    .opt { display: flex; align-items: center; gap: 12px; background: #fff; border: 3px solid #fff;
+           border-radius: 16px; padding: 0 18px; min-height: 60px; font-size: 17px; font-weight: 700;
+           color: #10243a; box-shadow: 0 3px 0 #b9d9ec; text-align: left }
+    .opt-on { border-color: #0e6ba8; background: #eaf6fd; box-shadow: 0 3px 0 #0e6ba8 }
+    .dot { width: 22px; height: 22px; border-radius: 50%; border: 3px solid #c3dced; flex-shrink: 0 }
+    .dot-on { border-color: #0e6ba8; background: #0e6ba8; box-shadow: inset 0 0 0 3px #eaf6fd }
+    .btn { font-family: 'Baloo 2', 'Nunito Sans', sans-serif; display: inline-flex; align-items: center;
+           justify-content: center; min-height: 60px; padding: 0 32px; background: #0e6ba8; color: #fff;
+           border-radius: 18px; font-size: 22px; font-weight: 700; box-shadow: 0 4px 0 #084d7a }
+    .btn2 { font-family: 'Baloo 2', 'Nunito Sans', sans-serif; display: inline-flex; align-items: center;
+            justify-content: center; min-height: 60px; padding: 0 26px; background: #fff; color: #10243a;
+            border-radius: 18px; font-size: 20px; font-weight: 700; box-shadow: 0 3px 0 #b9d9ec }
+    .tag { display: inline-flex; align-items: center; gap: 7px; border-radius: 999px; padding: 6px 14px;
+           font-size: 14px; font-weight: 800 }
+    .new { display: inline-flex; align-items: center; background: #0e6ba8; color: #fff; font-size: 12px;
+           font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 9px; border-radius: 7px }
+  </style>
+</helmet>
+
+<div style="display: flex; flex-direction: column; min-height: 100%; background: #d8ecf7; position: relative; overflow: hidden">
+
+  <div style="position: absolute; top: -90px; right: -70px; width: 300px; height: 300px; border-radius: 50%; background: #c9e6f6"></div>
+  <div style="position: absolute; bottom: -110px; left: -80px; width: 360px; height: 360px; border-radius: 50%; background: #cde9f7"></div>
+
+  <div style="position: relative; padding: 20px 40px 0">
+    <div class="card" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 22px; border-radius: 20px">
+      <div style="display: flex; align-items: center; gap: 11px">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0e6ba8" stroke-width="2" stroke-linecap="round"><path d="M12 2.5v19"/><path d="M3.8 7.2l16.4 9.6"/><path d="M20.2 7.2L3.8 16.8"/><path d="M12 6.6l2.3-2.3M12 6.6L9.7 4.3M12 17.4l2.3 2.3M12 17.4l-2.3 2.3"/></svg>
+        <span class="rnd" style="font-weight: 800; font-size: 23px; letter-spacing: -0.01em">Brain&nbsp;Freeze</span>
+      </div>
+      <div style="display: flex; gap: 6px; align-items: center"><a href="#" style="font-size: 15px; padding: 9px 15px; border-radius: 12px; color: #3f5f7a">Get a quote</a><a href="#" style="font-size: 15px; padding: 9px 15px; border-radius: 12px; color: #3f5f7a">File a claim</a><a href="#" style="font-size: 15px; padding: 9px 15px; border-radius: 12px; background: #eaf6fd; color: #084d7a">My policy</a></div>
+    </div>
+  </div>
+
+  <div style="position: relative; display: flex; flex-direction: column; align-items: center; padding: 34px 40px 56px">
+    <div style="width: 100%; max-width: 680px; display: flex; flex-direction: column; gap: 26px">
+      <div style="display: flex; align-items: center; gap: 18px">
+        <div style="display: flex; align-items: center; justify-content: center; width: 68px; height: 68px; border-radius: 50%; background: #12855f; box-shadow: 0 4px 0 #0b5e43; flex-shrink: 0">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <h1 class="rnd" style="margin: 0; font-size: 48px; line-height: 1.02; font-weight: 800; letter-spacing: -0.02em">You're covered!</h1>
+      </div>
+
+      <div class="card" style="padding: 28px 30px; display: flex; align-items: center; justify-content: space-between; gap: 26px; background: #eaf6fd; box-shadow: 0 3px 0 #c3dced">
+        <div style="display: flex; flex-direction: column; gap: 5px">
+          <span class="hint" style="font-size: 13.5px; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 800">Your policy number</span>
+          <span class="rnd num" style="font-size: 40px; font-weight: 800; letter-spacing: -0.02em; line-height: 1">BF-100900</span>
+          <span class="hint" style="font-size: 13.5px">Quote it when you claim. There is nothing to log in to.</span>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0">
+          <span class="rnd num" style="font-size: 36px; font-weight: 800; letter-spacing: -0.02em; line-height: 1">$14.25</span>
+          <span class="hint" style="font-size: 13.5px">a month</span>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px">
+        <div class="card" style="padding: 22px 24px; display: flex; flex-direction: column; gap: 13px">
+          <span class="lbl" style="font-size: 19px">What you get</span>
+          <div style="display: flex; flex-direction: column; gap: 9px; font-size: 15.5px; font-weight: 700">
+            <div style="display: flex; justify-content: space-between"><span class="hint" style="font-weight: 600">Per episode</span><span class="num">up to $60</span></div>
+            <div style="display: flex; justify-content: space-between"><span class="hint" style="font-weight: 600">Deductible</span><span class="num">$5</span></div>
+            <div style="display: flex; justify-content: space-between"><span class="hint" style="font-weight: 600">Claims a year</span><span class="num">4</span></div>
+            <div style="display: flex; justify-content: space-between"><span class="hint" style="font-weight: 600">Runs until</span><span class="num">7 Sep 2027</span></div>
+          </div>
+        </div>
+        <div class="card" style="padding: 22px 24px; display: flex; flex-direction: column; gap: 13px">
+          <span class="lbl" style="font-size: 19px">What you told us</span>
+          <div style="display: flex; flex-direction: column; gap: 9px; font-size: 15.5px; font-weight: 700">
+            <div style="display: flex; justify-content: space-between"><span class="hint" style="font-weight: 600">Age</span><span class="num">11</span></div>
+            <div style="display: flex; justify-content: space-between"><span class="hint" style="font-weight: 600">Headaches</span><span>none</span></div>
+            <div style="display: flex; justify-content: space-between"><span class="hint" style="font-weight: 600">Pace</span><span>immediate</span></div>
+            <div style="display: flex; justify-content: space-between"><span class="hint" style="font-weight: 600">Favourite</span><span>slushie</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 14px">
+        <div class="btn">See my policy</div>
+        <div class="btn2" style="box-shadow: 0 3px 0 #c3dced">File a claim</div>
+      </div>
+
+      <div class="card" style="display: flex; gap: 13px; padding: 18px 20px; background: #fff">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0e6ba8" stroke-width="2.2" stroke-linecap="round" style="flex-shrink: 0; margin-top: 1px"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+        <span class="hint" style="font-size: 14.5px">Policy 900 follows the 900 already in the database &mdash; a new object in the same collection, committed. Refresh the notebook and it is there.</span>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="position: relative; text-align: center; padding: 0 40px 18px">
+    <span style="font-size: 13px; font-weight: 700; color: #3f5f7a">Sample application &mdash; every policy and claim here lives in a GemDB database.</span>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

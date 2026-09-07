@@ -1,0 +1,118 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito+Sans:wght@400;600;700;800&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Nunito Sans', system-ui, -apple-system, sans-serif;
+           color: #10243a; background: #d8ecf7; -webkit-font-smoothing: antialiased; }
+    a { color: #0e6ba8; text-decoration: none; font-weight: 700; }
+    a:hover { color: #084d7a; text-decoration: underline; }
+    .rnd { font-family: 'Baloo 2', 'Nunito Sans', system-ui, sans-serif; }
+    .num { font-variant-numeric: tabular-nums }
+    .hint { font-size: 14px; color: #3f5f7a; line-height: 1.55; font-weight: 600 }
+    .card { background: #fff; border-radius: 22px; box-shadow: 0 3px 0 #b9d9ec }
+    .lbl { font-family: 'Baloo 2', 'Nunito Sans', sans-serif; font-size: 21px; font-weight: 700; color: #10243a }
+    .opt { display: flex; align-items: center; gap: 12px; background: #fff; border: 3px solid #fff;
+           border-radius: 16px; padding: 0 18px; min-height: 60px; font-size: 17px; font-weight: 700;
+           color: #10243a; box-shadow: 0 3px 0 #b9d9ec; text-align: left }
+    .opt-on { border-color: #0e6ba8; background: #eaf6fd; box-shadow: 0 3px 0 #0e6ba8 }
+    .dot { width: 22px; height: 22px; border-radius: 50%; border: 3px solid #c3dced; flex-shrink: 0 }
+    .dot-on { border-color: #0e6ba8; background: #0e6ba8; box-shadow: inset 0 0 0 3px #eaf6fd }
+    .btn { font-family: 'Baloo 2', 'Nunito Sans', sans-serif; display: inline-flex; align-items: center;
+           justify-content: center; min-height: 60px; padding: 0 32px; background: #0e6ba8; color: #fff;
+           border-radius: 18px; font-size: 22px; font-weight: 700; box-shadow: 0 4px 0 #084d7a }
+    .btn2 { font-family: 'Baloo 2', 'Nunito Sans', sans-serif; display: inline-flex; align-items: center;
+            justify-content: center; min-height: 60px; padding: 0 26px; background: #fff; color: #10243a;
+            border-radius: 18px; font-size: 20px; font-weight: 700; box-shadow: 0 3px 0 #b9d9ec }
+    .tag { display: inline-flex; align-items: center; gap: 7px; border-radius: 999px; padding: 6px 14px;
+           font-size: 14px; font-weight: 800 }
+    .new { display: inline-flex; align-items: center; background: #0e6ba8; color: #fff; font-size: 12px;
+           font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 9px; border-radius: 7px }
+  </style>
+</helmet>
+
+<div style="display: flex; flex-direction: column; min-height: 100%; background: #d8ecf7; position: relative; overflow: hidden">
+
+  <div style="position: absolute; top: -90px; right: -70px; width: 300px; height: 300px; border-radius: 50%; background: #c9e6f6"></div>
+  <div style="position: absolute; bottom: -110px; left: -80px; width: 360px; height: 360px; border-radius: 50%; background: #cde9f7"></div>
+
+  <div style="position: relative; padding: 20px 40px 0">
+    <div class="card" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 22px; border-radius: 20px">
+      <div style="display: flex; align-items: center; gap: 11px">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0e6ba8" stroke-width="2" stroke-linecap="round"><path d="M12 2.5v19"/><path d="M3.8 7.2l16.4 9.6"/><path d="M20.2 7.2L3.8 16.8"/><path d="M12 6.6l2.3-2.3M12 6.6L9.7 4.3M12 17.4l2.3 2.3M12 17.4l-2.3 2.3"/></svg>
+        <span class="rnd" style="font-weight: 800; font-size: 23px; letter-spacing: -0.01em">Brain&nbsp;Freeze</span>
+      </div>
+      <div style="display: flex; gap: 6px; align-items: center"><a href="#" style="font-size: 15px; padding: 9px 15px; border-radius: 12px; background: #eaf6fd; color: #084d7a">Get a quote</a><a href="#" style="font-size: 15px; padding: 9px 15px; border-radius: 12px; color: #3f5f7a">File a claim</a><a href="#" style="font-size: 15px; padding: 9px 15px; border-radius: 12px; color: #3f5f7a">My policy</a></div>
+    </div>
+  </div>
+
+  <div style="position: relative; display: flex; flex-direction: column; align-items: center; padding: 34px 40px 56px">
+    <div style="width: 100%; max-width: 680px; display: flex; flex-direction: column; gap: 26px">
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <h1 class="rnd" style="margin: 0; font-size: 52px; line-height: 1.04; font-weight: 800; letter-spacing: -0.02em; text-wrap: pretty">Let's price<br>the freeze.</h1>
+        <p class="hint" style="margin: 0; font-size: 17px; max-width: 30em">Five questions about the person you want covered. Nothing is charged until you pick a plan.</p>
+      </div>
+      <div class="card" style="padding: 30px 32px; display: flex; flex-direction: column; gap: 28px">
+      <div style="display: flex; flex-direction: column; gap: 11px">
+        <div style="display: flex; align-items: center; gap: 10px"><span class="lbl">How old are they?</span></div>
+        <div style="display: flex; align-items: center; gap: 14px">
+          <div class="card num rnd" style="width: 130px; min-height: 60px; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 800; background: #eaf6fd; box-shadow: 0 3px 0 #c3dced">11</div>
+          <span class="hint">Cover runs from 5 to 19.</span>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 11px">
+        <div style="display: flex; align-items: center; gap: 10px"><span class="lbl">Any migraine diagnosis?</span></div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+          <div class="opt"><span class="dot"></span><span>Yes</span></div>
+          <div class="opt opt-on"><span class="dot dot-on"></span><span>No</span></div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 11px">
+        <div style="display: flex; align-items: center; gap: 10px"><span class="lbl">Any tension-headache diagnosis?</span></div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+          <div class="opt"><span class="dot"></span><span>Yes</span></div>
+          <div class="opt opt-on"><span class="dot dot-on"></span><span>No</span></div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 11px">
+        <div style="display: flex; align-items: center; gap: 10px"><span class="lbl">How fast do they get through something cold?</span></div>
+        <div style="display: flex; flex-direction: column; gap: 10px">
+          <div class="opt"><span class="dot"></span><span>Slowly, one sip at a time</span></div>
+          <div class="opt"><span class="dot"></span><span>About normal</span></div>
+          <div class="opt opt-on"><span class="dot dot-on"></span><span>All of it, immediately</span></div>
+        </div>
+        <span class="hint">This one moves the price more than anything else.</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 11px">
+        <div style="display: flex; align-items: center; gap: 10px"><span class="lbl">What do they reach for most?</span></div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+          <div class="opt"><span class="dot"></span><span>Ice cream</span></div>
+          <div class="opt opt-on"><span class="dot dot-on"></span><span>Slushie</span></div>
+          <div class="opt"><span class="dot"></span><span>Popsicle</span></div>
+          <div class="opt"><span class="dot"></span><span>Iced soda</span></div>
+          <div class="opt"><span class="dot"></span><span>Smoothie</span></div>
+          <div class="opt"><span class="dot"></span><span>Cold plunge</span></div>
+        </div>
+      </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 20px">
+        <div class="btn">See the plans</div>
+        <span class="hint" style="max-width: 20em">No account, no card, nothing saved until you say yes.</span>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="position: relative; text-align: center; padding: 0 40px 18px">
+    <span style="font-size: 13px; font-weight: 700; color: #3f5f7a">Sample application &mdash; every policy and claim here lives in a GemDB database.</span>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
