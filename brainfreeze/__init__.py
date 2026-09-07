@@ -27,6 +27,16 @@ from .model import (
     Event,
     Policyholder,
 )
+from .analysis import (
+    book_summary,
+    claim_approval_rate,
+    denial_reasons,
+    least_profitable_plan,
+    loss_ratio_by_plan,
+    loss_ratio_by_tier,
+    top_n_by_expected_claims,
+    top_n_by_loss_ratio,
+)
 from .adjudication import (
     ANNUAL_CLAIM_LIMIT,
     REASON_ANNUAL_LIMIT,
@@ -44,4 +54,7 @@ __all__ = [
     "REASON_ANNUAL_LIMIT", "REASON_BELOW_DEDUCTIBLE", "REASON_POLICY_LAPSED",
     "adjudicate", "assess_amount",
     "Book", "Claim", "Event", "Policyholder",
+    "book_summary", "claim_approval_rate", "denial_reasons",
+    "least_profitable_plan", "loss_ratio_by_plan", "loss_ratio_by_tier",
+    "top_n_by_expected_claims", "top_n_by_loss_ratio",
 ]
