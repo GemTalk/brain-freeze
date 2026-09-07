@@ -416,9 +416,16 @@ Active policy for that screen or make the refusal the point.
 
 These need a human. Do not guess them.
 
-1. **The repo and its visibility.** New public `GemTalk/brain-freeze-insurance`,
-   new-but-private until the FR-8.4 naming gate clears, or a directory inside
-   `GemDB_Code`. Currently a local repo with two commits and no remote.
+1. **The repo and its visibility.** Still open — public
+   `GemTalk/brain-freeze-insurance`, new-but-private until the FR-8.4 naming
+   gate clears, or a directory inside `GemDB_Code`.
+
+   As of 2026-09-07 `origin` is
+   `git@github.com:srbaker/brain-freeze-insurance-demo.git` — a personal repo,
+   not the `GemTalk` org, and **nothing has been pushed**. `main` has no
+   upstream set, so a bare `git push` does nothing by accident. Treat that
+   remote as a placeholder rather than the answer: it does not settle where
+   this ends up living, and the naming gate still applies.
 2. **What CUJ-4 demonstrates.** Grail keeps Python attributes in *dynamic*
    instance variables, so adding `flavour` is not a class version and there is
    nothing to migrate — FR-7.2 and FR-7.3 are satisfied vacuously. Either own
