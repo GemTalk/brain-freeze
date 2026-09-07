@@ -339,8 +339,12 @@ The variable that mattered was **where the script lives**, because that is
 `sys.path[0]`. A script in `/tmp` cannot see `brainfreeze/`, so its import
 resolves out of the database and silently gets the old class. `gemdb seed.py`,
 run from the project directory, found the source, recompiled, and committed —
-after which *every* session sees the new class, including ones that still
-cannot see the source.
+after which every session saw the new class.
+
+**That last sentence is true for a narrower reason than it looks, and work
+item 5 pins it down: `seed.py` rebuilds every object.** Re-importing edited
+source compiles a *different class*; instances committed under the old one
+keep it. Seeding hides that by replacing the whole book.
 
 So the rule is:
 
@@ -728,31 +732,64 @@ two notebooks open sits around six.
 data-grounded answers, and the answers can be checked against
 `tests/test_seed.py`'s figures.
 
-### 5. CUJ-4
+### 5. CUJ-4 — **DONE (2026-09-08)**
 
-Add `flavour` (string) and `toppings` (list) to the claim capture flow;
-`mockups/ClaimV2.dc.html` is the target screen. `Claim.flavour = None` and
-`Claim.toppings = ()` are already class attributes in `brainfreeze/model.py`
-— that is the entire migration, and the reason is worth stating in the docs:
-a claim written before the fields existed has no slot of its own, so without
-the class-level default, reading `claim.flavour` raises `AttributeError`.
+`flavour` and `toppings` are in the claim capture flow. New claims carry them,
+the 2,172 claims that came out of the CSVs still read `None` and `()`, and
+nothing was migrated or rewritten. Four tests pin it, including one that reads
+every seeded claim.
 
-Then answer FR-7.5 honestly by observation: what do the notebook and the MCP
-surface actually do when the schema changes underneath them? Write down what
-happened, including "nothing".
+The premise held exactly as written: `Claim.flavour = None` and
+`Claim.toppings = ()` were class attributes **before the class was first
+committed**, so a claim written without them has no slot of its own and reads
+the default through the class. That one line is the whole migration.
 
-**Part of this is already answered, and it is not "nothing".** Changing
-`model.py` under a live database was done accidentally during the
-regeneration, and the observed behaviour is in "Editing a class does not
-update the database": committed instances keep answering, a new method is
-simply absent, and an import from a directory that cannot see the source hands
-back the stale class without complaint. Reproduce it deliberately for the
-demo — it is more interesting than the field-addition it was meant to
-illustrate, and an evaluator who edits a file and sees no change will hit it
-whether or not it is scripted.
+### FR-7.5, answered by observation — and the answer is not "nothing"
 
-**Done when:** new claims carry flavour and toppings, the 2,239 existing
-claims still read, and the finding is documented.
+Adding a *value* for a field that already exists is free. Adding a *field* is
+not, and the difference is the thing worth demonstrating.
+
+Adding `cone_type = None` to `Claim`, then importing the edited source from
+the project directory and committing:
+
+```
+imported Claim             : <class 'brainfreeze.model.Claim'> 1947956
+persisted claim's class    : <class 'brainfreeze.model.Claim'>  309322
+SAME CLASS OBJECT?         : False
+imported has cone_type     : True
+persisted class has it     : False
+an existing claim reads it : AttributeError
+a NEW claim reads it       : None
+```
+
+**Editing a class compiles a different class.** The instances already in the
+database keep the one they were created under, and are orphaned from the new
+one — same name, same module, different object. A claim created after the edit
+reads the new attribute; the 2,172 committed before it cannot.
+
+Removing the attribute and re-seeding puts identity back:
+`SAME CLASS OBJECT? True`, same id. Nothing permanent was left behind.
+
+This also explains the earlier `is_in_force_on` result, which looked like the
+database picking up a source edit. It was not. `seed.py` had rebuilt all 900
+policyholders from the new class, so no instance was left holding the old one
+and the orphaning was invisible.
+
+So the honest CUJ-4 line is **not** "edit the model and the database just
+knows". It is: *the fields cost nothing because they were declared before
+anything was committed* — which is what a schemaless object database buys you,
+and it is a claim about foresight rather than magic. Anyone demonstrating this
+by editing `model.py` live will show an evaluator an AttributeError.
+
+Worth adding to the demo deliberately for that reason: it is a more
+interesting thirty seconds than the field-addition it was meant to illustrate,
+and it is the question a sceptical evaluator will ask anyway.
+
+**What the notebook and MCP do about it:** nothing, and correctly so. Both
+read through pre-declared attributes, so `analysis` and every question in
+`docs/mcp-questions.md` keep answering across the change. A notebook session
+holding the old class sees old behaviour until it re-imports — the same
+staleness recorded above, from the other side.
 
 ### 6. README and the PRD edits
 

@@ -31,6 +31,7 @@ if gemdb is not None:
 ACTIVE = "BF-100092"          # written by: a claim is paid and persisted
 ACTIVE_RULES = "BF-100150"    # written by: the payout matches adjudicate()
 ACTIVE_READONLY = "BF-100184" # never written -- for the "no warning" checks
+CUJ4 = "BF-100186"            # written by: the flavour/toppings claim
 
 #: Already past its lapse date, and its annual cap is NOT spent, so a claim
 #: filed against it can only be refused for the lapse. BF-100539 -- the policy
@@ -50,6 +51,10 @@ class TheApp(unittest.TestCase):
     def setUpClass(cls):
         gemdb.root["brainfreeze"] = seed.load()
         gemdb.commit()
+        # Which claims came out of the CSVs, captured before any test files
+        # one. New claims share the CLM-00nnnn shape, so the id is no help.
+        cls.seeded_claims = frozenset(
+            c.claim_id for c in gemdb.root["brainfreeze"].claims)
         cls.app = bf_app.create_app()
         cls.app.config["TESTING"] = True
 
@@ -240,6 +245,51 @@ class TheApp(unittest.TestCase):
         self.assertEqual(claim.status, "Denied")
         self.assertEqual(claim.reason, "Policy lapsed")
         self.assertEqual(claim.approved, 0.0)
+
+    # -- CUJ-4: two fields added after the data was already committed -----
+
+    def test_a_new_claim_carries_flavour_and_toppings(self):
+        r = self.client.post("/policies/%s/claims" % CUJ4, data={
+            "trigger": "ice cream", "cold": "Straight from the freezer",
+            "portion": "A lot", "speed": "All at once", "pain": "6",
+            "duration": "Half a minute to two", "location": "Temple",
+            "quality": "Pulling",
+            "flavour": "Mint choc chip",
+            "toppings": ["Sprinkles", "Hot fudge"]})
+        self.assertEqual(r.status_code, 302)
+
+        claim = self.book()[CUJ4].events[-1].claim
+        self.assertEqual(claim.flavour, "Mint choc chip")
+        self.assertEqual(claim.toppings, ("Sprinkles", "Hot fudge"))
+
+        # and it survives the commit, read back from the database
+        self.assertEqual(gemdb.root["brainfreeze"][CUJ4].events[-1].claim.flavour,
+                         "Mint choc chip")
+
+    def test_the_2172_older_claims_still_read(self):
+        # This is the whole of the migration. A claim written before the
+        # fields existed has no slot of its own; without the class-level
+        # default, reading claim.flavour would raise AttributeError.
+        older = [c for p in self.book() for c in p.claims
+                 if c.claim_id in self.seeded_claims]
+        self.assertEqual(len(older), 2172)
+        for claim in older:
+            self.assertIsNone(claim.flavour)
+            self.assertEqual(claim.toppings, ())
+
+    def test_the_form_offers_the_new_questions(self):
+        body = self.client.get("/policies/%s/claims/new" % ACTIVE_READONLY).data.decode()
+        self.assertIn('name="flavour"', body)
+        self.assertIn('name="toppings"', body)
+        self.assertIn("Mint choc chip", body)
+
+    def test_a_claim_without_them_is_still_valid(self):
+        # The questions are optional; a claim filed without answering them
+        # reads exactly like one from before they existed.
+        self._file(ACTIVE)
+        claim = self.book()[ACTIVE].events[-1].claim
+        self.assertIsNone(claim.flavour)
+        self.assertEqual(claim.toppings, ())
 
     def test_the_claimant_never_enters_an_amount(self):
         # The figure is derived from the episode, so the form must not offer

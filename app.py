@@ -107,6 +107,15 @@ DURATION_BANDS = [
 PAIN_LOCATIONS = ["Forehead", "Temple", "Back of the head", "All over"]
 PAIN_QUALITIES = ["Stabbing", "Pulling", "Dull and pressing"]
 
+#: CUJ-4. Added after 900 policies and 4,993 episodes were already committed.
+#: Nothing was migrated and nothing was rewritten: `Claim.flavour` and
+#: `Claim.toppings` are class attributes with defaults, so the 2,172 claims
+#: filed before these questions existed have no slot of their own and read
+#: None and () through the class. That is the entire migration.
+FLAVOURS = ["Vanilla", "Chocolate", "Strawberry", "Mint choc chip",
+            "Cookie dough", "Something else"]
+TOPPINGS = ["Sprinkles", "Hot fudge", "Whipped cream", "Nuts", "Cherry"]
+
 TRIGGERS = brainfreeze.TRIGGER_TYPES
 
 #: Policyholders per page on the picker.
@@ -275,7 +284,7 @@ def create_app():
             CLAIM_FORM, p=policy, triggers=TRIGGERS, colds=COLD_BANDS,
             portions=PORTION_BANDS, speeds=SPEED_BANDS,
             durations=DURATION_BANDS, locations=PAIN_LOCATIONS,
-            qualities=PAIN_QUALITIES,
+            qualities=PAIN_QUALITIES, flavours=FLAVOURS, toppings=TOPPINGS,
             warnings=_warnings(policy, date.today()))
 
     @app.route("/policies/<policy_id>/claims", methods=["POST"])
@@ -304,7 +313,9 @@ def create_app():
             requested=requested,
             approved=decision.amount,
             status=decision.status,
-            reason=decision.reason)
+            reason=decision.reason,
+            flavour=request.form.get("flavour") or None,
+            toppings=request.form.getlist("toppings") or None)
         policy.add_event(Event(
             event_id=_next_id([e.event_id for e in the_book.events],
                               "EVT", 6, 1),
@@ -578,6 +589,17 @@ CLAIM_FORM = _STYLE + """
     {% for q in qualities %}
     <label class="opt"><input type="radio" name="quality" value="{{ q }}"
       {% if loop.first %}checked{% endif %}> {{ q }}</label>{% endfor %}</fieldset>
+  <fieldset><legend>Which flavour? <span class="tag">new</span></legend>
+    {% for f in flavours %}
+    <label class="opt"><input type="radio" name="flavour" value="{{ f }}"
+      {% if loop.first %}checked{% endif %}> {{ f }}</label>{% endfor %}</fieldset>
+  <fieldset><legend>Anything on top? <span class="tag">new</span></legend>
+    {% for top in toppings %}
+    <label class="opt"><input type="checkbox" name="toppings"
+      value="{{ top }}"> {{ top }}</label>{% endfor %}
+    <div class="muted">These two questions went in after 900 policies and
+      4,993 episodes were already committed. No migration, nothing rewritten
+      &mdash; older claims simply have no flavour.</div></fieldset>
   <button type="submit">Send the claim</button>
 </form>
 """
@@ -588,7 +610,10 @@ DECISION = _STYLE + """
 {% else %}
 <h1>Not this time</h1>
 {% endif %}
-<p class="sub num">{{ c.claim_id }} &middot; {{ e.trigger }} &middot; {{ e.event_date }}</p>
+<p class="sub num">{{ c.claim_id }} &middot; {{ e.trigger }}
+  {%- if c.flavour %} ({{ c.flavour }}{% if c.toppings %},
+    {{ c.toppings|join(', ')|lower }}{% endif %}){% endif %}
+  &middot; {{ e.event_date }}</p>
 
 <div class="card">
   <table>
