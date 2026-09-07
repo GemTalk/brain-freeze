@@ -53,23 +53,26 @@ class Underwriting(unittest.TestCase):
 
 
 class Adjudication(unittest.TestCase):
-    def test_clm_000059_approved(self):
-        # BF-100023, Standard: $60 limit, $5 deductible, three approvals used
-        d = adjudicate(62.77, 60.0, 5.0, 3)
+    def test_clm_001288_approved(self):
+        # BF-100539, Standard: $60 limit, $5 deductible, three approvals used
+        d = adjudicate(64.32, 60.0, 5.0, 3)
         self.assertEqual(d.status, "Approved")
         self.assertEqual(d.amount, 55.00)
-        self.assertEqual(d.capped_by_limit, 2.77)
+        self.assertEqual(d.capped_by_limit, 4.32)
         self.assertEqual(d.deductible_applied, 5.00)
 
-    def test_clm_000060_hits_the_annual_cap(self):
-        d = adjudicate(38.68, 60.0, 5.0, 4)
+    def test_clm_001289_hits_the_annual_cap(self):
+        d = adjudicate(54.53, 60.0, 5.0, 4)
         self.assertEqual(d.status, "Denied")
         self.assertEqual(d.amount, 0.0)
         self.assertEqual(d.reason, "Exceeded annual claim limit")
 
-    def test_the_other_three_approvals_on_bf_100023(self):
-        for assessed, expected in ((63.05, 55.00), (37.70, 32.70), (55.73, 50.73)):
-            d = adjudicate(assessed, 60.0, 5.0, 0)
+    def test_the_other_three_approvals_on_bf_100539(self):
+        # requested, approvals already used, what was paid
+        for assessed, used, expected in ((39.19, 0, 34.19),
+                                         (40.78, 1, 35.78),
+                                         (71.37, 2, 55.00)):
+            d = adjudicate(assessed, 60.0, 5.0, used)
             self.assertEqual(d.amount, expected, assessed)
 
     def test_below_the_deductible_is_a_denial_not_a_zero_payment(self):
@@ -82,6 +85,25 @@ class Adjudication(unittest.TestCase):
         self.assertEqual(d.status, "Denied")
         self.assertEqual(d.amount, 0.0)
 
+    def test_a_lapsed_policy_pays_nothing(self):
+        # CLM-001291: filed 20 April 2027, six weeks after cover ended
+        d = adjudicate(43.09, 60.0, 5.0, 0, policy_in_force=False)
+        self.assertEqual(d.status, "Denied")
+        self.assertEqual(d.amount, 0.0)
+        self.assertEqual(d.reason, "Policy lapsed")
+
+    def test_lapse_is_reported_ahead_of_the_cap(self):
+        # Both rules would refuse this. The claimant is entitled to the reason
+        # that actually applies: there was no cover, cap or no cap.
+        d = adjudicate(43.09, 60.0, 5.0, 4, policy_in_force=False)
+        self.assertEqual(d.reason, "Policy lapsed")
+
+    def test_a_policy_in_force_is_unaffected(self):
+        # The default has to stay the old behaviour or every existing call
+        # silently changes meaning.
+        self.assertEqual(adjudicate(43.09, 60.0, 5.0, 0).amount,
+                         adjudicate(43.09, 60.0, 5.0, 0, policy_in_force=True).amount)
+
     def test_premium_plan_has_no_deductible(self):
         d = adjudicate(120.00, 150.0, 0.0, 0)
         self.assertEqual(d.amount, 120.00)
@@ -90,8 +112,9 @@ class Adjudication(unittest.TestCase):
 
 class Assessment(unittest.TestCase):
     def test_the_claimant_never_enters_a_figure(self):
-        # pain 4.9 over 522.2s, the CLM-000059 episode, before jitter
-        self.assertEqual(assess_amount(4.9, 522.2), 65.51)
+        # pain 6.4 over 456.3s, the CLM-001288 episode, before the generator's
+        # jitter took it to the $64.32 that is in the CSV
+        self.assertEqual(assess_amount(6.4, 456.3), 71.22)
 
     def test_bounds(self):
         self.assertEqual(assess_amount(0, 0), 10.0)
