@@ -55,6 +55,7 @@ PLAN.md        this file
 | `brainfreeze/underwriting.py` | risk score, tiers, plan terms, premiums | done |
 | `brainfreeze/adjudication.py` | the claim rules: lapse, cap, limit, deductible | done |
 | `brainfreeze/model.py` | `Book`, `Policyholder`, `Event`, `Claim` | done |
+| `brainfreeze/analysis.py` | the named questions an agent composes | done |
 | `datagen/` | sampling only; internal tool, the only numpy/pandas in the repo | done |
 | `data/` | `policyholders.csv`, `claims.csv` — 900 policies, 4,993 events | done, **regenerated 2026-09-07** |
 | `seed.py` | `data/` → objects in `gemdb.root`, with a smoke test | done, **verified against a real database** |
@@ -66,7 +67,7 @@ PLAN.md        this file
 | `tests/test_app.py` | 18 tests through Flask's test client | done |
 | `run_app_tests.py` | runs those inside the database | done |
 | the notebook | — | **not started** |
-| the MCP analysis helpers | — | **not started** |
+| the MCP server wiring | — | **not started** |
 | the README that sequences CUJ-0→4 | — | **not started** |
 
 `policyholders.xlsx` / `claims.xlsx` — the spreadsheets the dataset was first
@@ -622,11 +623,29 @@ browsing and search. **There is no tool that knows about policyholders.** An
 agent answers "loss ratio by risk tier" by writing Python and running it
 through `eval_python`.
 
-That works, and it is the better story, but it needs help: add
-`brainfreeze/analysis.py` with named functions (`loss_ratio_by_tier`,
-`least_profitable_plan`, `top_n_by_expected_claims`, `claim_approval_rate`)
-so the agent composes rather than derives. Ship a list of questions the demo
-promises will work, and verify each one.
+That works, and it is the better story, but it needs help. **The helpers are
+done (2026-09-08)**: `brainfreeze/analysis.py` gives the agent named questions
+to compose rather than derive -- `book_summary`, `loss_ratio_by_tier`,
+`loss_ratio_by_plan`, `least_profitable_plan`, `claim_approval_rate`,
+`denial_reasons`, `top_n_by_expected_claims`, `top_n_by_loss_ratio`. All
+exported from `brainfreeze`, standard-library only, 15 tests pinned to figures
+read out of `data/` by a separate script, and verified running inside the
+database against the live book rather than only under CPython.
+
+Two choices in there an agent deriving the same thing would get wrong, which
+is the argument for shipping them at all. Group loss ratios sum premium and
+payout and then divide, rather than averaging ratios -- averaging weights a
+$45 policy the same as a $342 one. And `top_n_by_expected_claims` takes a
+`min_events` floor, because a policy with two cold treats and two approved
+claims scores 1.0; without the floor the ranking is a list of the shortest
+histories in the book. Quote the floor along with the answer.
+
+Rates come back `None` rather than 0.0 when there is nothing to divide by. The
+app creates policies with no events, so an empty book is reachable, and 0.0
+would assert that every claim was refused.
+
+**Still to do here:** ship the list of questions the demo promises will work,
+and verify each one against `tests/test_seed.py`'s figures.
 
 Connection: the server forks with the database and appears in VS Code agent
 mode on its own. For any other client the whole step is
