@@ -133,6 +133,73 @@ commit.
 - **Django** — too heavy; drags settings, an app registry and an ORM pointed
   at nothing.
 
+### The CPython shim is a prerequisite, and it can be silently absent
+
+**Hit on 2026-09-07, on this machine, and it stopped work item 2 dead until it
+was diagnosed.** Everything above assumes Flask imports. It does not, unless
+the database has Grail's CPython shim recorded.
+
+The symptom is unhelpful:
+
+```sh
+gemdb -c 'import flask'   # No module named '_sre'
+gemdb -c 'import re'      # No module named '_sre'
+```
+
+`_sre` is the regex engine. `re` is not optional for anything web-shaped —
+Werkzeug's routing, Jinja2's lexer and header parsing all need it — so Flask,
+and every alternative in the rejected list above, fail together. A database in
+this state starts fine, runs Python fine, seeds fine, and passes all 39 tests,
+because `brainfreeze/` is standard-library only and never touches `re`. That
+is why the seeding work was finished before anyone noticed.
+
+The cause is not a missing file. The shim was present at exactly the path
+`shimLibraryPath()` computes, the right architecture, and the installer is
+handed `SHIM_LIB_PATH` through `engineEnvironment()`. What had happened is
+that the path was never *recorded in the extent*: `install.gs` runs
+`CPythonShim libraryPath:` only when `SHIM_LIB_PATH` is non-empty, and
+`install-grail.sh` quietly blanks that variable when the file is not there at
+the moment it looks:
+
+```sh
+if [ -n "$SHIM_LIB_PATH" ] && [ ! -f "$SHIM_LIB_PATH" ]; then
+    echo "WARNING: no prebuilt CPython shim at $SHIM_LIB_PATH." >&2
+    export SHIM_LIB_PATH=""      # installs anyway, without C extensions
+fi
+```
+
+Ask the database directly rather than guessing:
+
+```
+topaz> CPythonShim libraryPath
+ERROR 2318 ... reason:halt, CPythonShim library path not configured.
+```
+
+**The fix is one assignment, not a reinstall.** `install.gs` only ever records
+the path — the shim's built-ins resolve lazily per gem — so setting it and
+committing is sufficient, and it leaves the seeded book untouched:
+
+```smalltalk
+CPythonShim libraryPath: '<GRAIL_DIR>/src/c/shim/libcpython_ua.dylib'.
+System commit.
+```
+
+After that, `import re` answers, `from flask import Flask` answers, and a
+Flask `test_client()` renders a `render_template_string` route to a 200 inside
+the database. The 900-policy book was still there afterwards, unchanged.
+
+Two things follow for the demo:
+
+- **CUJ-0 needs a preflight.** An evaluator whose extent is in this state gets
+  `No module named '_sre'` from the app and has nothing to go on. One line in
+  the README, or a check in `seed.py`, is worth more than a paragraph of
+  troubleshooting later.
+- **This is worth reporting against GemDB_Code.** The install degrades to a
+  database that cannot run any web framework, and says so only as a warning to
+  a log — `~/GemDB/grail/install.out` was empty here. Failing the install, or
+  recording the absence somewhere a later session can see, would turn a day of
+  archaeology into a sentence.
+
 ### Three constraints the Flask app inherits
 
 All three are documented in `grail_rest_demo/app.py`, which found them first:
