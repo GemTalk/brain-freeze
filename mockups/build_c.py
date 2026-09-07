@@ -298,7 +298,7 @@ print("Accepted", page("Accepted.dc.html", body, 680, 'My policy'))
 # ------------------------------------------------- 4 & CUJ-4 · the claim form
 def claim_form(v2=False):
     strip = f"""      <div class="card" style="padding: 16px 22px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; background: {SOFT}; box-shadow: 0 3px 0 {LINE}">
-        <span class="rnd num" style="font-size: 20px; font-weight: 800">{'BF-100900' if v2 else 'BF-100023'}</span>
+        <span class="rnd num" style="font-size: 20px; font-weight: 800">{'BF-100900' if v2 else 'BF-100539'}</span>
         <span class="hint" style="font-size: 14px">Standard &middot; {'High' if v2 else 'Medium'} band &middot; $60 an episode, $5 deductible</span>
         <span class="tag" style="background: #fff; color: {RDD if not v2 else MUTED}; margin-left: auto">{'0' if v2 else '3'} of 4 claims used</span>
       </div>
@@ -308,7 +308,7 @@ def claim_form(v2=False):
     if v2:
         b += f"""        <div style="display: flex; gap: 13px; padding: 18px 20px; background: {SOFT}; border-radius: 16px">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{AC}" stroke-width="2.4" stroke-linecap="round" style="flex-shrink: 0; margin-top: 1px"><path d="M12 5v14M5 12h14"/></svg>
-          <span style="font-size: 14.5px; font-weight: 700; color: {ACD}; line-height: 1.55">Two questions added. Flavour and toppings went in after 900 policies and 5,017 episodes were already committed &mdash; no migration, nothing rewritten. Older claims just have no flavour.</span>
+          <span style="font-size: 14.5px; font-weight: 700; color: {ACD}; line-height: 1.55">Two questions added. Flavour and toppings went in after 900 policies and 4,993 episodes were already committed &mdash; no migration, nothing rewritten. Older claims just have no flavour.</span>
         </div>
 """
     treat = ["Ice cream", "Slushie", "Popsicle", "Iced soda", "Smoothie", "Cold plunge"]
@@ -353,18 +353,18 @@ body = f"""      <div class="card" style="overflow: hidden; padding: 0">
           </div>
           <div style="display: flex; flex-direction: column; gap: 2px">
             <span class="rnd num" style="font-size: 38px; font-weight: 800; color: #fff; letter-spacing: -0.02em; line-height: 1.05">$55.00 is yours</span>
-            <span class="num" style="font-size: 14.5px; font-weight: 700; color: #cfeade">CLM-000059 &middot; iced soda &middot; 24 October 2026</span>
+            <span class="num" style="font-size: 14.5px; font-weight: 700; color: #cfeade">CLM-001288 &middot; slushie &middot; 5 December 2026</span>
           </div>
         </div>
         <div style="padding: 24px 32px 28px; display: flex; flex-direction: column; gap: 11px">
-          <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 700"><span class="hint" style="font-weight: 600">What we worked it out at</span><span class="num">$62.77</span></div>
-          <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 700"><span class="hint" style="font-weight: 600">Trimmed to your $60 episode cap</span><span class="num" style="color: {RDD}">&minus;$2.77</span></div>
+          <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 700"><span class="hint" style="font-weight: 600">What we worked it out at</span><span class="num">$64.32</span></div>
+          <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 700"><span class="hint" style="font-weight: 600">Trimmed to your $60 episode cap</span><span class="num" style="color: {RDD}">&minus;$4.32</span></div>
           <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 700"><span class="hint" style="font-weight: 600">Your deductible</span><span class="num" style="color: {RDD}">&minus;$5.00</span></div>
           <div style="height: 3px; background: {SOFT}; border-radius: 2px; margin: 4px 0"></div>
           <div style="display: flex; justify-content: space-between; align-items: baseline"><span class="rnd" style="font-size: 22px; font-weight: 800">Paid to you</span><span class="rnd num" style="font-size: 30px; font-weight: 800">$55.00</span></div>
           <div style="display: flex; gap: 12px; padding: 16px 18px; background: {SOFT}; border-radius: 15px; margin-top: 8px">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{AC}" stroke-width="2.2" stroke-linecap="round" style="flex-shrink: 0; margin-top: 1px"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
-            <span class="hint" style="font-size: 14.5px; color: {ACD}">That was claim four of four for this year. The next one gets turned down until 3 February 2027.</span>
+            <span class="hint" style="font-size: 14.5px; color: {ACD}">That was claim four of four for this year. The next one gets turned down until 4 June 2027.</span>
           </div>
         </div>
       </div>
@@ -376,14 +376,14 @@ body = f"""      <div class="card" style="overflow: hidden; padding: 0">
           </div>
           <div style="display: flex; flex-direction: column; gap: 2px">
             <span class="rnd" style="font-size: 38px; font-weight: 800; color: #fff; letter-spacing: -0.02em; line-height: 1.05">Not this time</span>
-            <span class="num" style="font-size: 14.5px; font-weight: 700; color: #f7d8ce">CLM-000060 &middot; smoothie &middot; 6 November 2026</span>
+            <span class="num" style="font-size: 14.5px; font-weight: 700; color: #f7d8ce">CLM-001291 &middot; slushie &middot; 20 April 2027</span>
           </div>
         </div>
         <div style="padding: 24px 32px 28px; display: flex; flex-direction: column; gap: 16px">
-          <span class="rnd" style="font-size: 21px; font-weight: 700; line-height: 1.35">You have already had four claims paid this year, and four is the limit on every plan.</span>
+          <span class="rnd" style="font-size: 21px; font-weight: 700; line-height: 1.35">Cover on this policy ended on 10 March 2027, and this episode was three weeks after that.</span>
           <div style="display: flex; flex-direction: column; gap: 11px">
-            <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 700"><span class="hint" style="font-weight: 600">What we worked it out at</span><span class="num">$38.68</span></div>
-            <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 700"><span class="hint" style="font-weight: 600">Claims used</span><span class="num">4 of 4</span></div>
+            <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 700"><span class="hint" style="font-weight: 600">What we worked it out at</span><span class="num">$43.09</span></div>
+            <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 700"><span class="hint" style="font-weight: 600">Policy lapsed</span><span class="num">10 March 2027</span></div>
             <div style="height: 3px; background: {SOFT}; border-radius: 2px; margin: 4px 0"></div>
             <div style="display: flex; justify-content: space-between; align-items: baseline"><span class="rnd" style="font-size: 22px; font-weight: 800">Paid to you</span><span class="rnd num" style="font-size: 30px; font-weight: 800">$0.00</span></div>
           </div>
@@ -395,21 +395,26 @@ body = f"""      <div class="card" style="overflow: hidden; padding: 0">
 print("Decision", page("Decision.dc.html", body, 680, 'File a claim'))
 
 # ---------------------------------------------------------------- 6 · History
+# Every row is BF-100539 as it stands in claims.csv. The order is the point:
+# four paid, then the annual cap, then cover ends and the last two are refused
+# for that instead. One table, the whole rule set.
 EVENTS = [
-    ("18 Feb 2026", "Iced soda",  "Iced",            None, None,  None,          None),
-    ("25 Apr 2026", "Popsicle",   "From the freezer", 2,   "20s", None,          None),
-    ("31 May 2026", "Ice cream",  "From the freezer", 3,   "9m",  "CLM-000056",  "$55.00"),
-    ("1 Jun 2026",  "Iced soda",  "Cool",             5,   "13s", "CLM-000057",  "$32.70"),
-    ("6 Aug 2026",  "Slushie",    "Iced",             3,   "7m",  "CLM-000058",  "$50.73"),
-    ("19 Sep 2026", "Smoothie",   "Fridge-cold",     None, None,  None,          None),
-    ("18 Oct 2026", "Popsicle",   "From the freezer", 3,   "20s", None,          None),
-    ("24 Oct 2026", "Iced soda",  "Iced",             5,   "9m",  "CLM-000059",  "$55.00"),
-    ("6 Nov 2026",  "Smoothie",   "Cool",             5,   "22s", "CLM-000060",  "declined"),
+    ("28 Jul 2026", "Ice cream",   "From the freezer", 4,   "53s", "CLM-001285",  "$34.19"),
+    ("29 Aug 2026", "Iced soda",   "Fridge-cold",      4,   "11s", "CLM-001286",  "$35.78"),
+    ("12 Sep 2026", "Smoothie",    "Fridge-cold",      6,   "7m",  "CLM-001287",  "$55.00"),
+    ("5 Dec 2026",  "Slushie",     "Iced",             6,   "8m",  "CLM-001288",  "$55.00"),
+    ("13 Feb 2027", "Popsicle",    "From the freezer", 6,   "35s", "CLM-001289",  "cap"),
+    ("21 Feb 2027", "Smoothie",    "Fridge-cold",      6,   "6m",  "CLM-001290",  "cap"),
+    ("17 Apr 2027", "Cold plunge", "Cool",             5,   "1m",  None,          None),
+    ("20 Apr 2027", "Slushie",     "Iced",             5,   "21s", "CLM-001291",  "lapsed"),
+    ("14 May 2027", "Ice cream",   "From the freezer", 7,   "22s", "CLM-001292",  "lapsed"),
 ]
 rows = []
 for date, treat, cold, nrs, dur, clm, amt in EVENTS:
-    if amt == "declined":
-        right = f'<span class="tag" style="background: {RDS}; color: {RDD}">Turned down</span>'
+    if amt == "cap":
+        right = f'<span class="tag" style="background: {RDS}; color: {RDD}">Cap reached</span>'
+    elif amt == "lapsed":
+        right = f'<span class="tag" style="background: {RDS}; color: {RDD}">No cover</span>'
     elif amt:
         right = f'<span class="rnd num" style="font-size: 22px; font-weight: 800; color: {GND}">{amt}</span>'
     elif nrs is None:
@@ -429,7 +434,7 @@ for date, treat, cold, nrs, dur, clm, amt in EVENTS:
           {right}
         </div>""")
 
-STATS = [("9", "cold treats"), ("7", "gave a headache"), ("5", "claims sent"), ("$193.43", "paid out"), ("4/4", "claims used")]
+STATS = [("9", "cold treats"), ("9", "gave a headache"), ("8", "claims sent"), ("$179.97", "paid out"), ("4/4", "claims used")]
 tiles = []
 for big, small in STATS:
     tiles.append(f"""        <div class="card" style="padding: 18px 20px; display: flex; flex-direction: column; gap: 4px">
@@ -440,14 +445,14 @@ for big, small in STATS:
 body = f"""      <div class="card" style="padding: 26px 30px; display: flex; align-items: center; justify-content: space-between; gap: 30px">
         <div style="display: flex; flex-direction: column; gap: 9px">
           <div style="display: flex; align-items: center; gap: 13px">
-            <span class="rnd num" style="font-size: 38px; font-weight: 800; letter-spacing: -0.02em; line-height: 1">BF-100023</span>
-            <span class="tag" style="background: {GNS}; color: {GND}">Active</span>
+            <span class="rnd num" style="font-size: 38px; font-weight: 800; letter-spacing: -0.02em; line-height: 1">BF-100539</span>
+            <span class="tag" style="background: {RDS}; color: {RDD}">Lapsed</span>
           </div>
-          <span class="hint" style="font-size: 15px">Standard &middot; Medium band, 44.8 &middot; $60 an episode, $5 deductible</span>
-          <span class="hint num" style="font-size: 13.5px">Year started 3 February 2026, renews 3 February 2027</span>
+          <span class="hint" style="font-size: 15px">Standard &middot; Medium band, 65.2 &middot; $60 an episode, $5 deductible</span>
+          <span class="hint num" style="font-size: 13.5px">Year started 4 June 2026, lapsed 10 March 2027</span>
         </div>
         <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 1px; flex-shrink: 0">
-          <span class="rnd num" style="font-size: 34px; font-weight: 800; letter-spacing: -0.02em; line-height: 1">$7.82</span>
+          <span class="rnd num" style="font-size: 34px; font-weight: 800; letter-spacing: -0.02em; line-height: 1">$8.17</span>
           <span class="hint" style="font-size: 13.5px">a month</span>
         </div>
       </div>
@@ -461,7 +466,7 @@ body = f"""      <div class="card" style="padding: 26px 30px; display: flex; ali
 {chr(10).join(rows)}
       </div>
 
-      <span class="hint" style="font-size: 13.5px; max-width: 46em">The ones that gave no headache are on here too. They are the denominator &mdash; without them, how often a slushie causes brain freeze is not a question the data can answer.</span>
+      <span class="hint" style="font-size: 13.5px; max-width: 46em">Every cold treat is here, claimed or not &mdash; 17 April never became a claim, and across the book 1,263 of 4,993 caused no headache at all. They are the denominator &mdash; without them, how often a slushie causes brain freeze is not a question the data can answer.</span>
 """
 print("History", page("History.dc.html", body, 820, 'My policy'))
 

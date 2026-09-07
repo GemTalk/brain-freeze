@@ -1,8 +1,9 @@
 # Mockups
 
 Static screen mockups for the web app, in "Direction C" — rounded, bright,
-oversized type. Every figure on them is real: read out of `policyholders.csv`
-and `claims.csv`, or computed by the `brainfreeze` package.
+oversized type. Every figure on them is real: read out of
+`data/policyholders.csv` and `data/claims.csv`, or computed by the
+`brainfreeze` package.
 
 The screens, in flow order:
 
@@ -14,7 +15,7 @@ The screens, in flow order:
 | `Accepted.dc.html` | 3 · You're covered — creates BF-100900 |
 | `FileClaim.dc.html` | 4 · File a claim |
 | `Decision.dc.html` | 5 · The decision, approved and refused |
-| `History.dc.html` | 6 · Policy history for BF-100023 |
+| `History.dc.html` | 6 · Policy history for BF-100539 |
 | `EmptyHistory.dc.html` | 6b · A policy with no events yet |
 | `ClaimV2.dc.html` | CUJ-4 · The claim form after flavour and toppings |
 | `DirectionB.dc.html` | A sketch of the insurer's view — a second audience, not an alternative look |
