@@ -114,7 +114,7 @@ def wrap(text, width=76, indent=""):
     return "\n".join(lines)
 
 
-def main():
+def generate():
     import gemdb
     import seed
 
@@ -169,5 +169,8 @@ def main():
     return 1 if failures else 0
 
 
+# Not `main`: under Grail `__main__` is a namespace shared by every script
+# the database has run, and a call resolves by argument count. Two scripts
+# with a zero-argument `main` will reach each other's.
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(generate())

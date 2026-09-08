@@ -348,7 +348,7 @@ def create_app():
     return app
 
 
-def main(host="127.0.0.1", port=5000):
+def serve(host="127.0.0.1", port=5000):
     create_app().run(host=host, port=port, threaded=False,
                      request_handler=CloseAfterResponseHandler)
 
@@ -640,9 +640,17 @@ DECISION = _STYLE + """
 """
 
 
-# The guard belongs at the very end. `gemdb app.py` executes this file
-# top to bottom, so a guard placed next to main() would start serving before
-# the templates below exist -- which importing the module hides, because an
-# import finishes the file before any route runs.
+# Two things about this guard, both learned the hard way.
+#
+# It belongs at the very END of the file. `gemdb app.py` executes top to
+# bottom, so a guard next to serve() would start the server before the
+# templates below exist and every route would raise NameError -- which
+# importing the module hides completely, because an import finishes the file
+# before any route runs.
+#
+# And the entry point is `serve`, not `main`, because under Grail `__main__`
+# is one namespace shared by every script the database has ever run, and
+# dispatch is by argument count with defaults not counting. `main()` here
+# reached another script's zero-argument `main` and failed inside it.
 if __name__ == "__main__":
-    main()
+    serve()
