@@ -139,7 +139,23 @@ a NEW claim reads it       : None
 ```
 
 Editing a class compiles a *different* class; instances already committed keep
-the one they were created under.
+the one they were created under. **`isinstance` does not survive it either**,
+measured on Grail `c875e56` with the commit-straight-after-import discipline
+and again in a later session with the class already committed:
+
+```
+type(old) is Claim    : False
+isinstance(old, Claim): False
+type(old).__name__    : Claim
+```
+
+This contradicts the independent demo in
+`GemDB_Code/docs/demo/brain-freeze/model.py`, whose rule 2 records that "Grail
+updates the class in place -- `isinstance` keeps working", measured on Grail
+`46c2a68`. Both measurements are reproducible; the Grail versions differ. Until
+that is resolved, **`type(obj).__name__` is the only class check that survives
+a schema change** — which is what that demo's rule 3 already recommends, for
+weaker reasons than now apply.
 
 **Write instead:** no migration is needed for fields declared as optional with
 class-level defaults up front. A field added after records exist is readable

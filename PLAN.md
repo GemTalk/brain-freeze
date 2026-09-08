@@ -723,10 +723,24 @@ mode on its own. For any other client the whole step is
 takes that directly; **Claude Desktop probably needs an `mcp-remote` shim —
 verify before documenting it.**
 
-**Watch the session budget.** The ceiling is ten: the MCP front end takes one,
-each connected client one, each open notebook one, each GemDB Shell one, the
-Flask app one, and the seed script one while it runs. A user mid-CUJ-4 with
-two notebooks open sits around six.
+**Watch the session budget, and it is tighter than it looks.** The ceiling is
+ten — `Stone Session limit: 10` in the Community Edition keyfile GemDB
+installs. The MCP front end takes one, each connected client one, each open
+notebook one, each GemDB Shell one, the Flask app one, and the seed script one
+while it runs. A user mid-CUJ-4 with two notebooks open sits around six.
+
+The margin is thinner than that arithmetic suggests, because **MCP workers are
+not one session**. `GemDB_Code/docs/mcp-server.md` records a measured incident
+on 2026-09-07: nine `initialize` calls from separate `curl` invocations opened
+nine worker gems and exhausted the limit, after which the database refused
+every login with GemStone error 4039 — including plain `topaz`, so the owner
+could not get into their own database. Stopping the router freed all nine at
+once, which is the one piece of good news: recovery is one command.
+
+That is a live hazard for this demo, not a theoretical one. An agent that
+reconnects a few times while the app, a notebook and a shell are open can lock
+the presenter out mid-CUJ. Worth rehearsing the recovery before showing it to
+anyone.
 
 **Done when:** at least four representative questions return correct,
 data-grounded answers, and the answers can be checked against
