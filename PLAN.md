@@ -813,7 +813,18 @@ identity, dirtied sessions, Flask's logging stub, and `gemdb file.py` and
 standardising on this repo; an uncommitted comparison of the two is in
 `docs/two-demos-compared.md`.
 
-**Still to do here:** the PRD corrections below.
+**The PRD corrections are written up (2026-09-08)** in
+[`docs/prd-corrections.md`](docs/prd-corrections.md) — eleven of them, each
+quoting the requirement and citing evidence. The `.docx` is left alone: it
+is the delivered requirements document, and silently rewriting it would
+lose the record of what was asked for.
+
+The list grew from five to eleven. The four that were not in the original
+five matter most: **FR-4.4 promises the opposite of what happens**
+(cross-surface freshness needs `commit()` then `refresh()`); the MCP port is
+50390, not 8787; `gemdb.mcp.enabled` defaults to false so there *is* a
+connection step; and the PRD never anticipates that the database may be
+unable to run a web framework at all.
 
 **The PRD needs five corrections.** They are not cosmetic — an agent building
 to the PRD as written will build the wrong thing:
