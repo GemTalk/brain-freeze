@@ -63,6 +63,7 @@ PLAN.md        this file
 | `tests/test_seed.py` | 22 tests pinning the load | done |
 | `tests/test_packaging.py` | 1 test pinning the numpy/pandas boundary | done |
 | `mockups/` | nine screens + insurer sketch, and `build_c.py` | done, **redrawn for BF-100539** |
+| `findings/` | four scripts that reproduce the Grail findings | done |
 | `app.py` | seven routes over `gemdb.root`, templates inline | done, **runs and serves** |
 | `tests/test_app.py` | 18 tests through Flask's test client | done |
 | `run_app_tests.py` | runs those inside the database | done |
