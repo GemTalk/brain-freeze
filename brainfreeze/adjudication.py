@@ -20,6 +20,9 @@ ANNUAL_CLAIM_LIMIT = 4
 REASON_ANNUAL_LIMIT = "Exceeded annual claim limit"
 REASON_BELOW_DEDUCTIBLE = "Claim amount below deductible"
 REASON_POLICY_LAPSED = "Policy lapsed"
+#: Cover can also be absent because the episode happened before the policy was
+#: sold or after its term ran out, which is not a lapse and must not say it is.
+REASON_OUTSIDE_TERM = "Event outside policy term"
 
 
 class Decision(NamedTuple):
@@ -55,6 +58,7 @@ def adjudicate(
     approved_claims_this_year: int,
     annual_claim_limit: int = ANNUAL_CLAIM_LIMIT,
     policy_in_force: bool = True,
+    no_cover_reason: Optional[str] = None,
 ) -> Decision:
     """Run one claim through the rules and say what happens.
 
@@ -65,10 +69,14 @@ def adjudicate(
     was worth.
 
     `policy_in_force` defaults to True so that a caller who has no lapse to
-    consider reads exactly as before.
+    consider reads exactly as before. `no_cover_reason` is which absence of
+    cover the caller found -- a lapse, or an episode outside the policy term.
+    It defaults to the lapse, because that is what every refusal in the sample
+    data says and what callers written before the term was checked meant.
     """
     if not policy_in_force:
-        return Decision("Denied", 0.0, REASON_POLICY_LAPSED, assessed, 0.0, 0.0)
+        return Decision("Denied", 0.0, no_cover_reason or REASON_POLICY_LAPSED,
+                        assessed, 0.0, 0.0)
 
     if approved_claims_this_year >= annual_claim_limit:
         return Decision("Denied", 0.0, REASON_ANNUAL_LIMIT, assessed, 0.0, 0.0)

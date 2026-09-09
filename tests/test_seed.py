@@ -167,6 +167,104 @@ class LapsedPolicies(unittest.TestCase):
             lapsed.is_in_force_on(lapsed.policy_lapse_date + timedelta(days=1)))
 
 
+class ThePolicyTerm(unittest.TestCase):
+    """Cover starts when the policy does and ends when the term does.
+
+    `is_in_force_on` used to test the lapse date and nothing else, so a
+    policy with no lapse was in force forever in both directions -- an event
+    a year before the policy was sold, or ten years after the term ended, was
+    adjudicated as covered and paid. `policy_end_date` existed and was used by
+    nothing. These pin both ends of the term, and pin the wording: an
+    out-of-term event was refused as a lapse, which is a false statement about
+    a policy that never lapsed and the one thing CUJ-2 asks an agent to
+    explain.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.book = seed.load()
+        # An ordinary policy that never lapsed, so the term is the only thing
+        # that can end cover on it.
+        cls.active = [p for p in cls.book
+                      if p.policy_lapse_date is None][0]
+
+    def test_cover_starts_on_the_start_date(self):
+        p = self.active
+        self.assertFalse(p.is_in_force_on(p.policy_start_date - timedelta(days=1)),
+                         p.policy_id)
+        self.assertTrue(p.is_in_force_on(p.policy_start_date), p.policy_id)
+
+    def test_cover_ends_with_the_term(self):
+        p = self.active
+        self.assertTrue(p.is_in_force_on(p.policy_end_date), p.policy_id)
+        self.assertFalse(p.is_in_force_on(p.policy_end_date + timedelta(days=1)),
+                         p.policy_id)
+        self.assertFalse(p.is_in_force_on(p.policy_end_date + timedelta(days=3650)),
+                         p.policy_id)
+
+    def test_an_out_of_term_event_is_not_called_a_lapse(self):
+        # The policy never lapsed. Saying it did would be a lie, and it is the
+        # explanation the claimant and the agent are both given.
+        p = self.active
+        self.assertEqual(p.no_cover_reason_on(p.policy_start_date - timedelta(days=365)),
+                         brainfreeze.REASON_OUTSIDE_TERM)
+        self.assertEqual(p.no_cover_reason_on(p.policy_end_date + timedelta(days=1)),
+                         brainfreeze.REASON_OUTSIDE_TERM)
+        self.assertIsNone(p.no_cover_reason_on(p.policy_start_date))
+
+    def test_a_lapse_is_still_reported_as_a_lapse(self):
+        # Inside the term but after the lapse: the lapse is the specific fact,
+        # and it is what the 254 refusals in the CSVs say.
+        lapsed = [p for p in self.book if p.policy_lapse_date is not None][0]
+        self.assertLess(lapsed.policy_lapse_date, lapsed.policy_end_date)
+        self.assertEqual(
+            lapsed.no_cover_reason_on(lapsed.policy_lapse_date + timedelta(days=1)),
+            brainfreeze.REASON_POLICY_LAPSED)
+        # ...and before it was ever sold, the term is what is wrong.
+        self.assertEqual(
+            lapsed.no_cover_reason_on(lapsed.policy_start_date - timedelta(days=1)),
+            brainfreeze.REASON_OUTSIDE_TERM)
+
+    def test_no_seeded_event_falls_outside_its_own_policys_term(self):
+        """Asserted, not assumed -- this is what says the fix moves no figure.
+
+        The generator draws event dates inside the term, but nothing checked
+        it. If it ever stops being true, tightening `is_in_force_on` silently
+        unpays claims that the pinned totals above still expect.
+        """
+        checked = 0
+        for policyholder in self.book:
+            for event in policyholder.events:
+                checked += 1
+                self.assertGreaterEqual(event.event_date,
+                                        policyholder.policy_start_date,
+                                        "%s before %s started"
+                                        % (event.event_id, policyholder.policy_id))
+                self.assertLessEqual(event.event_date,
+                                     policyholder.policy_end_date,
+                                     "%s after %s ended"
+                                     % (event.event_id, policyholder.policy_id))
+        self.assertEqual(checked, 4993)
+
+    def test_every_event_in_claims_csv_is_inside_its_term(self):
+        """The same check straight off the CSV, not through the loader."""
+        terms = {}
+        with open(seed.POLICYHOLDERS_CSV, newline="") as handle:
+            for row in csv.DictReader(handle):
+                policyholder = self.book[row["policy_id"]]
+                terms[row["policy_id"]] = (policyholder.policy_start_date,
+                                           policyholder.policy_end_date)
+        outside = []
+        with open(seed.CLAIMS_CSV, newline="") as handle:
+            for row in csv.DictReader(handle):
+                start, end = terms[row["policy_id"]]
+                when = seed._date(row["event_date"])
+                if when < start or when > end:
+                    outside.append((row["event_id"], row["policy_id"],
+                                    row["event_date"], str(start), str(end)))
+        self.assertEqual(outside, [])
+
+
 class BF100539(unittest.TestCase):
     """The policy the mockups are drawn from, so the screens stay honest.
 

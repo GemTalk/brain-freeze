@@ -17,7 +17,11 @@ instantiated inside the database where numpy and pandas do not exist.
 
 from datetime import date, timedelta
 
-from .adjudication import ANNUAL_CLAIM_LIMIT
+from .adjudication import (
+    ANNUAL_CLAIM_LIMIT,
+    REASON_OUTSIDE_TERM,
+    REASON_POLICY_LAPSED,
+)
 from .underwriting import COVERAGE_PLANS, risk_score, risk_tier
 
 
@@ -151,11 +155,28 @@ class Policyholder:
         """Was there cover on this date?
 
         Cover runs to the lapse date inclusive -- someone who lapses on the
-        12th is still covered for the treat they ate that morning.
+        12th is still covered for the treat they ate that morning -- and it
+        runs no further than the term at either end.
         """
-        if self.policy_lapse_date is None:
-            return True
-        return when <= self.policy_lapse_date
+        return self.no_cover_reason_on(when) is None
+
+    def no_cover_reason_on(self, when):
+        """Why there was no cover on this date, or None if there was.
+
+        The lapse is tested first because it is the more specific fact: a
+        policy that lapsed on the 10th and was claimed on the 20th lapsed,
+        whether or not the term had also run out by then. What is left --
+        before the policy was sold, or after the term ended without a lapse --
+        is outside the term, and calling that a lapse would state something
+        untrue about a policy that never lapsed. The distinction is the whole
+        of it: CUJ-2 asks an agent to explain a refusal, and it can only do
+        that from a reason that is actually the reason.
+        """
+        if self.policy_lapse_date is not None and when > self.policy_lapse_date:
+            return REASON_POLICY_LAPSED
+        if when < self.policy_start_date or when > self.policy_end_date:
+            return REASON_OUTSIDE_TERM
+        return None
 
     # -- what happened ---------------------------------------------------
 

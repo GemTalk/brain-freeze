@@ -172,7 +172,10 @@ per-incident limit, then the deductible.
 
 File a second claim on the same policy and it is refused for the cap. File one
 on **BF-100746**, which lapsed on 2026-07-12, and it is refused for the lapse —
-and the form says so *before* you fill it in.
+and the form says so *before* you fill it in. Cover is bounded by the term as
+well as by the lapse, and a claim outside the term is refused for that and told
+so in those words, because a policy that never lapsed cannot be refused for
+lapsing.
 
 ---
 
@@ -412,10 +415,11 @@ propagated. It did not; the objects were replaced.
 
 `policy_status` records a policy's fate over its whole term, not whether there
 is cover today. The book's terms run either side of the present: of 217
-policies marked `Lapsed`, only 53 have actually reached their lapse date. Any
-screen reading the stored status calls a policy lapsed while it is still paying
-claims, so the app compares against the date and says "Active", "Lapses
-2027-03-10" or "Lapsed 2026-07-12".
+policies marked `Lapsed`, only 53 have actually reached their lapse date, and
+147 policies have not started yet. Any screen reading the stored status calls a
+policy lapsed while it is still paying claims, so the app compares against the
+date and says "Active", "Lapses 2027-03-10", "Lapsed 2026-07-12", "Starts
+2026-10-04" or "Term ended 2027-05-30".
 
 ---
 

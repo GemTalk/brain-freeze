@@ -10,6 +10,8 @@ start disagreeing, this is what says so.
 import unittest
 
 from brainfreeze import (
+    REASON_OUTSIDE_TERM,
+    REASON_POLICY_LAPSED,
     adjudicate,
     annual_premium,
     assess_amount,
@@ -97,6 +99,23 @@ class Adjudication(unittest.TestCase):
         # that actually applies: there was no cover, cap or no cap.
         d = adjudicate(43.09, 60.0, 5.0, 4, policy_in_force=False)
         self.assertEqual(d.reason, "Policy lapsed")
+
+    def test_an_out_of_term_claim_is_not_refused_as_a_lapse(self):
+        # A policy that never lapsed cannot be refused for lapsing. The caller
+        # says which absence of cover it found; "Policy lapsed" is only the
+        # default so that every existing call keeps its wording.
+        d = adjudicate(43.09, 60.0, 5.0, 0, policy_in_force=False,
+                       no_cover_reason=REASON_OUTSIDE_TERM)
+        self.assertEqual(d.status, "Denied")
+        self.assertEqual(d.amount, 0.0)
+        self.assertEqual(d.reason, "Event outside policy term")
+
+    def test_the_lapse_wording_is_the_default(self):
+        # The 254 refusals in claims.csv say "Policy lapsed" and go on saying
+        # it; only the new case gets the new wording.
+        self.assertEqual(adjudicate(43.09, 60.0, 5.0, 0,
+                                    policy_in_force=False).reason,
+                         REASON_POLICY_LAPSED)
 
     def test_a_policy_in_force_is_unaffected(self):
         # The default has to stay the old behaviour or every existing call
