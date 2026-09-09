@@ -91,5 +91,33 @@ class PromiseTests(unittest.TestCase):
         self.assertEqual([p.code for p in promises], ["q()"])
 
 
+class PublishedPreambleTests(unittest.TestCase):
+    """The verifier must run what the document publishes, not its own copy.
+
+    #66: the generator used to execute a preamble it did not print, so the
+    published one could not run the questions beneath it and nothing noticed.
+    Reading it back from the document is what makes that impossible.
+    """
+
+    def test_it_lifts_the_preamble_block_from_above_the_first_heading(self):
+        doc = ("# Questions\n\nProse.\n\n"
+               "```python\nimport gemdb\nbook = gemdb.root['x']\n```\n\n"
+               "---\n\n## 1. Real?\n\n```python\nq()\n```\n\n```\n42\n```\n")
+        self.assertEqual(refresh_mcp.published_preamble(doc),
+                         "import gemdb\nbook = gemdb.root['x']")
+
+    def test_it_does_not_take_a_question_snippet_as_the_preamble(self):
+        doc = "# Questions\n\n## 1. Real?\n\n```python\nq()\n```\n\n```\n42\n```\n"
+        self.assertIsNone(refresh_mcp.published_preamble(doc))
+
+    def test_the_real_document_publishes_a_preamble_that_binds_brainfreeze(self):
+        """Question 6 calls `brainfreeze.score_breakdown`, so the name has to
+        be bound by the preamble a reader is told to paste."""
+        published = refresh_mcp.published_preamble(
+            open(refresh_mcp.DOC).read())
+        self.assertIsNotNone(published)
+        self.assertIn("import brainfreeze", published)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -27,7 +27,13 @@ import traceback
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+#: What every snippet below assumes, and the ONLY thing this script executes
+#: to set them up. Those must be the same object: it used to publish this and
+#: then quietly inject `brainfreeze` on top, so the preamble a reader was told
+#: to paste could not run question 6 (#66). If a question needs a name, it goes
+#: here where the reader can see it.
 PREAMBLE = """import gemdb
+import brainfreeze
 from brainfreeze import analysis
 book = gemdb.root["brainfreeze"]"""
 
@@ -123,10 +129,9 @@ def generate():
     gemdb.root["brainfreeze"] = seed.load()
     gemdb.commit()
 
+    # Nothing added afterwards. The published preamble is the whole setup.
     namespace = {}
     exec(compile(PREAMBLE, "<preamble>", "exec"), namespace)
-    import brainfreeze
-    namespace["brainfreeze"] = brainfreeze
 
     out = io.StringIO()
     out.write("# Questions this demo promises to answer\n\n")

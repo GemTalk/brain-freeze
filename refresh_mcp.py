@@ -131,6 +131,34 @@ def promises(markdown):
     return found
 
 
+def published_preamble(markdown):
+    """The `python` block above the first `##` heading, or None.
+
+    Read back rather than restated. The document says "each snippet assumes
+    this preamble", and #66 was that the generator ran a different one -- so
+    the published preamble could not run the questions printed beneath it and
+    nothing caught it. Lifting it from the document is what makes verification
+    exercise the reader's path instead of a private one.
+    """
+    fence = None
+    buffer = []
+    for line in markdown.splitlines():
+        if line.startswith("## "):
+            return None                     # reached a question first
+        if fence is None:
+            if line.startswith("```"):
+                fence = line[3:].strip() or "text"
+                buffer = []
+            continue
+        if line.startswith("```"):
+            if fence == "python":
+                return "\n".join(buffer).strip("\n")
+            fence = None
+        else:
+            buffer.append(line)
+    return None
+
+
 def read_promises():
     with open(DOC) as handle:
         return promises(handle.read())
@@ -341,17 +369,23 @@ def verify():
 
 
 def preamble():
-    """The doc's own preamble, plus the path the doc does not have to mention.
+    """The document's own preamble, plus the path it does not have to mention.
 
-    A worker gem's working directory is the stone's, so `brainfreeze` is not
-    importable until the repository is on the path. In a notebook or a script
-    the directory is already there, which is why the document does not say it.
+    The imports are LIFTED from docs/mcp-questions.md rather than written out
+    here. A private copy is how #66 survived: the document published a
+    preamble that could not run its own question 6, and every check passed
+    because nothing checked ran what the document said.
+
+    The `sys.path` line is the one honest addition. A worker gem's working
+    directory is the stone's, so `brainfreeze` is not importable until the
+    repository is on the path; in a notebook or a script the directory is
+    already there, which is why the document does not carry it.
     """
-    return ("import sys\n"
-            "sys.path.insert(0, %r)\n"
-            "import gemdb, brainfreeze\n"
-            "from brainfreeze import analysis\n"
-            "book = gemdb.root['brainfreeze']\n" % HERE)
+    with open(DOC) as handle:
+        published = published_preamble(handle.read())
+    if published is None:
+        raise SystemExit("%s publishes no preamble to run" % DOC)
+    return "import sys\nsys.path.insert(0, %r)\n%s\n" % (HERE, published)
 
 
 # ------------------------------------------------------------------ main ---
