@@ -70,6 +70,15 @@ of them are the same zero-argument selector. Every script here does:
 of which used to define a zero-argument `main` and so collided with each other
 through the very namespace they document.
 
+**Renaming them did not clean the database.** Run `02` here now and it still
+reports `a zero-argument main inherited from elsewhere: yes` — left behind by
+the versions that ran before the rename, and it will stay until someone
+removes it or the extent is rebuilt. That is the finding restated in its
+sharpest form: the namespace is *repository state*, not process state, so
+fixing your source fixes what you compile next and nothing you compiled
+before. The same run lists names from scripts that were written, run once and
+deleted.
+
 ## 3. Editing a class compiles a different class
 
 Run it twice — a genuine re-import needs a genuine new session. A record

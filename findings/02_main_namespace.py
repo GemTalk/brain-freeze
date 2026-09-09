@@ -40,7 +40,13 @@ TITLE = """Finding 2: `__main__` is shared by every script, and dispatch is\nby 
 
 
 def main_namespace():
-    mine = {"main_namespace", "inherited", "sys"}
+    # `TITLE` belongs here too. This file defines it at import time, before
+    # the function runs, so it is already in `globals()` and would otherwise
+    # be reported as somebody else's -- in the one script whose subject is
+    # knowing whose name is whose. Every findings script defines a TITLE, so
+    # a copy really is inherited as well; both are true and neither is worth
+    # the confusion of listing.
+    mine = {"main_namespace", "inherited", "sys", "TITLE"}
     inherited = sorted(n for n in globals()
                        if not n.startswith("__") and n not in mine)
 
@@ -63,9 +69,12 @@ def main_namespace():
             kind = type(value).__name__
             print("    %-*s  %s" % (width, name, kind))
         print()
-        print("  None of those were written by this file. They belong to")
-        print("  seed.py, app.py, run_app_tests.py and make_mcp_questions.py,")
-        print("  and they persist in the database between sessions.")
+        print("  None of those were written by this file, and they persist")
+        print("  in the database between sessions. Some belong to this repo")
+        print("  -- seed.py, app.py, make_mcp_questions.py, the other")
+        print("  findings. Others are whatever anyone ran here once and")
+        print("  threw away, which is the part worth noticing: a throwaway")
+        print("  script leaves its names behind for good.")
 
     print()
     print("  The dispatch half:")
