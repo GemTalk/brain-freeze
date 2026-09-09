@@ -13,6 +13,7 @@ from what these functions returned.
 """
 
 import unittest
+from datetime import date
 
 from brainfreeze import analysis
 from brainfreeze.money import usd
@@ -59,12 +60,82 @@ class Aggregates(unittest.TestCase):
         self.assertEqual(sum(count for _, count in reasons),
                          2172 - 1691)
 
+    def test_the_published_answer_has_not_moved(self):
+        # docs/mcp-questions.md prints this list under question 4. Grouping
+        # by rule is a new question, not a new answer to this one, so this
+        # asserts the whole thing rather than its first two rows.
+        self.assertEqual(analysis.denial_reasons(self.book), [
+            ("Policy lapsed", 254),
+            ("Exceeded annual claim limit", 183),
+            ("Pre-existing headache condition exclusion", 15),
+            ("Claim amount exceeds per-incident coverage limit", 10),
+            ("Insufficient severity documented", 10),
+            ("Filed outside claim window", 9),
+        ])
+
     def test_every_denial_reason_is_one_the_rules_can_give(self):
         # or one the generator's unmodelled denials produce -- either way a
         # refusal without a reason is a bug.
         for reason, count in analysis.denial_reasons(self.book):
             self.assertTrue(reason)
             self.assertGreater(count, 0)
+
+
+class DenialRules(unittest.TestCase):
+    """#49: the same refusals, grouped by identifier instead of by English.
+
+    `denial_reasons` stays exactly as it was -- its output is published in
+    docs/mcp-questions.md and an agent may already be reading it. This is a
+    sibling, because the two count different things: prose counts what
+    claimants were told, including 44 refusals no rule produced.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.book = seed.load()
+
+    def test_it_groups_by_identifier(self):
+        rules = analysis.denial_rules(self.book)
+        self.assertEqual(rules[0], ("policy-lapsed", 254))
+        self.assertEqual(rules[1], ("annual-claim-count-cap", 183))
+
+    def test_it_accounts_for_every_refusal(self):
+        # 2172 claims, 1691 approved. Nothing may be dropped on the way to an
+        # identifier, or the counts quietly stop adding up.
+        self.assertEqual(sum(count for _, count in analysis.denial_rules(self.book)),
+                         2172 - 1691)
+
+    def test_refusals_no_rule_produced_are_not_claimed_as_rules(self):
+        # 15 + 10 + 10 + 9 of the generator's unmodelled denials.
+        self.assertEqual(dict(analysis.denial_rules(self.book))["unclassified"], 44)
+
+    def test_it_is_ordered_the_same_way_denial_reasons_is(self):
+        rules = analysis.denial_rules(self.book)
+        self.assertEqual(rules, sorted(rules, key=lambda pair: (-pair[1], pair[0])))
+
+    def test_a_claim_that_stored_its_rule_is_read_from_the_rule(self):
+        # A claim filed by the app carries `rule` outright. One loaded from
+        # the committed CSVs has only prose, and is mapped back.
+        from brainfreeze.model import Book, Claim, Event, Policyholder
+        book = Book()
+        policy = Policyholder(
+            policy_id="BF-TEST", age=10, sex=None, migraine_history=False,
+            tension_type_headache_history=False,
+            typical_consumption_speed="fast", favourite_trigger="slushie",
+            underwriting_base=45.0, plan_name="Standard",
+            annual_premium=usd("171.00"), policy_start_date=date(2026, 1, 1))
+        book.add(policy)
+        for n, claim in enumerate((
+                Claim("CLM-1", usd("10.00"), usd("0.00"), "Denied",
+                      reason="Reworded next Tuesday", rule="policy-lapsed"),
+                Claim("CLM-2", usd("10.00"), usd("0.00"), "Denied",
+                      reason="Policy lapsed"),
+                Claim("CLM-3", usd("10.00"), usd("0.00"), "Denied"))):
+            policy.add_event(Event("EVT-00000%d" % n, date(2026, 6, 1),
+                                   "slushie", -5.0, 250.0, "fast", True,
+                                   claim=claim))
+        self.assertEqual(analysis.denial_rules(book),
+                         [("policy-lapsed", 2), ("unrecorded", 1)])
 
 
 class Rankings(unittest.TestCase):
@@ -133,6 +204,7 @@ class EmptyBook(unittest.TestCase):
     def test_aggregates_of_nothing_are_empty(self):
         self.assertEqual(analysis.loss_ratio_by_tier(self.book), {})
         self.assertEqual(analysis.denial_reasons(self.book), [])
+        self.assertEqual(analysis.denial_rules(self.book), [])
         self.assertEqual(analysis.top_n_by_loss_ratio(self.book, 5), [])
 
 

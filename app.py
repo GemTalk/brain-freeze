@@ -415,6 +415,7 @@ def create_app():
             approved=decision.amount,
             status=decision.status,
             reason=decision.reason,
+            rule=decision.rule,
             flavour=request.form.get("flavour") or None,
             toppings=request.form.getlist("toppings") or None)
         policy.add_event(Event(

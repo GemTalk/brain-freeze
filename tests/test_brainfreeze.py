@@ -15,14 +15,23 @@ from brainfreeze.money import round_cents, usd
 from brainfreeze.model import Event, Policyholder
 
 from brainfreeze import (
+    COVERAGE_PLANS,
+    REASON_BELOW_DEDUCTIBLE,
     REASON_OUTSIDE_TERM,
+    REASON_PER_INCIDENT_LIMIT,
     REASON_POLICY_LAPSED,
+    RULE_ANNUAL_LIMIT,
+    RULE_BELOW_DEDUCTIBLE,
+    RULE_OUTSIDE_TERM,
+    RULE_PER_INCIDENT_LIMIT,
+    RULE_POLICY_LAPSED,
     adjudicate,
     annual_premium,
     assess_amount,
     quote,
     risk_score,
     risk_tier,
+    rule_for_reason,
 )
 
 
@@ -182,6 +191,134 @@ class EventOrderSurvivesAdding(unittest.TestCase):
         p = self.policy()
         event = self.event("EVT-000001", date(2026, 2, 1))
         self.assertIs(p.add_event(event), event)
+
+
+class RuleIdentifiers(unittest.TestCase):
+    """#49: a refusal has to be checkable, not just readable.
+
+    The prose `reason` is what the claimant is told and it is allowed to be
+    reworded. `rule` is what an agent explaining the refusal reads, so it is
+    fixed: the same five strings the parallel implementation uses.
+    """
+
+    def test_an_approved_claim_names_no_rule(self):
+        # Nothing bound, so there is nothing to name. `reason` is already
+        # None here and `rule` keeps it company.
+        d = adjudicate(usd("64.32"), usd("60.0"), usd("5.0"), 3)
+        self.assertEqual(d.status, "Approved")
+        self.assertIsNone(d.rule)
+
+    def test_each_refusal_carries_its_identifier(self):
+        cases = (
+            (dict(policy_in_force=False), RULE_POLICY_LAPSED),
+            (dict(policy_in_force=False, no_cover_reason=REASON_OUTSIDE_TERM),
+             RULE_OUTSIDE_TERM),
+        )
+        for kwargs, rule in cases:
+            d = adjudicate(usd("43.09"), usd("60.0"), usd("5.0"), 0, **kwargs)
+            self.assertEqual(d.rule, rule, kwargs)
+
+    def test_the_annual_cap_names_itself(self):
+        d = adjudicate(usd("54.53"), usd("60.0"), usd("5.0"), 4)
+        self.assertEqual(d.rule, RULE_ANNUAL_LIMIT)
+
+    def test_below_the_deductible_names_itself(self):
+        d = adjudicate(usd("8.00"), usd("25.0"), usd("10.0"), 0)
+        self.assertEqual(d.rule, RULE_BELOW_DEDUCTIBLE)
+
+    def test_a_lapse_still_outranks_the_cap_in_the_identifier_too(self):
+        d = adjudicate(usd("43.09"), usd("60.0"), usd("5.0"), 4,
+                       policy_in_force=False)
+        self.assertEqual(d.rule, RULE_POLICY_LAPSED)
+
+    def test_the_identifiers_are_the_five_the_card_names(self):
+        self.assertEqual(
+            sorted((RULE_ANNUAL_LIMIT, RULE_BELOW_DEDUCTIBLE,
+                    RULE_OUTSIDE_TERM, RULE_PER_INCIDENT_LIMIT,
+                    RULE_POLICY_LAPSED)),
+            ["annual-claim-count-cap", "below-deductible",
+             "event-outside-term", "per-incident-limit", "policy-lapsed"])
+
+
+class TheTightestCapIsTheOneReported(unittest.TestCase):
+    """When two caps both apply, the one that decided the number is named.
+
+    A $100 episode on a policy with a $5 per-incident limit and a $10
+    deductible pays nothing. Saying "below deductible" states something
+    untrue about a claim four times the deductible: what actually decided
+    the number is the limit, which allowed $5 where the deductible would
+    have allowed $90.
+    """
+
+    def test_the_limit_is_named_when_it_is_the_tighter_cap(self):
+        d = adjudicate(usd("100.00"), usd("5.00"), usd("10.00"), 0)
+        self.assertEqual(d.status, "Denied")
+        self.assertEqual(d.amount, usd("0.00"))
+        self.assertEqual(d.rule, RULE_PER_INCIDENT_LIMIT)
+        self.assertEqual(d.reason, REASON_PER_INCIDENT_LIMIT)
+
+    def test_the_deductible_is_named_when_it_is_the_tighter_cap(self):
+        # The limit binds -- $1 comes off -- but the deductible takes the
+        # other $10, so the deductible is what decided it.
+        d = adjudicate(usd("11.00"), usd("10.00"), usd("10.00"), 0)
+        self.assertEqual(d.status, "Denied")
+        self.assertEqual(d.rule, RULE_BELOW_DEDUCTIBLE)
+        self.assertEqual(d.reason, REASON_BELOW_DEDUCTIBLE)
+
+    def test_a_limit_that_does_not_bind_is_never_named(self):
+        d = adjudicate(usd("8.00"), usd("25.00"), usd("10.00"), 0)
+        self.assertEqual(d.rule, RULE_BELOW_DEDUCTIBLE)
+
+    def test_the_shipped_plans_cannot_reach_the_limit_refusal(self):
+        # Every plan's limit is well above its deductible, so on real data a
+        # payable-of-zero is always the deductible. This is why no committed
+        # claim's wording moves.
+        for name, plan in COVERAGE_PLANS.items():
+            for assessed in ("5.00", "9.99", "10.00", "24.99", "60.00",
+                             "150.00", "200.00"):
+                d = adjudicate(usd(assessed), plan.coverage_limit_per_incident,
+                               plan.deductible_per_incident, 0)
+                if not d.approved:
+                    self.assertEqual(d.rule, RULE_BELOW_DEDUCTIBLE,
+                                     "%s at %s" % (name, assessed))
+
+
+class ReasonsMapBackToRules(unittest.TestCase):
+    """The 2,172 committed claims store prose and nothing else.
+
+    `rule_for_reason` is how those are read as rules. It maps only the
+    wordings `adjudicate` itself produces, and refuses to guess at anything
+    else -- the generator's unmodelled refusals are not rule outcomes, and
+    one of them is worded almost exactly like a rule.
+    """
+
+    def test_every_reason_the_rules_produce_maps_back(self):
+        pairs = ((REASON_POLICY_LAPSED, RULE_POLICY_LAPSED),
+                 (REASON_OUTSIDE_TERM, RULE_OUTSIDE_TERM),
+                 (REASON_BELOW_DEDUCTIBLE, RULE_BELOW_DEDUCTIBLE),
+                 (REASON_PER_INCIDENT_LIMIT, RULE_PER_INCIDENT_LIMIT),
+                 ("Exceeded annual claim limit", RULE_ANNUAL_LIMIT))
+        for reason, rule in pairs:
+            self.assertEqual(rule_for_reason(reason), rule, reason)
+
+    def test_it_does_not_guess_at_prose_the_rules_never_wrote(self):
+        # The generator's unmodelled denials. The second one reads like the
+        # per-incident rule and is not it: no rule produced it, so naming one
+        # would be the paraphrasing this whole change exists to stop.
+        for reason in ("Pre-existing headache condition exclusion",
+                       "Claim amount exceeds per-incident coverage limit",
+                       "Insufficient severity documented",
+                       "Filed outside claim window"):
+            self.assertIsNone(rule_for_reason(reason), reason)
+
+    def test_no_reason_at_all_is_not_a_rule(self):
+        self.assertIsNone(rule_for_reason(None))
+
+    def test_the_new_wording_does_not_collide_with_the_generators(self):
+        # If it did, 10 committed unmodelled refusals would start counting as
+        # rule outcomes.
+        self.assertNotEqual(REASON_PER_INCIDENT_LIMIT,
+                            "Claim amount exceeds per-incident coverage limit")
 
 
 class Assessment(unittest.TestCase):
