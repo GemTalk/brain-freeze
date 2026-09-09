@@ -4,6 +4,11 @@ Eight things about running Python inside GemDB that cost real time while
 building this demo, each reduced to a script that reproduces it on your own
 database rather than asking you to believe a transcript.
 
+[`docs/writing-python-for-gemdb.md`](../docs/writing-python-for-gemdb.md) is
+these eight turned into advice, with the rest of what this repo learned folded
+in. Read that if you are about to write code; read this if you want to see it
+happen on your own database.
+
 ```sh
 export PATH="$HOME/GemDB/bin:$PATH"     # not needed in a VS Code terminal
 gemdb findings/01_shim_missing.py

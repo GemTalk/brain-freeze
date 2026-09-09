@@ -452,8 +452,10 @@ data/          the two generated CSVs
 tests/         the suite -- python3 -m unittest discover
 mockups/       nine screens, an insurer sketch, and build_c.py that makes them
 docs/          the PRD, the questions the demo promises to answer, the
-               dataset description an agent needs to ask its own, and the
+               dataset description an agent needs to ask its own, the rules
+               for writing Python that runs inside the database, and the
                column dictionary for the two CSVs
+findings/      the eight things that cost time, as scripts you can run
 app.py         the web app
 seed.py        data/ -> gemdb.root
 PLAN.md        the working notes, including what is still open
@@ -463,8 +465,19 @@ PLAN.md        the working notes, including what is still open
 column in `data/*.csv`, its type, whether it can be empty, what it means, and
 which attribute it becomes when `seed.py` loads it — plus the `policy_id`
 relationship and the six columns that are derived and therefore never loaded.
-It is the reference to check a mapping against; `docs/dataset-for-agents.md` is
-the orientation for writing code once the objects are in the database.
+It is the reference to check a mapping against;
+[`docs/dataset-for-agents.md`](docs/dataset-for-agents.md) is the orientation
+for asking questions of the objects once they are in the database.
+
+[`docs/writing-python-for-gemdb.md`](docs/writing-python-for-gemdb.md) is its
+counterpart for the code itself, and is the one to read first if you are about
+to write Python that runs in here. Claude writes good Python; it writes good
+*CPython*, and this is not that. Money that ends the session rather than
+raising, a `__main__` shared by every script the database has ever run, a
+committed module the database then serves forever — with the through-line that
+in most of these, **the code that exists to report a problem is the code that
+breaks.** The evidence is [`findings/`](findings/README.md), summarised
+[below](#what-this-cost-us).
 
 `brainfreeze/` imports nothing outside the standard library and is not allowed
 to — it is compiled and run inside the database, where numpy and pandas do not
