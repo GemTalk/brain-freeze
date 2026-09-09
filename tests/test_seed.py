@@ -7,6 +7,9 @@ printout. It reads `data/policyholders.csv` and `data/claims.csv`.
 """
 
 import csv
+import os
+import random
+import tempfile
 import unittest
 from datetime import date, timedelta
 
@@ -375,6 +378,126 @@ class BF100539(unittest.TestCase):
         for claim in self.policy.claims:
             self.assertIsNone(claim.flavour)
             self.assertEqual(claim.toppings, ())
+
+
+class EventOrderIsTheLoadersJob(unittest.TestCase):
+    """Issue #69: oldest-first has to be something the loader does.
+
+    `Policyholder.events` is documented as oldest first, and it was -- but
+    only because `data/claims.csv` arrives grouped by policy and ascending by
+    date, and `attach_events` appended in file order. The invariant lived in a
+    file's row order, so re-sorting, filtering or regenerating the CSV changed
+    it silently and nothing failed.
+
+    Asserting that the committed file is ordered would only re-measure what is
+    already true. These feed the loader a DELIBERATELY SHUFFLED copy of the
+    same file, which is the only input that can tell a loader that sorts from
+    one that got lucky.
+    """
+
+    #: Fixed so a failure is reproducible rather than a coin toss.
+    SHUFFLE_SEED = 69
+
+    @classmethod
+    def setUpClass(cls):
+        cls.ordered = seed.load()
+
+    @staticmethod
+    def _rewritten(directory, rows, header, name="claims-shuffled.csv"):
+        path = os.path.join(directory, name)
+        with open(path, "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(header)
+            writer.writerows(rows)
+        return path
+
+    @classmethod
+    def _claims_rows(cls):
+        with open(seed.CLAIMS_CSV, newline="") as handle:
+            reader = csv.reader(handle)
+            return next(reader), list(reader)
+
+    def test_the_shuffle_really_shuffles(self):
+        # Otherwise the two tests below would pass against a loader that does
+        # nothing at all.
+        header, rows = self._claims_rows()
+        random.Random(self.SHUFFLE_SEED).shuffle(rows)
+        self.assertNotEqual([row[0] for row in rows],
+                            sorted(row[0] for row in rows))
+
+    def test_a_shuffled_file_still_loads_oldest_first(self):
+        header, rows = self._claims_rows()
+        random.Random(self.SHUFFLE_SEED).shuffle(rows)
+        with tempfile.TemporaryDirectory() as directory:
+            book = seed.load(seed.POLICYHOLDERS_CSV,
+                             self._rewritten(directory, rows, header))
+        self.assertEqual(len(book.events), 4993)
+        for policyholder in book:
+            dates = [e.event_date for e in policyholder.events]
+            self.assertEqual(dates, sorted(dates), policyholder.policy_id)
+
+    def test_a_shuffled_file_loads_the_same_order_as_the_committed_one(self):
+        # Stronger than ascending dates, and this is what the tiebreak buys:
+        # 37 policies record two treats on one day, so a date-only sort leaves
+        # those pairs to whatever order the rows arrived in. Sorting by
+        # event_id as well makes the loaded order a function of the rows and
+        # not of their sequence -- shuffled in, identical out.
+        header, rows = self._claims_rows()
+        random.Random(self.SHUFFLE_SEED).shuffle(rows)
+        with tempfile.TemporaryDirectory() as directory:
+            book = seed.load(seed.POLICYHOLDERS_CSV,
+                             self._rewritten(directory, rows, header))
+        for policyholder in book:
+            self.assertEqual(
+                [e.event_id for e in policyholder.events],
+                [e.event_id for e in self.ordered[policyholder.policy_id].events],
+                policyholder.policy_id)
+
+    def test_two_treats_on_one_day_come_back_in_event_id_order(self):
+        # The tie, on its own, with the rows written the wrong way round. A
+        # stable sort by date alone passes everything above and fails this.
+        header, rows = self._claims_rows()
+        columns = {name: i for i, name in enumerate(header)}
+        mine = [row for row in rows
+                if row[columns["policy_id"]] == "BF-100539"][:2]
+        self.assertEqual([row[columns["event_id"]] for row in mine],
+                         ["EVT-002992", "EVT-002993"])
+        first, second = (list(row) for row in mine)
+        second[columns["event_date"]] = first[columns["event_date"]]
+        with tempfile.TemporaryDirectory() as directory:
+            book = seed.load(seed.POLICYHOLDERS_CSV,
+                             self._rewritten(directory, [second, first], header))
+        self.assertEqual([e.event_id for e in book["BF-100539"].events],
+                         ["EVT-002992", "EVT-002993"])
+
+    def test_the_pinned_figures_do_not_move_when_the_input_is_shuffled(self):
+        # Sorting must not change a single seeded number -- these are the ones
+        # pinned above, in tests/test_app.py and in docs/mcp-questions.md.
+        header, rows = self._claims_rows()
+        random.Random(self.SHUFFLE_SEED).shuffle(rows)
+        with tempfile.TemporaryDirectory() as directory:
+            book = seed.load(seed.POLICYHOLDERS_CSV,
+                             self._rewritten(directory, rows, header))
+        self.assertEqual(book.total_paid, usd("54671.44"))
+        self.assertEqual(book.total_premium, usd("92081.22"))
+        self.assertEqual(book.loss_ratio, 0.594)
+        policy = book["BF-100539"]
+        self.assertEqual(policy.total_paid, usd("179.97"))
+        self.assertEqual([c.approved for c in policy.claims],
+                         [c.approved for c in self.ordered["BF-100539"].claims])
+        self.assertEqual([(c.claim_id, c.reason) for c in policy.claims
+                          if not c.is_approved],
+                         [("CLM-001289", "Exceeded annual claim limit"),
+                          ("CLM-001290", "Exceeded annual claim limit"),
+                          ("CLM-001291", "Policy lapsed"),
+                          ("CLM-001292", "Policy lapsed")])
+
+    def test_every_policy_in_the_committed_file_loads_oldest_first(self):
+        # The weak version, kept only because it is what the docs promise and
+        # it costs nothing: it would still pass if the loader never sorted.
+        for policyholder in self.ordered:
+            dates = [e.event_date for e in policyholder.events]
+            self.assertEqual(dates, sorted(dates), policyholder.policy_id)
 
 
 if __name__ == "__main__":

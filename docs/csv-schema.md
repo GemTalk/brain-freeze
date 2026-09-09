@@ -151,13 +151,22 @@ key becomes containment, which is the point of the exercise — there is no join
 to write, and no index to maintain, because reaching a policy's claims is
 reaching them.
 
-**Order matters and comes from the file.** `seed.py` appends events in the
-order it reads them and never sorts, so the guarantee that `policyholder.events`
-is oldest-first is a property of `claims.csv`: the rows are grouped by policy,
+**Order matters and the loader is what enforces it.** `policyholder.events`
+is oldest first because `attach_events` sorts by `event_date` and then by
+`event_id`, not because the rows happen to arrive that way — they do, but that
+is now a coincidence rather than the guarantee (issue #69). The tiebreak is
+load-bearing: 37 policies record two treats on the same day, and a date-only
+sort would hand those pairs back in file order, which is the same bug wearing a
+sort. So a hand-edited, re-sorted or regenerated `claims.csv` loads into the
+same object graph as long as the rows themselves are the same; the row order
+decides nothing. `tests/test_seed.py` asserts it against a deliberately
+shuffled copy of the file, which is the only input that can tell a loader that
+sorts from one that got lucky.
+
+For the record, all four of the properties the file used to be relied on for
+still hold across the committed data: the rows are grouped by policy,
 contiguous, in the same policy order as `policyholders.csv`, and ascending by
-`event_date` within each group. All four hold across the committed file. A
-hand-edited or re-sorted `claims.csv` would silently produce events in a
-different order, and nothing would fail.
+`event_date` within each group. Nothing reads them any more.
 
 ## Stored versus derived
 
