@@ -250,9 +250,53 @@ tool that knows what a policyholder is.** An agent answers questions by writing
 Python that runs inside the database.
 
 The endpoint is `http://127.0.0.1:50390/mcp` (Streamable HTTP, loopback, no
-auth). In a GemDB build that ships the server, `gemdb.mcp.enabled` turns it on
-and `gemdb.mcp.port` moves it; **no released GemDB ships it yet**, so this repo
-drives the server directly instead:
+auth), and `gemdb.mcp.enabled` turns it on.
+
+### Getting a GemDB that has it
+
+**No released GemDB ships the MCP server.** It is on `main` — v1.4.0 is the
+newest tag, `package.json` on `main` still says 1.4.0, and the repository has
+published no releases at all — so today you build the extension yourself:
+
+```sh
+cd GemDB_Code
+npm run package                                  # gemdb-<target>-1.4.0.vsix
+codium --install-extension gemdb-darwin-arm64-1.4.0.vsix --force
+```
+
+**Set `gemdb.reinstallPythonOnUpdate` to `false` before you install it**, and
+this is not optional if you have data you care about. A build from `main`
+bundles a newer Grail than v1.4.0 does, the extension reinstalls Python when
+that happens, and reinstalling Python recreates the runtime classes and
+**orphans every object already committed** — see `findings/03_class_identity.py`
+for the mechanism. The setting defaults to `true`.
+
+Then set `gemdb.mcp.enabled` to `true` and reload the window.
+
+### Connecting Claude Code
+
+```sh
+claude mcp add --transport http gemdb http://127.0.0.1:50390/mcp
+claude mcp list
+```
+
+```
+gemdb: http://127.0.0.1:50390/mcp (HTTP) - ✔ Connected
+```
+
+No shim, no wrapper: Claude Code speaks Streamable HTTP to a loopback endpoint
+directly. GemDB deliberately configures no client outside VS Code — its
+**GemDB: Connect an AI Agent to GemDB** command hands you the command and
+stops.
+
+**Watch the session budget.** Each connected client costs a worker gem, the
+router caps itself at three (`MCP_MAX_SESSIONS`), and a Community Edition
+stone allows ten in total — shared with the app, the notebook and any shell.
+
+### Or drive the server directly
+
+You do not need the extension at all. This repo installs and checks the server
+by itself, which is also how it stays current:
 
 ```sh
 python3 refresh_mcp.py                    # upstream vs staged vs installed
