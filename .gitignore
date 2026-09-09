@@ -4,3 +4,9 @@ __pycache__/
 
 # macOS
 .DS_Store
+
+# Working notes kept deliberately out of the repo. This one is a decision memo
+# comparing this demo against the one being retired from GemDB_Code; it is for
+# a conversation, not for publication. Ignored so `git add -A` cannot sweep it
+# in -- which it did once.
+docs/two-demos-compared.md
