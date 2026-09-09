@@ -8,8 +8,11 @@ start disagreeing, this is what says so.
 """
 
 import unittest
+from datetime import date
 
 from brainfreeze.money import round_cents, usd
+
+from brainfreeze.model import Event, Policyholder
 
 from brainfreeze import (
     REASON_OUTSIDE_TERM,
@@ -133,6 +136,52 @@ class Adjudication(unittest.TestCase):
         d = adjudicate(usd("120.00"), usd("150.0"), usd("0.0"), 0)
         self.assertEqual(d.amount, 120.00)
         self.assertEqual(d.deductible_applied, 0.0)
+
+
+class EventOrderSurvivesAdding(unittest.TestCase):
+    """#71: sorting at load time is not enough.
+
+    The app files a claim by adding an event dated TODAY to a policy whose
+    seeded events run into 2027, so an appended event lands in the middle of
+    the history and is shown last."""
+
+    def event(self, event_id, when):
+        return Event(event_id, when, "slushie", -5.0, 250.0, "fast", True)
+
+    def policy(self):
+        return Policyholder(
+            policy_id="BF-TEST", age=10, sex=None, migraine_history=False,
+            tension_type_headache_history=False,
+            typical_consumption_speed="fast", favourite_trigger="slushie",
+            underwriting_base=45.0, plan_name="Standard",
+            annual_premium=usd("171.00"), policy_start_date=date(2026, 1, 1),
+            policy_term_months=24)
+
+    def test_an_event_added_out_of_order_lands_in_order(self):
+        p = self.policy()
+        for day, event_id in ((10, "EVT-000003"), (20, "EVT-000004")):
+            p.add_event(self.event(event_id, date(2027, 1, day)))
+        p.add_event(self.event("EVT-000005", date(2026, 6, 1)))
+        self.assertEqual([e.event_date for e in p.events],
+                         [date(2026, 6, 1), date(2027, 1, 10), date(2027, 1, 20)])
+
+    def test_two_events_on_one_day_order_by_id(self):
+        p = self.policy()
+        p.add_event(self.event("EVT-000009", date(2026, 6, 1)))
+        p.add_event(self.event("EVT-000002", date(2026, 6, 1)))
+        self.assertEqual([e.event_id for e in p.events],
+                         ["EVT-000002", "EVT-000009"])
+
+    def test_appending_at_the_end_still_works(self):
+        p = self.policy()
+        p.add_event(self.event("EVT-000001", date(2026, 2, 1)))
+        newest = p.add_event(self.event("EVT-000002", date(2026, 3, 1)))
+        self.assertIs(p.events[-1], newest)
+
+    def test_it_returns_the_event_it_was_given(self):
+        p = self.policy()
+        event = self.event("EVT-000001", date(2026, 2, 1))
+        self.assertIs(p.add_event(event), event)
 
 
 class Assessment(unittest.TestCase):

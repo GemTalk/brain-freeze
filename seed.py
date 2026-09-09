@@ -39,7 +39,7 @@ import os
 import sys
 from datetime import date
 
-from brainfreeze.model import Book, Claim, Event, Policyholder
+from brainfreeze.model import Book, Claim, Event, Policyholder, event_order
 from brainfreeze.money import format_usd, usd
 
 #: `data/` beside this file, not beside the working directory. `gemdb seed.py`
@@ -79,26 +79,6 @@ def _text(value):
 def _date(text):
     year, month, day = (int(part) for part in text.split("-"))
     return date(year, month, day)
-
-
-def event_order(event):
-    """The sort key behind "oldest first" -- date, then event id.
-
-    The date is the promise, and on its own it is not a total order: 37
-    policies in the committed data record two cold treats on the same day. A
-    date-only sort leaves those pairs wherever they arrived, which is the bug
-    again with an extra step -- Python's sort is stable, so ties fall back on
-    the row order in the CSV, and that is precisely the thing that must stop
-    deciding anything.
-
-    `event_id` breaks them. It is unique across the file, never empty, and
-    zero-padded to a fixed width, so comparing the strings compares the
-    numbers; `app.py` mints new ones through the same `EVT-%06d` series. That
-    makes the loaded order a function of the rows themselves rather than of
-    the sequence they were read in: shuffle the file and every policy comes
-    back in exactly the order it is in now.
-    """
-    return (event.event_date, event.event_id)
 
 
 def read_policyholders(path=POLICYHOLDERS_CSV):

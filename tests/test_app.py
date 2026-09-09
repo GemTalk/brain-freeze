@@ -34,6 +34,11 @@ ACTIVE_RULES = "BF-100150"    # written by: the payout matches adjudicate()
 ACTIVE_READONLY = "BF-100184" # never written -- for the "no warning" checks
 CUJ4 = "BF-100186"            # written by: the flavour/toppings claim
 
+#: Active, six events running to 2027-01-16, and written by exactly one test:
+#: the one that checks a filed claim lands in date order rather than at the
+#: end (#71). It needs seeded events BOTH sides of today.
+ORDERING = "BF-100000"
+
 #: Already past its lapse date, and its annual cap is NOT spent, so a claim
 #: filed against it can only be refused for the lapse. BF-100539 -- the policy
 #: the mockups are drawn from -- is no good here: it lapses on 2027-03-10,
@@ -61,6 +66,24 @@ class TheApp(unittest.TestCase):
 
     def setUp(self):
         self.client = self.app.test_client()
+
+    def newest_claim(self, policy):
+        """The claim just filed, found by claim id rather than by position.
+
+        `policy.events[-1]` was the obvious way and stopped being true in #71:
+        events are kept in date order now, and the app files a claim dated
+        TODAY against policies whose seeded events run into 2027, so a new
+        event usually lands in the MIDDLE. Position was never the thing that
+        made it the new one.
+        """
+        seeded = self.seeded_claims
+        fresh = [e.claim for e in policy.events
+                 if e.claim is not None and e.claim.claim_id not in seeded]
+        self.assertTrue(fresh, "no new claim on %s" % policy.policy_id)
+        # The highest id, not the last position and not "the only one":
+        # several tests file against the same policy, and ids are minted in
+        # sequence through `_next_id`, so the newest is the largest.
+        return max(fresh, key=lambda claim: claim.claim_id)
 
     def book(self):
         return gemdb.root["brainfreeze"]
@@ -126,6 +149,27 @@ class TheApp(unittest.TestCase):
             self.skipTest("this session is clean -- nothing to refuse")
         self.assertEqual(
             self.client.get("/policies/%s" % ACTIVE_READONLY).status_code, 200)
+
+    def test_a_filed_claim_lands_in_date_order_not_at_the_end(self):
+        # #71. The app dates a claim TODAY, and ACTIVE's seeded events run
+        # into 2027, so an appended event would show up last in a history it
+        # belongs in the middle of -- on the screen CUJ-3 drives.
+        policy = self.book()[ORDERING]
+        later = [e for e in policy.events if e.event_date > date.today()]
+        if not later:
+            self.skipTest("no seeded event after today -- nothing to land before")
+
+        self._file(ORDERING)
+        policy = self.book()[ORDERING]
+
+        dates = [e.event_date for e in policy.events]
+        self.assertEqual(dates, sorted(dates), "history is out of order")
+        self.assertIsNot(policy.events[-1], None)
+        self.assertLess(policy.events.index(
+            [e for e in policy.events
+             if e.claim is self.newest_claim(policy)][0]),
+            len(policy.events) - 1,
+            "the new event should not be last -- later events exist")
 
     # -- the quote flow --------------------------------------------------
 
@@ -257,7 +301,7 @@ class TheApp(unittest.TestCase):
         policy_id = not_started[0].policy_id
         r = self._file(policy_id)
         self.assertEqual(r.status_code, 302)
-        claim = self.book()[policy_id].events[-1].claim
+        claim = self.newest_claim(self.book()[policy_id])
         self.assertEqual(claim.status, "Denied")
         self.assertEqual(claim.approved, usd("0.00"))
         self.assertEqual(claim.reason, "Event outside policy term")
@@ -291,7 +335,7 @@ class TheApp(unittest.TestCase):
 
         policy = self.book()[ACTIVE]
         self.assertEqual(len(policy.events), before_events + 1)
-        claim = policy.events[-1].claim
+        claim = self.newest_claim(policy)
         self.assertIsNotNone(claim)
         self.assertEqual(claim.status, "Approved")
         self.assertGreater(claim.approved, 0)
@@ -311,7 +355,7 @@ class TheApp(unittest.TestCase):
 
         self._file(ACTIVE_RULES)
 
-        claim = self.book()[ACTIVE_RULES].events[-1].claim
+        claim = self.newest_claim(self.book()[ACTIVE_RULES])
         expected = bf_app.brainfreeze.adjudicate(
             claim.requested, limit, deductible, used)
         self.assertEqual(claim.status, expected.status)
@@ -320,7 +364,7 @@ class TheApp(unittest.TestCase):
     def test_a_claim_on_a_lapsed_policy_is_refused_for_the_lapse(self):
         r = self._file(LAPSED)
         self.assertEqual(r.status_code, 302)
-        claim = self.book()[LAPSED].events[-1].claim
+        claim = self.newest_claim(self.book()[LAPSED])
         self.assertEqual(claim.status, "Denied")
         self.assertEqual(claim.reason, "Policy lapsed")
         self.assertEqual(claim.approved, usd("0.00"))
@@ -337,12 +381,12 @@ class TheApp(unittest.TestCase):
             "toppings": ["Sprinkles", "Hot fudge"]})
         self.assertEqual(r.status_code, 302)
 
-        claim = self.book()[CUJ4].events[-1].claim
+        claim = self.newest_claim(self.book()[CUJ4])
         self.assertEqual(claim.flavour, "Mint choc chip")
         self.assertEqual(claim.toppings, ("Sprinkles", "Hot fudge"))
 
         # and it survives the commit, read back from the database
-        self.assertEqual(gemdb.root["brainfreeze"][CUJ4].events[-1].claim.flavour,
+        self.assertEqual(self.newest_claim(gemdb.root["brainfreeze"][CUJ4]).flavour,
                          "Mint choc chip")
 
     def test_the_2172_older_claims_still_read(self):
@@ -366,7 +410,7 @@ class TheApp(unittest.TestCase):
         # The questions are optional; a claim filed without answering them
         # reads exactly like one from before they existed.
         self._file(ACTIVE)
-        claim = self.book()[ACTIVE].events[-1].claim
+        claim = self.newest_claim(self.book()[ACTIVE])
         self.assertIsNone(claim.flavour)
         self.assertEqual(claim.toppings, ())
 

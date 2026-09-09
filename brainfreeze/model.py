@@ -91,6 +91,26 @@ class Event:
             "" if self.brain_freeze else " (no brain freeze)")
 
 
+def event_order(event):
+    """The sort key behind "oldest first" -- date, then event id.
+
+    The date is the promise, and on its own it is not a total order: 37
+    policies in the committed data record two cold treats on the same day. A
+    date-only sort leaves those pairs wherever they arrived, which is the bug
+    again with an extra step -- Python's sort is stable, so ties fall back on
+    the row order in the CSV, and that is precisely the thing that must stop
+    deciding anything.
+
+    `event_id` breaks them. It is unique across the file, never empty, and
+    zero-padded to a fixed width, so comparing the strings compares the
+    numbers; `app.py` mints new ones through the same `EVT-%06d` series. That
+    makes the loaded order a function of the rows themselves rather than of
+    the sequence they were read in: shuffle the file and every policy comes
+    back in exactly the order it is in now.
+    """
+    return (event.event_date, event.event_id)
+
+
 class Policyholder:
     """One policy, and everything that has happened under it."""
 
@@ -232,7 +252,25 @@ class Policyholder:
         return float(round_half_up(self.total_paid / self.annual_premium, 3))
 
     def add_event(self, event):
-        self.events.append(event)
+        """Add an event, in order, not at the end.
+
+        Appending was enough while events only arrived from the CSV, which is
+        already sorted. It is not enough once the app files a claim: that adds
+        an event dated TODAY to a policy whose seeded events run into 2027, so
+        an appended event belongs in the middle of the history and is shown
+        last (#71).
+
+        Sorting at load time and appending afterwards means the guarantee
+        holds until the moment someone uses the demo, which is the worst
+        possible time for it to stop holding.
+        """
+        key = event_order(event)
+        position = len(self.events)
+        for index, existing in enumerate(self.events):
+            if event_order(existing) > key:
+                position = index
+                break
+        self.events.insert(position, event)
         return event
 
     def __repr__(self):
