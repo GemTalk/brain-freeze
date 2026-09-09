@@ -19,11 +19,21 @@ session with `OffsetError 2003` â€” no traceback, no line number, uncatchable â€
 and jinja2 reached it while *reporting* an unrelated template error, so a Flask
 app died on the path meant to explain what went wrong.
 
-Filed as [Grail#895](https://github.com/GemTalk/Grail/pull/895). Until that
-merges and this database is rebuilt on a Grail that contains it, the extent
-carries a fix its source tree does not, which is precisely the kind of
-divergence the rest of this document complains about. It is recorded here so
-nobody re-measures the crash and concludes it was never real.
+Filed as [Grail#895](https://github.com/GemTalk/Grail/pull/895), and **pinned
+locally**: the same one-method change is applied to `~/GemDB/grail`'s source as
+well as to the extent, and `GRAIL_VERSION` now reads
+`grail=c875e56+gemtalk-grail-pr895` with a comment saying what that means. The
+two agree, and a reinstall from this tree would reproduce the fix rather than
+silently undo it.
+
+The pin is deliberately **one method, not the branch**. Grail `main` is 303
+commits ahead of `c875e56`, and installing that would recreate the Python
+runtime classes with new identity and orphan every object this demo has
+committed -- the hazard in finding 1. A whole-branch upgrade is a rebuild of
+the database, not a pin, and it has to be planned rather than done in passing.
+
+Recorded here so nobody re-measures the crash, finds it gone, and concludes it
+was never real.
 
 Positional calls and the `count=` keyword are unaffected; all 133 CPython tests
 and 115 in-database tests pass with it in place. To revert, re-file the
