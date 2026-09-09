@@ -10,6 +10,29 @@ reproduce each item on your own database.
 
 ---
 
+## This database is no longer stock c875e56
+
+**One method has been patched in, live, on 2026-09-09.**
+`CharacterCollection >> _replace: positional kw: kwargs` now bounds-checks its
+positional array. Before the patch, `'ab'.replace(old='a', new='b')` ended the
+session with `OffsetError 2003` — no traceback, no line number, uncatchable —
+and jinja2 reached it while *reporting* an unrelated template error, so a Flask
+app died on the path meant to explain what went wrong.
+
+Filed as [Grail#895](https://github.com/GemTalk/Grail/pull/895). Until that
+merges and this database is rebuilt on a Grail that contains it, the extent
+carries a fix its source tree does not, which is precisely the kind of
+divergence the rest of this document complains about. It is recorded here so
+nobody re-measures the crash and concludes it was never real.
+
+Positional calls and the `count=` keyword are unaffected; all 133 CPython tests
+and 115 in-database tests pass with it in place. To revert, re-file the
+original method **with `set compile_env: 1`** — without that directive the
+method compiles into environment 0, which silently breaks `count=` and does not
+restore anything. That mistake was made once already.
+
+---
+
 ## Read this before adding anything to the list
 
 **Three versions of Grail are in play and they behave differently.**
