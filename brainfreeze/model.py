@@ -37,8 +37,18 @@ class Claim:
     flavour = None
     toppings = ()
 
+    #: #49: which rule refused this claim, as a stable identifier, alongside
+    #: the sentence in `reason`. Same class-attribute default and the same
+    #: reason for it -- but note what docs/prd-corrections.md measured: a
+    #: default declared *after* records are committed is not visible to those
+    #: records, because editing the class compiles a different one. Claims
+    #: already in the database therefore raise AttributeError on `.rule`, and
+    #: anything reading it across the whole book must go through
+    #: `getattr(claim, "rule", None)`. `analysis.denial_rules` does.
+    rule = None
+
     def __init__(self, claim_id, requested, approved, status, reason=None,
-                 flavour=None, toppings=None):
+                 flavour=None, toppings=None, rule=None):
         self.claim_id = claim_id
         #: Through `usd`, which refuses a float outright. Money enters the
         #: model here and at Policyholder, and nowhere else, so those two
@@ -47,6 +57,8 @@ class Claim:
         self.approved = usd(approved)
         self.status = status
         self.reason = reason
+        if rule is not None:
+            self.rule = rule
         if flavour is not None:
             self.flavour = flavour
         if toppings is not None:

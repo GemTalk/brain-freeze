@@ -197,7 +197,8 @@ stored; `claimed` is the only property.
 | `requested` | `float` | |
 | `approved` | `float` | what was paid; `0.0` when denied |
 | `status` | `str` | `"Approved"` or `"Denied"` — nothing else reaches an object |
-| `reason` | `str` or `None` | why it was refused; `None` when approved |
+| `reason` | `str` or `None` | why it was refused, in English; `None` when approved |
+| `rule` | `str` or `None` | which rule refused it, as an identifier; `None` when approved |
 | `flavour` | `str` or `None` | class default `None` |
 | `toppings` | `tuple` | class default `()` |
 | `is_approved` | property | `status == "Approved"` |
@@ -208,6 +209,13 @@ claim written before the fields existed has no slot of its own and reads the
 default through the class. Reading them on a seeded claim is safe and gives
 `None` and `()`; 2,172 of them do.
 
+`rule` was added later still, and the difference matters. A default declared
+after records are committed is **not** visible to those records — editing the
+class compiles a different class, and the 2,172 seeded claims keep the one they
+were created under. Read it as `getattr(claim, "rule", None)`, never
+`claim.rule`, and fall back to `adjudication.rule_for_reason(claim.reason)`
+for a claim that predates it. `analysis.denial_rules` does both.
+
 The CSV has a third `claim_status`, `"Not Filed"`, on 2,821 rows. Those rows
 have no claim id, so `seed.py` gives the event `claim=None` and no `Claim`
 object is ever built. **Do not filter for `"Not Filed"`; filter for
@@ -216,7 +224,7 @@ object is ever built. **Do not filter for `"Not Filed"`; filter for
 ### `Decision` is not in the database
 
 `brainfreeze.adjudication.Decision` is a `NamedTuple` — `status`, `amount`,
-`reason`, `assessed`, `capped_by_limit`, `deductible_applied`, plus an
+`reason`, `assessed`, `capped_by_limit`, `deductible_applied`, `rule`, plus an
 `approved` property — returned by `adjudicate()` when a claim is being decided.
 It is the app's working object. Nothing stores one. A claim in the book carries
 the *outcome* of a decision (`status`, `approved`, `reason`), not the decision.
@@ -360,6 +368,7 @@ wrong quietly.
 | `least_profitable_plan(book)` | `(name, ratio)`, or `None` on an empty book |
 | `claim_approval_rate(book)` | float to 4 places, or `None` if no claims were filed |
 | `denial_reasons(book)` | `[(reason, count)]`, commonest first, ties alphabetical |
+| `denial_rules(book)` | `[(rule_id, count)]`, same order; identifiers, not prose |
 | `top_n_by_expected_claims(book, n=10, min_events=5)` | `[(policyholder, rate)]`, highest first, ties by policy id |
 | `top_n_by_loss_ratio(book, n=10)` | `[(policyholder, ratio)]`, highest first, ties by policy id |
 
@@ -466,9 +475,10 @@ while they are still paying claims.
 
 ### Four of the six denial reasons do not come from the rules
 
-`adjudication.py` can return exactly three: `"Policy lapsed"`,
-`"Exceeded annual claim limit"`, `"Claim amount below deductible"`. The seeded
-book contains six, and not that third one:
+`adjudication.py` can return five, identified as `policy-lapsed`,
+`event-outside-term`, `annual-claim-count-cap`, `below-deductible` and
+`per-incident-limit`. The seeded book contains six wordings, of which only two
+are the rules':
 
 ```
 Policy lapsed                                  254
@@ -488,7 +498,19 @@ So: a refusal you can check against the rules is one of the top two. A claim
 refused for one of the bottom four cannot be re-derived from
 `adjudicate()`, and saying "the rules produced this" of one of them would be
 wrong. `"Claim amount below deductible"` is a reason the code can return that
-nothing in this dataset actually hit.
+nothing in this dataset actually hit, and so are the two wordings added since
+this book was generated.
+
+**Group by the identifier, not by the sentence.** `analysis.denial_rules(book)`
+returns the same 481 refusals keyed by rule id, with the 44 that no rule
+produced under `unclassified` (and a refusal that stored no reason at all under
+`unrecorded`). Neither of those is a rule. Two traps it saves you from: the
+generator's `"Claim amount exceeds per-incident coverage limit"` reads like the
+`per-incident-limit` rule and is **not** it, and the generator also picks the
+real `"Exceeded annual claim limit"` wording for some of its unmodelled
+refusals, so the 183 under `annual-claim-count-cap` are an upper bound on how
+many the cap actually refused. Wording alone cannot tell those apart — which is
+the argument for storing the identifier at the source.
 
 ### A refusal is checkable, not just quotable
 

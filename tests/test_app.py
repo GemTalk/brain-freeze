@@ -305,6 +305,9 @@ class TheApp(unittest.TestCase):
         self.assertEqual(claim.status, "Denied")
         self.assertEqual(claim.approved, usd("0.00"))
         self.assertEqual(claim.reason, "Event outside policy term")
+        # #49: and the identifier a checking agent reads, which is what tells
+        # this apart from a lapse without parsing the sentence.
+        self.assertEqual(claim.rule, "event-outside-term")
 
     def test_the_picker_distinguishes_lapsed_from_lapses_later(self):
         # Both stored as policy_status "Lapsed"; only one has actually lapsed.
@@ -367,6 +370,7 @@ class TheApp(unittest.TestCase):
         claim = self.newest_claim(self.book()[LAPSED])
         self.assertEqual(claim.status, "Denied")
         self.assertEqual(claim.reason, "Policy lapsed")
+        self.assertEqual(claim.rule, "policy-lapsed")
         self.assertEqual(claim.approved, usd("0.00"))
 
     # -- CUJ-4: two fields added after the data was already committed -----

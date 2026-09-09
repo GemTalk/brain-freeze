@@ -24,6 +24,7 @@ Money is `decimal.Decimal` throughout -- see `brainfreeze.money`. Sums here
 are exact; only the ratios become floats, and only on the way out.
 """
 
+from .adjudication import rule_for_reason
 from .money import ZERO, round_half_up
 
 
@@ -103,6 +104,10 @@ def denial_reasons(book):
     """Every reason a claim was refused, commonest first, as (reason, count).
 
     Ties are broken alphabetically so the order does not wobble between runs.
+
+    Prose, and prose drifts -- see `denial_rules` for the same refusals
+    grouped by an identifier that does not. This one keeps its shape and its
+    wording because docs/mcp-questions.md publishes its output.
     """
     counts = {}
     for claim in book.claims:
@@ -111,6 +116,52 @@ def denial_reasons(book):
             counts[reason] = counts.get(reason, 0) + 1
     return [(reason, counts[reason])
             for reason in sorted(counts, key=lambda r: (-counts[r], r))]
+
+
+#: What `denial_rules` calls a refusal it cannot name a rule for. Neither is
+#: a rule identifier, and both are spelled so they cannot be mistaken for one.
+UNRECORDED_RULE = "unrecorded"        # the claim stored no reason at all
+UNCLASSIFIED_RULE = "unclassified"    # prose no rule in `adjudication` wrote
+
+
+def denial_rules(book):
+    """The same refusals as `denial_reasons`, grouped by rule identifier.
+
+    A sibling rather than a change of shape, for two reasons.
+
+    The first is that `denial_reasons` output is published -- question 4 of
+    docs/mcp-questions.md prints the list -- so an agent may already be
+    reading it, and rewriting it would move a promised answer rather than add
+    a new one.
+
+    The second is the better reason: these count different things. Prose
+    counts what claimants were told, which in the committed book includes 44
+    refusals no rule produced -- the generator's paperwork, exclusions and
+    late filings, deliberately there so the sample history looks lived-in.
+    Identifiers count which coded rule bound. Folding those into one list
+    would either drop the 44 or invent rules for them; keeping two lists says
+    plainly that the difference is 44 refusals the rules had no part in.
+
+    Same shape as `denial_reasons` -- (identifier, count), commonest first,
+    ties alphabetical -- so anything already reading one reads the other.
+
+    A claim filed since #49 carries its identifier; the 2,172 committed before
+    it stored only prose and are mapped back through `rule_for_reason`. Read
+    through `getattr`, because a claim already in the database predates the
+    attribute entirely and does not merely default it.
+    """
+    counts = {}
+    for claim in book.claims:
+        if claim.is_approved:
+            continue
+        rule = getattr(claim, "rule", None)
+        if rule is None:
+            rule = rule_for_reason(claim.reason)
+        if rule is None:
+            rule = UNRECORDED_RULE if not claim.reason else UNCLASSIFIED_RULE
+        counts[rule] = counts.get(rule, 0) + 1
+    return [(rule, counts[rule])
+            for rule in sorted(counts, key=lambda r: (-counts[r], r))]
 
 
 def top_n_by_expected_claims(book, n=10, min_events=5):
