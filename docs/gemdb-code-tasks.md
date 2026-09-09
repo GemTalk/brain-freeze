@@ -64,11 +64,22 @@ are unreachable and nothing says why. Fail the install, or record the absence
 somewhere a later session can see it. `findings/01_shim_missing.py` diagnoses it
 in eight seconds; the fix is one assignment and a commit, **not** a reinstall.
 
-**1.4 The MCP server ships off by default because of the worker-session leak.**
-A client that disconnects badly holds its session for up to 30 minutes, and
-reconnecting counts as a new client, so a crashing agent can exhaust a
-ten-session database. Filed upstream as `mcp_server#2`. CUJ-2 begins with the
-user turning on a feature whose own setting text explains why it is off.
+**1.4 The MCP server ships off by default for a reason that has expired.**
+`gemdb.mcp.enabled` defaults to `false`, and `docs/mcp-server.md` gives the
+reason as waiting for an upstream cap on concurrent workers. **That cap landed:
+`mcp_server#2` closed 2026-09-09**, and the fix is `MCP_MAX_SESSIONS`, default
+3, plus a configurable idle timeout.
+
+Verified here on `3c08dde` against this demo's own database. Six one-shot
+`initialize` calls -- the exact pattern that once exhausted the ten-session
+limit and refused even plain `topaz` -- were answered with two sessions and
+four refusals carrying JSON-RPC `-32001` and an explanation. The stone never
+went above four gems. `stop-server.sh` then released all of them and the port.
+
+So the default is now resting on a retired premise, and the setting text
+explains a defect that is fixed. Re-decide it. Note the cap of 3 is *itself* a
+constraint worth stating in the demo, because the router plus three workers is
+four of a ten-session budget the notebook and the app also draw on.
 
 ## 2. Satisfiable, but the user has to be told
 
@@ -97,12 +108,21 @@ not magic. Editing a model live in front of an evaluator shows them an
 into the database and commit"), not folklore.
 See `findings/03_class_identity.py` and [`prd-corrections.md`](prd-corrections.md) §5.
 
-**2.4 Each MCP tool call is a clean slate.** `eval_python` keeps neither module
-scope nor an uncommitted transaction between calls, so an agent must commit in
-the same call that writes and cannot build state the way a notebook does.
-`main`'s `docs/mcp-server.md` documents this well; it needs to reach whoever
-writes demo helpers, because it decides whether "compose these named functions"
-is advice or a trap.
+**2.4 ~~Each MCP tool call is a clean slate.~~ Not on 0.7.0 -- names persist.**
+This was recorded from `main`'s `docs/mcp-server.md`, and measuring it on
+server `0.7.0` (`3c08dde`) gives the opposite answer. The `eval_python` tool's
+own description says names bound in a call persist "for the rest of this
+session, as in a REPL", and they do: `marker = 4993` in one call read back
+`4993` in the next.
+
+That decides the question the old entry raised. "Compose these named
+functions" is **advice, not a trap**: an agent can import the package and bind
+`book` once, then answer question after question against it, which is how the
+nine questions in `docs/mcp-questions.md` were driven when verifying the
+transport.
+
+What still needs saying is which versions behave which way, since a demo
+written against one and run against the other silently loses its preamble.
 
 **2.5 `eval_python` returns a `printString` and nothing else** — no `print()`
 capture, no traceback shaping, no module scope, none of what `pythonQueries.ts`

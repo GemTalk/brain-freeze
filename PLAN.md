@@ -713,10 +713,27 @@ default of `false`, so nothing is listening until someone turns it on —
 confirmed here, with nothing on either port. There *is* a connection step
 after all, and it is a setting rather than a command.
 
-**Still to do:** enable `gemdb.mcp.enabled`, then check the transport end to
-end — that an agent reaches the endpoint, that the nine questions come back
-the same over MCP as they do run directly, and whether Claude Desktop needs
-the `mcp-remote` shim. The session budget note below is also still unverified.
+**The transport is verified (2026-09-09), and the plan for verifying it was
+wrong.** "Enable `gemdb.mcp.enabled`" is not a step that exists: the installed
+GemDB is `v1.4.0`, which ships no MCP payload, no MCP settings and no MCP code
+at all. The commit that adds all of it lands *after* that tag. Every note here
+describing that setting was read out of source that has never shipped.
+
+What verification actually took: install `GemTalk/mcp_server` at `3c08dde`
+into the extent, start its router on 50390, drive Streamable HTTP by hand.
+Result -- 40 tools offered, and questions 1, 2, 3, 5 and 6 from
+`docs/mcp-questions.md` came back **character for character identical**,
+float tails included, to the same snippets run directly. That is CUJ-2's claim
+demonstrated rather than argued.
+
+Two things below are now measured false and corrected in place: the session
+leak is fixed upstream, and `eval_python` keeps names between calls. See
+`docs/gemdb-code-tasks.md` §1.4 and §2.4, and issue #43.
+
+**Still to do:** nothing about the transport. A packaging bug stops the payload
+GemDB assembles from starting at all (issue #65), and no released GemDB carries
+any of this yet. Claude Desktop's `mcp-remote` shim cannot be tested against a
+server no released build ships.
 
 Connection: the server forks with the database and appears in VS Code agent
 mode on its own. For any other client the whole step is
@@ -738,10 +755,17 @@ every login with GemStone error 4039 — including plain `topaz`, so the owner
 could not get into their own database. Stopping the router freed all nine at
 once, which is the one piece of good news: recovery is one command.
 
-That is a live hazard for this demo, not a theoretical one. An agent that
-reconnects a few times while the app, a notebook and a shell are open can lock
-the presenter out mid-CUJ. Worth rehearsing the recovery before showing it to
-anyone.
+**That hazard is now closed, and this was verified rather than assumed.**
+`mcp_server#2` was fixed and closed 2026-09-09: the router caps concurrent
+workers at `MCP_MAX_SESSIONS`, default **3**, and refuses beyond it with a
+JSON-RPC error instead of attempting a login that takes the whole stone down.
+Six one-shot `initialize` calls against this database produced two sessions and
+four refusals, never exceeding four gems. `stop-server.sh` freed all of them
+at once, so the one-command recovery holds too.
+
+What replaces the hazard is ordinary arithmetic: the router plus its three
+workers is four of the ten, before the notebook, the app and a shell. The cap
+protects the stone; it does not create headroom.
 
 **Done when:** at least four representative questions return correct,
 data-grounded answers, and the answers can be checked against
