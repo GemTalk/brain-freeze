@@ -504,7 +504,7 @@ These need a human. Do not guess them.
    to clear *before* going public, and the repo is public already, so the gate
    is **past due rather than pending**: anything in user-facing content that
    leaks the pending rebrand is leaking it now. Issue #42 carries it, in the
-   Icebox, because what has been decided as public still needs a human.
+   Inbox, because what has been decided as public still needs a human.
 2. **What CUJ-4 demonstrates.** Grail keeps Python attributes in *dynamic*
    instance variables, so adding `flavour` is not a class version and there is
    nothing to migrate — FR-7.2 and FR-7.3 are satisfied vacuously. Either own
