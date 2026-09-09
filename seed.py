@@ -12,7 +12,8 @@ WHAT ENDS UP IN THE DATABASE
 
     gemdb.root["brainfreeze"]           a Book
         .policies["BF-100539"]          a Policyholder
-            .events                     every cold treat, oldest first
+            .events                     every cold treat, oldest first,
+                                        sorted here rather than assumed
                 [0].claim               a Claim, or None
 
 Re-running REPLACES `gemdb.root["brainfreeze"]` wholesale. The old graph is
@@ -80,6 +81,26 @@ def _date(text):
     return date(year, month, day)
 
 
+def event_order(event):
+    """The sort key behind "oldest first" -- date, then event id.
+
+    The date is the promise, and on its own it is not a total order: 37
+    policies in the committed data record two cold treats on the same day. A
+    date-only sort leaves those pairs wherever they arrived, which is the bug
+    again with an extra step -- Python's sort is stable, so ties fall back on
+    the row order in the CSV, and that is precisely the thing that must stop
+    deciding anything.
+
+    `event_id` breaks them. It is unique across the file, never empty, and
+    zero-padded to a fixed width, so comparing the strings compares the
+    numbers; `app.py` mints new ones through the same `EVT-%06d` series. That
+    makes the loaded order a function of the rows themselves rather than of
+    the sequence they were read in: shuffle the file and every policy comes
+    back in exactly the order it is in now.
+    """
+    return (event.event_date, event.event_id)
+
+
 def read_policyholders(path=POLICYHOLDERS_CSV):
     """Build a Book of policyholders, with no events attached yet."""
     book = Book()
@@ -110,6 +131,10 @@ def attach_events(book, path=CLAIMS_CSV):
     The CSV is one row per EVENT, not per claim -- most rows never became a
     claim, and those are the ones that make frequency computable. A row with a
     claim_id gets a Claim; the rest get None.
+
+    Rows are read in file order and then SORTED, because "oldest first" is a
+    promise this function makes and not a property of the file it happens to
+    be reading. See `event_order`.
     """
     missing = set()
     attached = 0
@@ -153,6 +178,12 @@ def attach_events(book, path=CLAIMS_CSV):
             "%d event rows name a policy that is not in %s, e.g. %s. The two "
             "files are out of step -- regenerate both." % (
                 len(missing), POLICYHOLDERS_CSV, sorted(missing)[0]))
+
+    # Every policy, not only the ones this file touched: sorting a list that
+    # is already in order costs nothing, and a policy whose events were
+    # attached by something else is still owed the same guarantee.
+    for policyholder in book:
+        policyholder.events.sort(key=event_order)
     return attached
 
 
