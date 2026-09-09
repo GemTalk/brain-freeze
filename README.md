@@ -209,6 +209,12 @@ them** — `gemdb make_mcp_questions.py` re-seeds, executes every snippet and
 writes down what came back — so the answers cannot be typed in wrong, and
 regenerating after a change is how the promises get caught drifting.
 
+That file is the answers. [`docs/dataset-for-agents.md`](docs/dataset-for-agents.md)
+is the map an agent needs to write its own questions: the object model with the
+real field names, why records are found by index rather than by `isinstance`,
+the two aggregation traps `analysis.py` exists to avoid, and the `sys.path` line
+a worker gem needs and a notebook does not.
+
 The two that carry the demo:
 
 **"Why was CLM-001291 refused?"**
@@ -427,7 +433,8 @@ datagen/       the generator; the only numpy/pandas in the repo
 data/          the two generated CSVs
 tests/         the suite -- python3 -m unittest discover
 mockups/       nine screens, an insurer sketch, and build_c.py that makes them
-docs/          the PRD, and the questions the demo promises to answer
+docs/          the PRD, the questions the demo promises to answer, and the
+               dataset description an agent needs to ask its own
 app.py         the web app
 seed.py        data/ -> gemdb.root
 PLAN.md        the working notes, including what is still open
