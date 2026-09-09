@@ -558,30 +558,14 @@ Tests that need a database skip themselves under CPython, so
 
 Said plainly, because guessing here is how a confident wrong answer gets written.
 
-- **Whether a script can read its own arguments.**
-  [Grail#850](https://github.com/GemTalk/Grail/issues/850) says `sys.argv` is the
-  host topaz command line and `sys.argv[1]` is `-L`. But `seed.py`,
-  `run_db_tests.py` and `verify_book.py` all read `sys.argv[1:]`, and two of
-  their docstrings advertise `gemdb seed.py --dry-run` and
-  `gemdb run_db_tests.py money seed` as working invocations. Both cannot be
-  right, and this document could not run `gemdb` to settle it. Nothing in the
-  README exercises either form under `gemdb` — every console block there shows
-  the no-argument invocation — so the docstrings may be untested carry-over from
-  the CPython spelling beside them. **Measure it before writing a CLI-shaped
-  script**, and if #850 holds, take parameters from the environment or a file
-  rather than the command line.
-- **The cause of the render cost.** The mechanism is documented above; the cause
-  is not measured.
-- **Whether `import x.y as m` still fails.** Measured before `8c8f503e`, which
-  moved `sys.path` handling. Not re-measured since.
-- **What the standard library contains on your sha.** This is not knowable from a
-  document. `tests/test_packaging.py` records one measurement; make your own.
-- **Whether `abort()` discards a bound preamble over MCP.** It discards compiled
-  work in a notebook session and the same mechanism should apply, but it was not
-  measured through the transport
-  ([`dataset-for-agents.md`](dataset-for-agents.md) §9).
-- **Which class-identity behaviour is intended.** `isinstance` survives an edited
-  class on `46c2a68` and does not on `c875e56`. Both reproduce. Nothing is filed.
+- ~~**Whether a script can read its own arguments.**~~ **Settled 2026-09-09: it
+  can.** [Grail#850](https://github.com/GemTalk/Grail/issues/850) says
+  `sys.argv` is the host topaz command line and `sys.argv[1]` is `-L`, and
+  `docs/grail-improvements.md` repeated it. Measured on `c875e56`,
+  `gemdb script.py one --two` gives `['/path/to/script.py', 'one', '--two']`.
+  The issue was taken on an older sha. `seed.py --dry-run`,
+  `run_db_tests.py money seed` and `verify_book.py BF-100539` were not
+  untested carry-over after all; they work.
 
 ---
 

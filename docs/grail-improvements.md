@@ -82,7 +82,7 @@ numbers are PRs; there have only ever been eighteen issues.
 | # | Title |
 | --- | --- |
 | 851 | Compiling Python is a repository write at surprising times, and a first-call race can wedge a session's commits |
-| 850 | `sys.argv` is the host topaz command line, not the script's |
+| 850 | `sys.argv` is the host topaz command line, not the script's — **does not reproduce on `c875e56`, see P1 item 9** |
 | 849 | Exceptions carry no `__traceback__`, so `traceback.format_exc()` can never report a frame |
 | 867 | `except ZeroDivisionError` does not catch `decimal.DivisionByZero` |
 | 857 | Equal `Decimal` and `float` values hash differently |
@@ -240,9 +240,17 @@ inside a template cannot see the active request. This is why a Flask app here
 must run `threaded=False`. Same root as item 1's first candidate, and worth
 measuring alongside it.
 
-**9. #850 — `sys.argv` is topaz's command line.** `sys.argv[1]` is `-L`. Any
-CLI-shaped script — an importer, a seeder taking a path — cannot read its own
-arguments.
+**9. ~~#850 — `sys.argv` is topaz's command line.~~ Not on `c875e56`;
+re-measured 2026-09-09.** `gemdb script.py one --two` gives
+`['/path/to/script.py', 'one', '--two']` — the script's own path and its own
+arguments, as CPython does. The issue was measured on an older sha and the
+entry here repeated it without checking.
+
+This one is worth chasing down rather than just deleting, because the wrong
+version of it is load-bearing advice: it tells anyone writing a CLI-shaped
+script to take parameters from the environment instead. `seed.py --dry-run`,
+`run_db_tests.py money seed`, `verify_book.py BF-100539` and `lapse.py
+BF-100184 --reinstate` all read `sys.argv` and all work.
 
 ## P2 — worth having
 
