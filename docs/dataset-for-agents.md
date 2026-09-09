@@ -253,6 +253,12 @@ attribute holding the stored value at all:
 back from `underwriting.py` and `COVERAGE_PLANS` every time you ask. Change a
 weight there and the object moves; the CSV does not.
 
+The table above is only the part that catches people out. The full column
+dictionary — all 19 columns of each file, their types, which can be empty and
+what they mean — is [`csv-schema.md`](csv-schema.md). You need it if you are
+reading the CSVs directly or mapping them to classes; for writing Python
+against a seeded book, this document is enough.
+
 ## 5. Find records by index, not by `isinstance`
 
 The index is `book.policies`. Reach everything else by walking from it.
