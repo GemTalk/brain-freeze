@@ -36,6 +36,32 @@ THREE CONSTRAINTS FROM GRAIL, ALL FOUND FIRST BY grail_rest_demo/app.py
 Every write is a POST that mutates, commits and redirects, so a refresh never
 re-submits.
 
+THE JSON API IS THE SAME OBJECTS, NOT A SECOND MODEL
+
+`/api/...` answers the six endpoints issue #50 asks for, beside the HTML
+routes rather than instead of them. Every one of them serialises through
+`brainfreeze.wire` and none of them builds a dict of its own, because six
+handlers is six places to get the money rule wrong once.
+
+MONEY ON THE WIRE IS AN EXACT DECIMAL STRING: `"171.00"`.
+
+`json.dumps` cannot serialise a Decimal at all, so this had to be decided
+rather than inherited. A float is not one of the options -- it would put back
+the two answers `brainfreeze.money` exists to remove (issue #68). Integer
+cents would be exact and would make every reader divide by a hundred; a
+string is exact and goes straight back into `money.usd()`. And it can never
+be `str(value)`: inside the database a Decimal does not keep its trailing
+zeros, so `$170.10` would go out as `170.1` and the API would answer
+differently in each runtime. `money.wire_usd` is where all of that lives.
+`format_usd` is the display spelling -- `"$170.10"` -- and never appears in a
+payload.
+
+The JSON surface is read-only: nothing under `/api` adds or changes an object
+in the book. `/api/quote` is a POST because it carries a body, and pricing
+answers writes nothing. Taking out a policy and filing a claim stay POSTs
+from a form, where the redirect after the write is what stops a refresh
+re-submitting them.
+
 AND ONE BEAT THAT IS NOT AUTOMATIC
 
 A session sees the repository as of its last transaction boundary, so every
@@ -50,6 +76,7 @@ from datetime import date
 from flask import (
     Flask,
     abort,
+    jsonify,
     redirect,
     render_template_string,
     request,
@@ -60,6 +87,7 @@ from werkzeug.serving import WSGIRequestHandler
 import gemdb
 
 import brainfreeze
+import brainfreeze.wire
 from brainfreeze.model import Claim, Event, Policyholder
 from brainfreeze.money import ZERO, format_usd
 
@@ -139,6 +167,82 @@ def _band(bands, label, default=None):
     if default is not None:
         return default
     return bands[0][1]
+
+
+def quote_questions():
+    """The five quote questions as data, for `/api/questions`.
+
+    Built from the same constants the HTML form loops over, so the two
+    surfaces cannot drift into asking different things -- and so the answers
+    a caller reads out of here are exactly the ones `/api/quote` accepts.
+
+    A function rather than a module constant to keep import time doing
+    nothing but binding names; this file is executed top to bottom by
+    `gemdb app.py`.
+
+    Sex is absent for the reason it is absent from the form: FR-5.2 asks for
+    it, the risk model gives it no weight, and a question that changes
+    nothing is worse than one not asked.
+    """
+    return [
+        {"name": "age", "prompt": "How old are they?",
+         "type": "integer", "minimum": 5, "maximum": 19, "default": 11},
+        {"name": "migraine_history", "prompt": "Diagnosed with migraine?",
+         "type": "boolean", "default": False},
+        {"name": "tension_type_headache_history",
+         "prompt": "Diagnosed with tension headaches?",
+         "type": "boolean", "default": False},
+        {"name": "typical_consumption_speed",
+         "prompt": "How fast do they usually eat something cold?",
+         "type": "choice", "default": "moderate",
+         "options": [{"label": label, "value": value}
+                     for label, value in SPEED_BANDS]},
+        {"name": "favourite_trigger", "prompt": "Favourite cold treat",
+         "type": "choice", "default": TRIGGERS[0],
+         "options": [{"label": name, "value": name} for name in TRIGGERS]},
+    ]
+
+
+def _flag(value):
+    """A JSON true/false, or the "yes"/"no" the HTML form would have sent."""
+    if isinstance(value, str):
+        return value.strip().lower() in ("yes", "true", "1")
+    return bool(value)
+
+
+def _json_answers(data):
+    """The five answers out of a JSON body, or a ValueError naming the bad one.
+
+    Checked here rather than handed to `quote()`, which would meet an unknown
+    trigger as a KeyError deep inside the risk model -- and a JSON endpoint
+    that answers a typo with an HTML traceback is not one you can script
+    against.
+    """
+    try:
+        age = int(data.get("age", 11))
+    except (TypeError, ValueError):
+        raise ValueError(
+            "age must be a whole number, not %r" % (data.get("age"),))
+
+    speeds = [value for _, value in SPEED_BANDS]
+    speed = data.get("typical_consumption_speed", "moderate")
+    if speed not in speeds:
+        raise ValueError("typical_consumption_speed must be one of %s"
+                         % ", ".join(speeds))
+
+    trigger = data.get("favourite_trigger", TRIGGERS[0])
+    if trigger not in TRIGGERS:
+        raise ValueError("favourite_trigger must be one of %s"
+                         % ", ".join(TRIGGERS))
+
+    return dict(
+        age=age,
+        migraine_history=_flag(data.get("migraine_history", False)),
+        tension_type_headache_history=_flag(
+            data.get("tension_type_headache_history", False)),
+        typical_consumption_speed=speed,
+        favourite_trigger=trigger,
+    )
 
 
 def book():
@@ -451,6 +555,79 @@ def create_app():
                 return render(DECISION, p=policy, e=event, c=claim,
                               trimmed=max(ZERO, trimmed))
         abort(404)
+
+    # -- the same objects, as JSON (issue #50) -----------------------------
+    # Additive. These read what the HTML routes read and hand it to
+    # `brainfreeze.wire`, which is the only thing that turns a Decimal into
+    # text. No handler below builds a payload of its own.
+
+    def _api_error(status, message):
+        """A JSON error, from the handler rather than from an errorhandler.
+
+        A global `@app.errorhandler(404)` would be shorter and would also
+        turn the HTML routes' 404s into JSON, which is the wrong answer to
+        give a browser. Two surfaces, two shapes of failure.
+        """
+        return jsonify(error=message), status
+
+    @app.route("/api/questions")
+    def api_questions():
+        return jsonify(questions=quote_questions())
+
+    @app.route("/api/quote", methods=["POST"])
+    def api_quote():
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return _api_error(400, "send a JSON object of answers -- "
+                                   "GET /api/questions says which")
+        try:
+            answers = _json_answers(data)
+        except ValueError as bad:
+            return _api_error(400, str(bad))
+        # The answers go back out with the price. A saved request body and
+        # the reply together are a fixture: replay it and get this screen.
+        return jsonify(answers=answers,
+                       quote=brainfreeze.wire.quote(brainfreeze.quote(**answers)))
+
+    @app.route("/api/policies")
+    def api_policies():
+        # The whole book, where the picker shows 25 at a time. That page size
+        # is not a JSON problem: it is there because Grail renders each Jinja
+        # row in a forked green thread and 900 of those take the best part of
+        # a minute. Serialising 900 dicts does not, and a script wants the
+        # book rather than a window onto it.
+        today = date.today()
+        everyone = sorted(book(), key=lambda p: p.policy_id)
+        return jsonify(count=len(everyone),
+                       policies=[brainfreeze.wire.policy(p, today)
+                                 for p in everyone])
+
+    @app.route("/api/policy/<policy_id>")
+    def api_policy(policy_id):
+        try:
+            policy = book()[policy_id]
+        except KeyError:
+            return _api_error(404, "no policy %s" % policy_id)
+        return jsonify(brainfreeze.wire.policy_detail(policy, date.today()))
+
+    @app.route("/api/claim/<claim_id>")
+    def api_claim(claim_id):
+        # A claim id is enough here where the HTML route needs the policy id
+        # as well, and that is most of what makes this one useful from a
+        # shell. The scan is linear over the book because nothing indexes
+        # claims by id -- an index would be a second copy of `Book.claims`,
+        # and the demo's whole argument is that there is only ever one.
+        for policyholder in book():
+            for an_event in policyholder.events:
+                if (an_event.claim is not None
+                        and an_event.claim.claim_id == claim_id):
+                    return jsonify(brainfreeze.wire.claim_detail(
+                        policyholder, an_event))
+        return _api_error(404, "no claim %s" % claim_id)
+
+    @app.route("/api/stats")
+    def api_stats():
+        return jsonify(brainfreeze.wire.stats(book()))
 
     return app
 
