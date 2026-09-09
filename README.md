@@ -248,6 +248,37 @@ and the middle of the book is where the money leaks.
 
 ---
 
+### Change a policy while the app is serving it
+
+The same beat on the surface an evaluator is actually looking at. Leave the app
+running, open a policy, and in another terminal:
+
+```sh
+gemdb lapse.py BF-100184              # lapse it, as of yesterday
+gemdb lapse.py BF-100184 --reinstate  # put it back
+```
+
+Reload the page. It changes:
+
+```
+Active                    ->  Lapsed 2026-09-08
+(claim form)              ->  Cover on this policy ended on 2026-09-08.
+                              Anything filed now is refused.
+```
+
+No restart, no reload of the app, no polling — and `lapse.py` does not know the
+app exists. It opens the same objects from a session of its own and commits.
+The app takes a new view before each request, so it sees the next one.
+
+It goes back as easily as it goes forward, which is what makes it worth doing
+in front of people rather than once.
+
+**This did not work until recently**, and the reason is the interesting part. A
+GemStone session sees the repository as of its last transaction boundary, so
+the app served whatever it read at startup until it was restarted. It was the
+one surface of three that could not see the others' writes. `take_new_view()`
+in `app.py` is the fix and this is its payoff.
+
 ## CUJ-3 — The notebook, and the beat worth slowing down for
 
 Open [`brain-freeze.ipynb`](brain-freeze.ipynb) and pick **GemDB** in the
