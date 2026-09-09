@@ -495,16 +495,16 @@ Active policy for that screen or make the refusal the point.
 
 These need a human. Do not guess them.
 
-1. **The repo and its visibility.** Still open — public
-   `GemTalk/brain-freeze-insurance`, new-but-private until the FR-8.4 naming
-   gate clears, or a directory inside `GemDB_Code`.
+1. ~~**The repo and its visibility.**~~ **Settled 2026-09-09.** `origin` is
+   `git@github.com:GemTalk/brain-freeze` — the org, not a personal account —
+   and it is **public**, with `main` pushed. Work lands on `main` directly;
+   there are no working branches here.
 
-   As of 2026-09-07 `origin` is
-   `git@github.com:srbaker/brain-freeze-insurance-demo.git` — a personal repo,
-   not the `GemTalk` org, and **nothing has been pushed**. `main` has no
-   upstream set, so a bare `git push` does nothing by accident. Treat that
-   remote as a placeholder rather than the answer: it does not settle where
-   this ends up living, and the naming gate still applies.
+   That inverts what the FR-8.4 naming gate means. It was written as a check
+   to clear *before* going public, and the repo is public already, so the gate
+   is **past due rather than pending**: anything in user-facing content that
+   leaks the pending rebrand is leaking it now. Issue #42 carries it, in the
+   Icebox, because what has been decided as public still needs a human.
 2. **What CUJ-4 demonstrates.** Grail keeps Python attributes in *dynamic*
    instance variables, so adding `flavour` is not a class version and there is
    nothing to migrate — FR-7.2 and FR-7.3 are satisfied vacuously. Either own
