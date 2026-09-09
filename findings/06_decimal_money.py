@@ -23,7 +23,7 @@ This script writes nothing and changes nothing.
 import sys
 
 #: Not `__doc__` -- `__main__` is shared under Grail; see finding 2.
-TITLE = "Finding 6: decimal works; round(), //, %.2f and friends do not."
+TITLE = "Finding 6: decimal works; round(), //, format() and statistics do not."
 
 
 def show(label, fn, note=""):
@@ -47,15 +47,24 @@ def decimal_money():
     show("Decimal('170.10') / 12", lambda: Decimal("170.10") / 12,
          "float: 14.174999999999999")
 
-    print("\n  WHAT DOES NOT -- everything a person reaches for next\n")
-    print("    round(Decimal, 2) is NOT run here: it does not raise, it takes")
-    print("    the VM down with `a Decimal does not understand #'*'`.")
+    print("\n  WHAT RAISES -- catchable, and each one has a workaround\n")
     show("Decimal('19.99') // 3", lambda: Decimal("19.99") // 3, "no floor division")
+    show("Decimal('19.99') % 3", lambda: Decimal("19.99") % 3)
+    show("divmod(Decimal('19.99'), 3)", lambda: divmod(Decimal("19.99"), 3))
+    show("format(d, '.2f')", lambda: format(Decimal("19.99"), ".2f"), "so is '{:.2f}'.format")
     show("Decimal('19.99').quantize", lambda: Decimal("19.99").quantize, "missing")
     show("Decimal('19.99').as_tuple", lambda: Decimal("19.99").as_tuple, "missing")
-    show("'%.2f' % Decimal('19.99')", lambda: "%.2f" % Decimal("19.99"))
-    show("statistics.median([Decimal])",
-         lambda: __import__("statistics").median([Decimal("1"), Decimal("2")]))
+
+    print("\n  WHAT WORKS THAT YOU MIGHT EXPECT NOT TO\n")
+    show("'%.2f' % Decimal('170.1')", lambda: "%.2f" % Decimal("170.1"),
+         "printf is fine; format() is not")
+    show("'{}'.format(Decimal('19.99'))", lambda: "{}".format(Decimal("19.99")),
+         "no spec is fine")
+
+    print("\n  WHAT IS FATAL -- not run here, because they end the session\n")
+    print("    round(Decimal, 2)          a Decimal does not understand #'*'")
+    print("    statistics.mean([Decimal]) a Decimal does not understand #'_generality'")
+    print("    ...and statistics.median with it. Neither raises; both end the gem.")
 
     print("\n  WHAT IS MERELY DIFFERENT -- and so much worse\n")
     print("    Each of these SUCCEEDS with a different answer than CPython,")
@@ -63,7 +72,8 @@ def decimal_money():
     show("int(Decimal('-14.5'))", lambda: int(Decimal("-14.5")),
          "CPython: -14 (floors here)")
     show("Decimal('92081.22') == 92081.22",
-         lambda: Decimal("92081.22") == 92081.22, "CPython: False")
+         lambda: Decimal("92081.22") == 92081.22,
+         "same as CPython -- listed because this repo once claimed it differed")
     show("str(Decimal('170.10'))", lambda: str(Decimal("170.10")),
          "CPython: '170.10'")
     show("Decimal(1) / Decimal(3)", lambda: Decimal(1) / Decimal(3),

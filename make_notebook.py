@@ -97,11 +97,11 @@ tedious to reach through an ORM and trivial when the objects are just there.""")
 
     (PY, """# 3. What an approved claim is actually worth.
 #
-# Money here is decimal.Decimal, not float -- see brainfreeze/money.py. Two
-# consequences show up in this cell. `statistics.median` and `%.2f` both fail
-# on a Decimal inside the database, so the middle is taken by hand and the
-# printing goes through format_usd, which also restores the trailing zero
-# Grail drops.
+# Money here is decimal.Decimal, not float -- see brainfreeze/money.py.
+# `statistics.median` and `statistics.mean` do not merely fail on a Decimal
+# inside the database, they END THE SESSION ("a Decimal does not understand
+# #'_generality'"), so the middle is taken by hand. Printing goes through
+# format_usd, which restores the trailing zero that str() drops.
 from brainfreeze.money import ZERO, format_usd, round_cents
 
 paid = sorted(claim.approved for claim in book.claims if claim.is_approved)

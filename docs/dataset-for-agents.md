@@ -247,17 +247,24 @@ inside this database:
 
 | What you would write | What happens |
 | --- | --- |
-| `round(amount, 2)` | brings the VM down, no Python traceback |
-| `amount // 10` | `TypeError` — no floor division |
-| `"%.2f" % amount` | fails inside the database |
+| `round(amount, 2)` | **brings the VM down**, no Python traceback |
+| `statistics.mean(amounts)` | **brings the VM down** — sum and divide yourself |
+| `amount // 10` | `TypeError` — no floor division, nor `%`, nor `divmod` |
+| `format(amount, ".2f")` | `TypeError` — and so is `"{:.2f}".format(amount)` |
 | `str(amount)` | `170.1`, not `170.10` — trailing zeros are dropped |
-| `statistics.mean(amounts)` | fails; sum and divide yourself |
 
-And two that are quieter. `int(Decimal)` **floors** here where CPython
-truncates toward zero, so anything you write over a signed value will disagree
-between the two. And a `Decimal` compares equal to a float that is not
-actually equal to it, so `total_premium == 92081.22` is `True` here and
-`False` outside — never pin money against a float literal.
+`"%.2f" % amount` does work, and so does `"{}".format(amount)` with no format
+spec. It is `format()` with a spec that has no implementation. Use
+`format_usd` anyway: it is the only one that also handles `None`.
+
+One quieter difference: `int(Decimal)` **floors** here where CPython
+truncates toward zero, so anything you write over a signed value disagrees
+between the two.
+
+Comparison is *not* one of them, contrary to an earlier draft of this file.
+`Decimal("92081.22") == 92081.22` is `False` in both, correctly — that float
+is not that number. Never pin money against a float literal, but the reason is
+that the literal is wrong, not that the runtimes disagree.
 
 Sums are exact, which is the whole reason for it: `sum(amounts, ZERO)` over
 900 premiums is exact, not 900 roundings deep.

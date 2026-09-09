@@ -169,10 +169,20 @@ What is still missing or wrong, each of which cost time here and each of which
   This is the single most valuable gap to close: it is the operation money
   code reaches for first.
 - **No `Decimal.as_tuple`.**
-- **`round(Decimal, n)` brings the VM down** with `MessageNotUnderstood ... a
-  Decimal does not understand #'*'` — not a Python exception, no traceback, no
-  line number. The builtin is the obvious thing to reach for and it is a trap.
-- **`Decimal // int` raises `TypeError`.** `int(x / 10)` is the workaround.
+- **Two operations bring the VM down** rather than raising — no Python
+  exception, no traceback, no line number, session gone. `round(Decimal, n)`
+  gives `a Decimal does not understand #'*'`, and `statistics.mean` or
+  `median` over Decimals gives `a Decimal does not understand #'_generality'`.
+  Both are the obvious thing to reach for. Making these raise is worth more
+  than any single missing method: a wrong answer is recoverable and a dead
+  session is not.
+- **`Decimal // int`, `%` and `divmod` all raise `TypeError`.** `int(x / 10)`
+  is the workaround for banding.
+- **`format(d, '.2f')` and `'{:.2f}'.format(d)` raise `TypeError`.** Printf
+  does work — `'%.2f' % d` gives `'170.10'` — and so does `'{}'.format(d)`
+  with no spec. It is specifically a format spec that has no implementation.
+  This repo said the opposite for a few hours; the correction is why finding 6
+  is a script rather than a paragraph.
 - **`int(Decimal)` floors, where CPython truncates toward zero.** So
   `int(Decimal("-14.5"))` is `-15` here and `-14` there, and any rounding
   written over a signed value gives two different answers on two surfaces of
@@ -182,11 +192,6 @@ What is still missing or wrong, each of which cost time here and each of which
   display string can come from `str()`.
 - **Division that does not terminate degrades to ~16 significant digits**:
   `Decimal(1) / Decimal(3)` is `0.3333333333333333`, where CPython gives 28.
-- **`statistics.median` and `statistics.mean` fail on Decimals.**
-- **`Decimal` compares equal to a float** that is not exactly equal to it.
-  Under CPython `Decimal("92081.22") == 92081.22` is `False`, correctly, and
-  here it is `True` — so a test that pins money against a float literal passes
-  in the database and fails outside it.
 
 Persistence is sound: a `Decimal` committed to `gemdb.root` reads back as a
 `Decimal` with its value, ordering and equality intact.

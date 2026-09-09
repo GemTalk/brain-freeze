@@ -172,10 +172,11 @@ What is missing is the apparatus around it, and two of the gaps are not
 exceptions but hard VM errors with no traceback and no line number:
 
 - `round(Decimal, 2)` — **takes the VM down**, `a Decimal does not understand #'*'`
-- a custom Jinja filter — **takes the VM down**, `OffsetError`, even for a
-  filter that only ever sees strings. A Jinja *global* is silently ignored; a
-  callable passed in the render context is the one thing that works.
-- no `quantize`, no `as_tuple`, no floor division, no `statistics` on Decimals
+- `statistics.mean` or `median` over Decimals — **takes the VM down**,
+  `a Decimal does not understand #'_generality'`
+- no `quantize`, no `as_tuple`, no `//`, no `%`, no `divmod`, and
+  `format(d, '.2f')` raises — though `'%.2f' % d` is fine, which is the
+  opposite of what this file said at first
 
 And three that succeed with a *different answer* than CPython, which is worse,
 because nothing fails until two surfaces disagree in front of an audience:

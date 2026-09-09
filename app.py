@@ -146,21 +146,28 @@ def book():
 
 
 def render(template, **context):
-    """Render, with `usd` always available to format money.
+    """Render, with `usd` available to every template to format money.
 
-    Money is Decimal and must never reach a template raw: Grail drops trailing
-    zeros, so `$170.10` prints as `170.1`, and `'%.2f'|format` on a Decimal
-    fails inside the database with a Smalltalk-level "a Decimal does not
-    understand #'*'".
+    Money is Decimal, and `str()` on one drops the trailing zero, so `$170.10`
+    would print as `170.1`. (`'%.2f'|format` would have handled that -- printf
+    on a Decimal works here, contrary to what this docstring claimed for a
+    while. `format(x, '.2f')` is the spelling that raises.) `format_usd` is
+    used instead because it is the only one that also copes with `None`.
 
     It arrives in the CONTEXT rather than as a Jinja filter or global, and
-    that is measured rather than stylistic. Registering a custom filter --
-    `app.jinja_env.filters["usd"] = ...` -- brings the VM down with
-    `OffsetError ... objErrBadOffsetIncomplete` on the first render, with no
-    Python exception and no line number, even for a filter that only ever
-    sees strings. `jinja_env.globals` is quietly ignored; the name is
-    undefined at render time. A callable in the context is the one of the
-    three that works.
+    that part IS measured. `app.jinja_env.filters["usd"] = ...` does not work,
+    for a reason that has nothing to do with money: Flask's `jinja_env` is a
+    `cached_property`, and Grail realises cached_property WITHOUT caching, so
+    `app.jinja_env is app.jinja_env` is False. Every read builds a fresh
+    Environment and the registration is written to one that is discarded.
+    `jinja_env.globals` is lost the same way, which is why it appears to be
+    silently ignored.
+
+    Until Grail#895 that also KILLED THE GEM rather than merely failing: the
+    unknown filter raised, and jinja2's error reporting called
+    `code.replace(co_name=...)` on a `compile()` result that Grail answers as
+    source text, landing on `str.replace` called by keyword, which read past
+    the end of an empty array. Reporting the error was what ended the session.
     """
     return render_template_string(template, usd=format_usd, **context)
 
