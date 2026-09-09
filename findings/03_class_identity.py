@@ -136,7 +136,7 @@ def arm_two(gemdb):
     return 0
 
 
-def main():
+def class_identity():
     import gemdb
     print(TITLE)
     print("-" * 70)
@@ -146,4 +146,4 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(class_identity())
