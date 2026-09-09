@@ -87,65 +87,29 @@ class TheApp(unittest.TestCase):
         self.assertIn(LAPSES_LATER, r.headers["Location"])
 
     # -- taking a new view (issue #47) -----------------------------------
+    # Instrumenting `gemdb` is not available to us. Rebinding an attribute on
+    # the module -- the ordinary way to spy on `commit`/`refresh` -- puts the
+    # session into a dirty state that `commit()` does NOT clear, so the very
+    # next `refresh()` raises PendingChangesError and the test destroys what it
+    # came to measure. Measured 2026-09-09; see findings/05_module_monkeypatch.py.
+    #
+    # So the order of the recipe is pinned by reading app.py's syntax tree in
+    # tests/test_refresh.py, which runs under plain CPython, and what is
+    # checked here is only what needs a live database.
 
-    def _spy_on_the_session(self):
-        """Record gemdb's transaction calls, still doing the real thing.
+    def test_the_app_takes_a_new_view_before_every_request(self):
+        # Flask's own registry, rather than gemdb's -- introspecting the app
+        # is safe where introspecting the module is not.
+        hooks = self.app.before_request_funcs.get(None, [])
+        self.assertTrue(hooks, "no before_request hook: a route added later "
+                               "would silently read a stale view")
 
-        The staleness itself cannot be reproduced from one gem -- this session
-        sees its own writes immediately, and a second one is not something a
-        test running inside the database can start. What *is* observable is
-        whether the app takes a new view at all, and in which order, which is
-        the whole of the bug and of the recipe that fixes it.
-        """
-        calls = []
-        original = {}
-
-        def recorded(name):
-            real = getattr(gemdb, name)
-            original[name] = real
-
-            def wrapper(*args, **kwargs):
-                calls.append(name)
-                return real(*args, **kwargs)
-            return wrapper
-
-        for name in ("commit", "refresh", "abort"):
-            setattr(gemdb, name, recorded(name))
-        return calls, original
-
-    def _restore(self, original):
-        for name, real in original.items():
-            setattr(gemdb, name, real)
-
-    def test_a_read_commits_and_then_refreshes(self):
-        # Without this the server answers from the view it started with, for
-        # as long as it runs: the notebook and the shell can commit all they
-        # like and the browser never sees it (issue #47).
-        calls, original = self._spy_on_the_session()
-        try:
-            r = self.client.get("/policies/%s" % ACTIVE_READONLY)
-        finally:
-            self._restore(original)
-
-        self.assertEqual(r.status_code, 200)
-        self.assertIn("refresh", calls)
-        self.assertLess(calls.index("commit"), calls.index("refresh"),
-                        "refresh() refuses while the session holds "
-                        "uncommitted work, and rendering leaves it holding "
-                        "some -- commit first")
-        self.assertNotIn("abort", calls)   # it would discard the app's own code
-
-    def test_the_picker_takes_a_new_view_too(self):
-        # Every handler, not just the ones someone remembered: the count on
-        # the front page is the number CUJ-3 asks an evaluator to watch move.
-        calls, original = self._spy_on_the_session()
-        try:
-            r = self.client.get("/")
-        finally:
-            self._restore(original)
-        self.assertEqual(r.status_code, 200)
-        self.assertIn("refresh", calls)
-
+    def test_the_recipe_itself_succeeds_against_this_database(self):
+        # commit-then-refresh is the whole fix, and it is the half that can
+        # fail for real: refresh() refuses on a dirty session, and this app is
+        # always dirty. Call it directly so a failure names the recipe rather
+        # than a route.
+        bf_app.take_new_view()
     def test_a_dirty_session_can_still_serve_a_request(self):
         # The trap the recipe exists for. Compiling Python is a repository
         # write, so a long-running app is always dirty; a bare refresh() would
@@ -275,8 +239,12 @@ class TheApp(unittest.TestCase):
         self.assertIn("does not start until %s" % policy.policy_start_date, body)
         self.assertNotIn("ended on None", body)
         self.assertNotIn("cover on this policy ended", body.lower())
+        # An exact id redirects to the policy page -- see
+        # test_looking_up_one_policy_goes_straight_to_it -- and Grail's
+        # Werkzeug cannot follow a redirect for us (`follow_redirects=True`
+        # raises TypeError on a `header_property`), so ask for the target.
         page = self.client.get(
-            "/?policy=%s" % policy.policy_id).data.decode()
+            "/policies/%s" % policy.policy_id).data.decode()
         self.assertIn("Starts %s" % policy.policy_start_date, page)
 
     def test_a_claim_outside_the_term_says_so_rather_than_saying_lapsed(self):

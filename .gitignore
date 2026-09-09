@@ -10,3 +10,6 @@ __pycache__/
 # a conversation, not for publication. Ignored so `git add -A` cannot sweep it
 # in -- which it did once.
 docs/two-demos-compared.md
+
+# Agent worktrees and local tooling state, not part of the demo.
+.claude/

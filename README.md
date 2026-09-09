@@ -110,16 +110,16 @@ gemdb run_notebook_check.py         # every notebook cell, in order
 ```
 
 ```console
-Ran 94 tests in 0.291s
-OK (skipped=25)
+Ran 104 tests in 0.350s
+OK (skipped=27)
 
-Ran 25 tests
+Ran 27 tests
 OK
 
 All 10 code cells ran.
 ```
 
-The 22 skips are the app's tests: they need a database, so under plain CPython
+The 27 skips are the app's tests: they need a database, so under plain CPython
 the module skips itself and `unittest discover` stays green.
 
 Every figure in those tests was read out of `data/*.csv`, not invented. They

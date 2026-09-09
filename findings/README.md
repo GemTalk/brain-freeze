@@ -1,6 +1,6 @@
 # Findings, as scripts you can run
 
-Four things about running Python inside GemDB that cost real time while
+Five things about running Python inside GemDB that cost real time while
 building this demo, each reduced to a script that reproduces it on your own
 database rather than asking you to believe a transcript.
 
@@ -10,12 +10,14 @@ gemdb findings/01_shim_missing.py
 gemdb findings/02_main_namespace.py
 gemdb findings/03_class_identity.py     # run this one twice
 gemdb findings/04_dirty_session.py
+gemdb findings/05_module_monkeypatch.py
 ```
 
 `class-identity/` is a fourth-and-a-half: four scripts in two arms, inherited from the demo being retired. See
 [`class-identity/README.md`](class-identity/README.md).
 
-All four are safe. Only 03 writes anything, and it removes what it wrote.
+All five are safe. Only 03 writes to `gemdb.root`, and it removes what it
+wrote; 05 patches the `gemdb` module and puts it back.
 
 Measured on 2026-09-08 against GemStone/S 3.7.5 with Grail `c875e56`. **Two of
 them disagree with the same findings reached independently in
@@ -30,6 +32,7 @@ Grail team should hear it.
 | `02_main_namespace.py` | `__main__` is shared by every script, dispatch is by arity | sharper form of their finding 5 |
 | `03_class_identity.py` | editing a class compiles a different class | **contradicts their rule 2** |
 | `04_dirty_session.py` | running any code dirties the session, so `refresh()` refuses | **partly contradicts their rule 4** |
+| `05_module_monkeypatch.py` | a patched module dirties the session for good | **not documented anywhere** |
 | `class-identity/` | committing after imports is what keeps class identity | **theirs, and it reproduces here** |
 
 ---
@@ -103,6 +106,39 @@ time. On `c875e56` that did not reproduce — a first call to a
 never-before-compiled function left `needs_commit()` `False`. The dirtiness
 here comes from running the code at all. The script measures both so you can
 see which your Grail does.
+
+---
+
+## 5. A patched module stays dirty, and commit will not clear it
+
+Found by a test that could not work. Issue #47 made the web app `commit()`
+then `refresh()` before each request, and the obvious test wraps both to
+record the order:
+
+```python
+for name in ("commit", "refresh", "abort"):
+    setattr(gemdb, name, recorded(name))
+```
+
+Every such test fails inside the code under test, not at an assertion, so it
+reads as though the fix is broken. It is not. Rebinding an attribute on an
+imported module leaves the session dirty in a way `commit()` does **not**
+clear -- two commits do not clear it either -- and every later `refresh()`
+raises `PendingChangesError`.
+
+Wrapping the same functions in ordinary local variables is fine. The
+difference is the assignment onto the module, which Grail compiles into the
+database and treats as persistent, and a function object is not something it
+can write there.
+
+So inside the database, monkeypatching is not a technique you have. Introspect
+something that is not a persistent module instead: `tests/test_refresh.py`
+reads `app.py`'s syntax tree under CPython, and `tests/test_app.py` asks Flask
+for its own `before_request_funcs`.
+
+For the product, this wants a better error. "refresh() would discard
+uncommitted changes" is true and points nowhere near a `setattr` three lines
+earlier.
 
 ---
 
