@@ -8,7 +8,6 @@ printout. It reads `data/policyholders.csv` and `data/claims.csv`.
 
 import csv
 import os
-import random
 import tempfile
 import unittest
 from datetime import date, timedelta
@@ -380,6 +379,22 @@ class BF100539(unittest.TestCase):
             self.assertEqual(claim.toppings, ())
 
 
+def scrambled(rows):
+    """Deal alternately off the back and the front of the list.
+
+    Thorough -- no element keeps its index and the dates end up interleaved --
+    and it needs nothing but list operations, so it behaves identically in
+    both runtimes.
+    """
+    rows = list(rows)
+    out = []
+    while rows:
+        out.append(rows.pop())
+        if rows:
+            out.append(rows.pop(0))
+    return out
+
+
 class EventOrderIsTheLoadersJob(unittest.TestCase):
     """Issue #69: oldest-first has to be something the loader does.
 
@@ -396,7 +411,13 @@ class EventOrderIsTheLoadersJob(unittest.TestCase):
     """
 
     #: Fixed so a failure is reproducible rather than a coin toss.
-    SHUFFLE_SEED = 69
+    #: A fixed permutation, written out rather than drawn.
+    #:
+    #: These tests run under CPython AND inside the database, and Grail has no
+    #: `random.Random` -- `random.Random(seed).shuffle(rows)` passed here and
+    #: raised `AttributeError` there, which is exactly the split this suite
+    #: exists to catch. A deterministic scramble is better for the job anyway:
+    #: a failure reproduces instead of depending on a seed.
 
     @classmethod
     def setUpClass(cls):
@@ -421,13 +442,13 @@ class EventOrderIsTheLoadersJob(unittest.TestCase):
         # Otherwise the two tests below would pass against a loader that does
         # nothing at all.
         header, rows = self._claims_rows()
-        random.Random(self.SHUFFLE_SEED).shuffle(rows)
+        rows = scrambled(rows)
         self.assertNotEqual([row[0] for row in rows],
                             sorted(row[0] for row in rows))
 
     def test_a_shuffled_file_still_loads_oldest_first(self):
         header, rows = self._claims_rows()
-        random.Random(self.SHUFFLE_SEED).shuffle(rows)
+        rows = scrambled(rows)
         with tempfile.TemporaryDirectory() as directory:
             book = seed.load(seed.POLICYHOLDERS_CSV,
                              self._rewritten(directory, rows, header))
@@ -443,7 +464,7 @@ class EventOrderIsTheLoadersJob(unittest.TestCase):
         # event_id as well makes the loaded order a function of the rows and
         # not of their sequence -- shuffled in, identical out.
         header, rows = self._claims_rows()
-        random.Random(self.SHUFFLE_SEED).shuffle(rows)
+        rows = scrambled(rows)
         with tempfile.TemporaryDirectory() as directory:
             book = seed.load(seed.POLICYHOLDERS_CSV,
                              self._rewritten(directory, rows, header))
@@ -474,7 +495,7 @@ class EventOrderIsTheLoadersJob(unittest.TestCase):
         # Sorting must not change a single seeded number -- these are the ones
         # pinned above, in tests/test_app.py and in docs/mcp-questions.md.
         header, rows = self._claims_rows()
-        random.Random(self.SHUFFLE_SEED).shuffle(rows)
+        rows = scrambled(rows)
         with tempfile.TemporaryDirectory() as directory:
             book = seed.load(seed.POLICYHOLDERS_CSV,
                              self._rewritten(directory, rows, header))

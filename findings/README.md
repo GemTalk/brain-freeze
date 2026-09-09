@@ -1,6 +1,6 @@
 # Findings, as scripts you can run
 
-Six things about running Python inside GemDB that cost real time while
+Eight things about running Python inside GemDB that cost real time while
 building this demo, each reduced to a script that reproduces it on your own
 database rather than asking you to believe a transcript.
 
@@ -12,13 +12,16 @@ gemdb findings/03_class_identity.py     # run this one twice
 gemdb findings/04_dirty_session.py
 gemdb findings/05_module_monkeypatch.py
 gemdb findings/06_decimal_money.py
+gemdb findings/07_logging_stub.py
+gemdb findings/08_script_imports.py   # run this one twice
 ```
 
 `class-identity/` is a fourth-and-a-half: four scripts in two arms, inherited from the demo being retired. See
 [`class-identity/README.md`](class-identity/README.md).
 
-All six are safe. Only 03 writes to `gemdb.root`, and it removes what it
-wrote; 05 patches the `gemdb` module and puts it back.
+All eight are safe. Only 03 writes to `gemdb.root`, and it removes what it
+wrote; 05 patches the `gemdb` module and puts it back; 08 writes a throwaway
+module under `findings/` and removes it.
 
 Measured on 2026-09-08 against GemStone/S 3.7.5 with Grail `c875e56`. **Two of
 them disagree with the same findings reached independently in
@@ -35,6 +38,8 @@ Grail team should hear it.
 | `04_dirty_session.py` | running any code dirties the session, so `refresh()` refuses | **partly contradicts their rule 4** |
 | `05_module_monkeypatch.py` | a patched module dirties the session for good | **not documented anywhere** |
 | `06_decimal_money.py` | `decimal` works; the operators around it do not | **corrects our own older note** |
+| `07_logging_stub.py` | an exception in a view is invisible | shared with their finding 4 |
+| `08_script_imports.py` | what a script can import, and what the database keeps | **the stale half is ours** |
 | `class-identity/` | committing after imports is what keeps class identity | **theirs, and it reproduces here** |
 
 ---
@@ -186,6 +191,50 @@ prints as `170.1`.
 
 `brainfreeze/money.py` is the answer to all of it, and `gemdb run_db_tests.py`
 running the same suite in both runtimes is what keeps it honest.
+
+## 7. Reporting a view's exception is what fails
+
+A Flask view raises. Flask calls its logger to say so, with `exc_info=True`.
+Grail's `logging` is a hand-written stub whose `Logger.error` took only
+`*args`, so the call that exists to report the exception raises one of its
+own — and what reaches the log is a `TypeError` about `exc_info`, with the real
+exception somewhere further up if it is anywhere at all.
+
+**The failure replaces the diagnosis.** That is the same shape as finding 5 and
+as the crash behind finding 6: in each one, the code that exists to explain a
+problem is the code that breaks. It is the single most consistent thing this
+repo has to say about Grail.
+
+Two lines fix it, on `fix/logging-exc-info` in the Grail repository, unmerged.
+`LoggerAdapter.error` in the same file already takes `**kwargs`.
+
+## 8. A script's neighbours, and modules the database will not let go of
+
+Two halves, and the second is the expensive one.
+
+`sys.path[0]` is the script's directory, so a script can import the module
+beside it. Grail issue #847 was that it could not; that is fixed and the script
+reports which behaviour your build has.
+
+The half that is still live: **the database keeps a compiled copy of a module
+and serves it in preference to the file on disk.** `tests/test_app.py` was
+edited over and over with no effect, while edits to top-level `app.py` in the
+same tree took effect immediately — which is why `run_db_tests.py` reads and
+`exec`s its test modules rather than importing them.
+
+**What actually deploys a module is the commit**, and that is the part worth
+carrying away. The first version of this script had no `commit()` in run 1 and
+found nothing wrong. Add it and the staleness appears every time. So the rule
+in `class-identity/` — commit after your imports, or instances are stranded on
+a class the next session will not recognise — is also the rule that freezes
+your code in place. Both pieces of advice are correct and they pull against
+each other, which is worth knowing before it costs you an afternoon.
+
+At package scale it cost an afternoon: the database went on running a float
+`annual_premium` for an hour after the file returned exact `Decimal`, with the
+whole suite passing against rules that were no longer on disk. Nothing reports
+the divergence. `redeploy.py` is the answer, and it is only obvious once you
+know the failure exists.
 
 ---
 
