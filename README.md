@@ -16,7 +16,7 @@ a real GemStone/S 3.7.5 stone carrying Grail `c875e56`. Where something
 surprised us it is written down rather than tidied away — the
 [findings](#what-this-cost-us) cost more time than the code did.
 
-> **A companion document.** `GemDB_Code/docs/demo/brain-freeze/` is a separate,
+> **A companion document.** [the parallel demo](https://github.com/GemTalk/GemDB_Code/blob/c9c261ac017fd7831cd29aa71b79da4ee8c1ed9b/docs/demo/brain-freeze/) (pinned at `c9c261a`) is a separate,
 > earlier walkthrough of the same idea, built independently against Grail
 > `5e8fc42`. It covers the quote and claims flows in more narrative detail and
 > is worth reading beside this. Where its findings and ours overlap they are

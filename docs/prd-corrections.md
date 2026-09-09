@@ -150,7 +150,7 @@ type(old).__name__    : Claim
 ```
 
 This contradicts the independent demo in
-`GemDB_Code/docs/demo/brain-freeze/model.py`, whose rule 2 records that "Grail
+[`model.py`](https://github.com/GemTalk/GemDB_Code/blob/c9c261ac017fd7831cd29aa71b79da4ee8c1ed9b/docs/demo/brain-freeze/model.py), whose rule 2 records that "Grail
 updates the class in place -- `isinstance` keeps working", measured on Grail
 `46c2a68`. Both measurements are reproducible; the Grail versions differ. Until
 that is resolved, **`type(obj).__name__` is the only class check that survives
@@ -160,7 +160,7 @@ weaker reasons than now apply.
 **Write instead:** no migration is needed for fields declared as optional with
 class-level defaults up front. A field added after records exist is readable
 only through `getattr(record, "field", default)` — which is what the
-independent demo in `GemDB_Code/docs/demo/brain-freeze/` does throughout, for
+independent demo in [the parallel demo](https://github.com/GemTalk/GemDB_Code/blob/c9c261ac017fd7831cd29aa71b79da4ee8c1ed9b/docs/demo/brain-freeze/) (pinned at `c9c261a`) does throughout, for
 exactly this reason. Say which of the two you are demonstrating.
 
 Note also that `seed.py` **hides** this: re-seeding rebuilds every object from

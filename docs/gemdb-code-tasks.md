@@ -16,7 +16,7 @@ are in [`prd-corrections.md`](prd-corrections.md).
 
 ## 0. Two implementations of this demo exist
 
-`GemDB_Code/docs/demo/brain-freeze/` on `main` is an independent
+[the parallel demo](https://github.com/GemTalk/GemDB_Code/blob/c9c261ac017fd7831cd29aa71b79da4ee8c1ed9b/docs/demo/brain-freeze/) (pinned at `c9c261a`) on `main` is an independent
 implementation of the same PRD — its own `app.py`, `model.py`,
 `underwriting.py`, `seed.py`, a Markdown copy of the PRD and a 35KB README —
 built against Grail `46c2a68`. This repo was built against `c875e56`. Neither

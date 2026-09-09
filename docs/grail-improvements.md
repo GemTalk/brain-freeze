@@ -26,7 +26,7 @@ first task is bookkeeping:
 
 - **#847** — "a script cannot import the module next to it" — is **closed,
   fixed 2026-08-29 by `8c8f503e`, and the fix is in the Grail GemDB stages.**
-  `GemDB_Code/docs/demo/brain-freeze/` still documents it as a live finding.
+  [the parallel demo](https://github.com/GemTalk/GemDB_Code/blob/c9c261ac017fd7831cd29aa71b79da4ee8c1ed9b/docs/demo/brain-freeze/) (pinned at `c9c261a`) still documents it as a live finding.
 - **#848** — `sys.stdout`/`sys.stderr` are `None` — likewise closed and shipped.
 - **`random.choices` is implemented** (`random.gs:402`, weights and all). An
   earlier note in this repo's PLAN.md said it was missing. It was wrong at this

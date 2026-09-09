@@ -26,7 +26,7 @@ The recipe is `gemdb.commit()` then `gemdb.refresh()` -- keep the compiled
 code, then take the new view.
 
 (The same behaviour is finding 2 and rule 4 of
-`GemDB_Code/docs/demo/brain-freeze/model.py`, found independently.)
+`GemDB_Code/docs/demo/brain-freeze/model.py (at c9c261a)`, found independently.)
 """
 
 import sys

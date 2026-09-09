@@ -24,7 +24,7 @@ Adding a field to a class already in use is a different thing. A record
 committed under the old class keeps its data, raises AttributeError for the
 new field, and is no longer `type(record) is TheClass`. On Grail c875e56 it is
 no longer `isinstance(record, TheClass)` either -- which contradicts
-`GemDB_Code/docs/demo/brain-freeze/model.py`, whose rule 2 records `isinstance`
+`GemDB_Code/docs/demo/brain-freeze/model.py (at c9c261a)`, whose rule 2 records `isinstance`
 continuing to work, measured on Grail 46c2a68.
 
 Both measurements are reproducible. **If run 2 prints `isinstance: True` on

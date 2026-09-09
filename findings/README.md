@@ -12,11 +12,14 @@ gemdb findings/03_class_identity.py     # run this one twice
 gemdb findings/04_dirty_session.py
 ```
 
+`class-identity/` is a fourth-and-a-half: four scripts in two arms, inherited from the demo being retired. See
+[`class-identity/README.md`](class-identity/README.md).
+
 All four are safe. Only 03 writes anything, and it removes what it wrote.
 
 Measured on 2026-09-08 against GemStone/S 3.7.5 with Grail `c875e56`. **Two of
 them disagree with the same findings reached independently in
-`GemDB_Code/docs/demo/brain-freeze/`, which measured Grail `46c2a68`.** Where
+[the parallel demo](https://github.com/GemTalk/GemDB_Code/blob/c9c261ac017fd7831cd29aa71b79da4ee8c1ed9b/docs/demo/brain-freeze/) (pinned at `c9c261a`), which measured Grail `46c2a68`.** Where
 they disagree, the scripts say so and print what *your* Grail does. If yours
 matches theirs rather than ours, that is the more interesting result and the
 Grail team should hear it.
@@ -27,6 +30,7 @@ Grail team should hear it.
 | `02_main_namespace.py` | `__main__` is shared by every script, dispatch is by arity | sharper form of their finding 5 |
 | `03_class_identity.py` | editing a class compiles a different class | **contradicts their rule 2** |
 | `04_dirty_session.py` | running any code dirties the session, so `refresh()` refuses | **partly contradicts their rule 4** |
+| `class-identity/` | committing after imports is what keeps class identity | **theirs, and it reproduces here** |
 
 ---
 

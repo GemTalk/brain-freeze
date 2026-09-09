@@ -818,7 +818,7 @@ It opens with a **preflight** — `gemdb -c 'import re'` — because an extent
 without the CPython shim passes every test in this repo and then cannot start
 the app.
 
-**There is a second, independent demo.** `GemDB_Code/docs/demo/brain-freeze/`
+**There is a second, independent demo.** [the parallel demo](https://github.com/GemTalk/GemDB_Code/blob/c9c261ac017fd7831cd29aa71b79da4ee8c1ed9b/docs/demo/brain-freeze/) (pinned at `c9c261a`)
 was built against Grail `5e8fc42` and committed in `a3c15ea`, `f2307a1`,
 `c9c261a`. It covers the quote and claims flows in more narrative detail and
 does not cover the notebook, MCP, the CSV import or CUJ-4. Its five findings
