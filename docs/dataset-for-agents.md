@@ -142,7 +142,7 @@ Stored:
 | `policy_term_months` | `int` | 12 for every policy in the seeded book |
 | `policy_status` | `str` | `"Active"` or `"Lapsed"` — see §7, this is a trap |
 | `policy_lapse_date` | `date` or `None` | |
-| `events` | `list[Event]` | oldest first |
+| `events` | `list[Event]` | oldest first — sorted by `seed.py` on the way in, ties by `event_id` |
 
 Derived:
 
