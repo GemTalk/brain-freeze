@@ -269,6 +269,12 @@ that the literal is wrong, not that the runtimes disagree.
 Sums are exact, which is the whole reason for it: `sum(amounts, ZERO)` over
 900 premiums is exact, not 900 roundings deep.
 
+That is what you need to *read* money here. If you are going to *write* code
+that runs in the database — a helper, a script, anything committed —
+[`writing-python-for-gemdb.md`](writing-python-for-gemdb.md) is the rest of it:
+the same money traps with their workarounds, plus the ones about compiled code,
+deployed modules and the shared `__main__` that this file does not cover.
+
 Ratios are **not** money. `loss_ratio`, approval rates and the values from
 `analysis` come back as plain floats.
 
