@@ -35,6 +35,14 @@ THREE CONSTRAINTS FROM GRAIL, ALL FOUND FIRST BY grail_rest_demo/app.py
 
 Every write is a POST that mutates, commits and redirects, so a refresh never
 re-submits.
+
+AND ONE BEAT THAT IS NOT AUTOMATIC
+
+A session sees the repository as of its last transaction boundary, so every
+request begins with `take_new_view()` -- commit, then refresh -- or a server
+started an hour ago would still be serving the book as it was an hour ago.
+Read its docstring before changing it: the order matters and `abort()` is not
+a substitute.
 """
 
 from datetime import date
@@ -136,6 +144,37 @@ def book():
     return gemdb.root[ROOT_KEY]
 
 
+def take_new_view():
+    """Commit this session's compiled code, then take the latest view.
+
+    A GemStone session sees the repository as of its last transaction
+    boundary. Without this, a server that started an hour ago answers every
+    request from the book as it was an hour ago: the notebook and the shell
+    can commit whatever they like and the browser never learns of it. That
+    made the web app the one surface of three that could not see the others'
+    writes -- and it looks like a caching bug, not a transaction one.
+
+    The order is the whole recipe, and neither half is optional.
+
+    `gemdb.commit()` first, because `gemdb.refresh()` REFUSES while the
+    session holds uncommitted work -- and it always does. Grail compiles
+    Python into the database, so rendering a template is a repository write
+    and a read-only request leaves the session dirty
+    (findings/04_dirty_session.py).
+
+    And never `gemdb.abort()`. It takes a new view too, and it throws away
+    this session's uncommitted work -- which is the app's own compiled
+    handlers. The server would lose the code it is running.
+
+    The commit is unconditional rather than guarded by `needs_commit()`: the
+    branch saves a transaction boundary that costs far less than the render
+    it precedes, and the recipe is easier to trust when it reads the way the
+    notebook and the README state it.
+    """
+    gemdb.commit()
+    gemdb.refresh()
+
+
 def cover_state(policy, today):
     """How to describe this policy's cover, as of a date.
 
@@ -165,6 +204,17 @@ def _next_id(existing, prefix, width, start):
 
 def create_app():
     app = Flask(__name__)
+
+    @app.before_request
+    def before_every_request():
+        """Start every handler from what the other surfaces have committed.
+
+        Here rather than at the top of each handler so that a route added
+        later cannot forget it, and on writes as well as reads: a handler
+        that adjudicates a claim against an hour-old policy would be worse
+        than one that merely displays it.
+        """
+        take_new_view()
 
     # -- the picker: stands in for the sign-in this demo does not have ----
 
