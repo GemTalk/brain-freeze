@@ -144,12 +144,20 @@ def cover_state(policy, today):
     marked Lapsed, only 53 have actually reached their lapse date. So a screen
     that reads the stored status calls a policy lapsed while it is still
     paying claims. Compare against the date instead and say which it is.
+
+    The term counts too, at both ends: 147 of the 900 policies have not
+    started yet today, and calling those "Active" says cover is running when
+    a claim filed against them would be refused.
     """
-    if policy.policy_lapse_date is None:
-        return ("Active", "ok")
     if policy.is_in_force_on(today):
+        if policy.policy_lapse_date is None:
+            return ("Active", "ok")
         return ("Lapses %s" % policy.policy_lapse_date, "tag")
-    return ("Lapsed %s" % policy.policy_lapse_date, "no")
+    if policy.no_cover_reason_on(today) == brainfreeze.REASON_POLICY_LAPSED:
+        return ("Lapsed %s" % policy.policy_lapse_date, "no")
+    if today < policy.policy_start_date:
+        return ("Starts %s" % policy.policy_start_date, "tag")
+    return ("Term ended %s" % policy.policy_end_date, "no")
 
 
 def _next_id(existing, prefix, width, start):
@@ -264,12 +272,26 @@ def create_app():
 
         Both of these would otherwise only be discovered by filing and being
         refused, and the lapse is the more confusing one to receive silently.
+
+        Which absence of cover it is comes from the model, so the warning on
+        the form and the reason on the refusal cannot disagree -- and so a
+        policy that has not started yet is not told it lapsed on None.
         """
         notes = []
-        if not policy.is_in_force_on(today):
+        no_cover = policy.no_cover_reason_on(today)
+        if no_cover == brainfreeze.REASON_POLICY_LAPSED:
             notes.append(
                 "Cover on this policy ended on %s. Anything filed now is "
                 "refused." % policy.policy_lapse_date)
+        elif no_cover is not None:
+            if today < policy.policy_start_date:
+                notes.append(
+                    "Cover on this policy does not start until %s. Anything "
+                    "filed now is refused." % policy.policy_start_date)
+            else:
+                notes.append(
+                    "The term on this policy ended on %s. Anything filed now "
+                    "is refused." % policy.policy_end_date)
         elif policy.claims_remaining_this_year == 0:
             notes.append(
                 "This policy has used all %d approvals for the year. A new "
@@ -304,7 +326,8 @@ def create_app():
             policy.coverage_limit,
             policy.deductible,
             len(policy.approved_claims),
-            policy_in_force=policy.is_in_force_on(today))
+            policy_in_force=policy.is_in_force_on(today),
+            no_cover_reason=policy.no_cover_reason_on(today))
 
         the_book = book()
         claim = Claim(

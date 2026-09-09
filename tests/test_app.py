@@ -183,6 +183,40 @@ class TheApp(unittest.TestCase):
             "/policies/%s/claims/new" % LAPSES_LATER).data.decode()
         self.assertNotIn("cover on this policy ended", body.lower())
 
+    def test_a_policy_that_has_not_started_is_not_told_it_lapsed(self):
+        # 147 of the 900 terms begin after today. Cover has not started, so a
+        # claim is refused -- but not for a lapse these policies never had,
+        # and the old warning would have said "ended on None".
+        today = date.today()
+        not_started = [p for p in self.book()
+                       if today < p.policy_start_date and p.policy_lapse_date is None]
+        if not not_started:
+            self.skipTest("every term in the book has started -- nothing to check")
+        policy = not_started[0]
+        self.assertFalse(policy.is_in_force_on(today))
+        body = self.client.get(
+            "/policies/%s/claims/new" % policy.policy_id).data.decode()
+        self.assertIn("does not start until %s" % policy.policy_start_date, body)
+        self.assertNotIn("ended on None", body)
+        self.assertNotIn("cover on this policy ended", body.lower())
+        page = self.client.get(
+            "/?policy=%s" % policy.policy_id).data.decode()
+        self.assertIn("Starts %s" % policy.policy_start_date, page)
+
+    def test_a_claim_outside_the_term_says_so_rather_than_saying_lapsed(self):
+        today = date.today()
+        not_started = [p for p in self.book()
+                       if today < p.policy_start_date and p.policy_lapse_date is None]
+        if not not_started:
+            self.skipTest("every term in the book has started -- nothing to check")
+        policy_id = not_started[0].policy_id
+        r = self._file(policy_id)
+        self.assertEqual(r.status_code, 302)
+        claim = self.book()[policy_id].events[-1].claim
+        self.assertEqual(claim.status, "Denied")
+        self.assertEqual(claim.approved, 0.0)
+        self.assertEqual(claim.reason, "Event outside policy term")
+
     def test_the_picker_distinguishes_lapsed_from_lapses_later(self):
         # Both stored as policy_status "Lapsed"; only one has actually lapsed.
         lapsed = self.book()[LAPSED]
