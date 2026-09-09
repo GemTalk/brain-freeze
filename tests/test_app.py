@@ -86,6 +86,82 @@ class TheApp(unittest.TestCase):
         self.assertEqual(r.status_code, 302)
         self.assertIn(LAPSES_LATER, r.headers["Location"])
 
+    # -- taking a new view (issue #47) -----------------------------------
+
+    def _spy_on_the_session(self):
+        """Record gemdb's transaction calls, still doing the real thing.
+
+        The staleness itself cannot be reproduced from one gem -- this session
+        sees its own writes immediately, and a second one is not something a
+        test running inside the database can start. What *is* observable is
+        whether the app takes a new view at all, and in which order, which is
+        the whole of the bug and of the recipe that fixes it.
+        """
+        calls = []
+        original = {}
+
+        def recorded(name):
+            real = getattr(gemdb, name)
+            original[name] = real
+
+            def wrapper(*args, **kwargs):
+                calls.append(name)
+                return real(*args, **kwargs)
+            return wrapper
+
+        for name in ("commit", "refresh", "abort"):
+            setattr(gemdb, name, recorded(name))
+        return calls, original
+
+    def _restore(self, original):
+        for name, real in original.items():
+            setattr(gemdb, name, real)
+
+    def test_a_read_commits_and_then_refreshes(self):
+        # Without this the server answers from the view it started with, for
+        # as long as it runs: the notebook and the shell can commit all they
+        # like and the browser never sees it (issue #47).
+        calls, original = self._spy_on_the_session()
+        try:
+            r = self.client.get("/policies/%s" % ACTIVE_READONLY)
+        finally:
+            self._restore(original)
+
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("refresh", calls)
+        self.assertLess(calls.index("commit"), calls.index("refresh"),
+                        "refresh() refuses while the session holds "
+                        "uncommitted work, and rendering leaves it holding "
+                        "some -- commit first")
+        self.assertNotIn("abort", calls)   # it would discard the app's own code
+
+    def test_the_picker_takes_a_new_view_too(self):
+        # Every handler, not just the ones someone remembered: the count on
+        # the front page is the number CUJ-3 asks an evaluator to watch move.
+        calls, original = self._spy_on_the_session()
+        try:
+            r = self.client.get("/")
+        finally:
+            self._restore(original)
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("refresh", calls)
+
+    def test_a_dirty_session_can_still_serve_a_request(self):
+        # The trap the recipe exists for. Compiling Python is a repository
+        # write, so a long-running app is always dirty; a bare refresh() would
+        # raise here and every page would be a 500.
+        namespace = {}
+        exec(compile("def _dirties_the_session(n):\n    return n + 1\n",
+                     "<dirty>", "exec"), namespace)
+        namespace["_dirties_the_session"](1)
+        if not gemdb.needs_commit():
+            # findings/04 measured this both ways on different Grails. If the
+            # session is clean there is no trap to spring, and saying so is
+            # better than passing quietly.
+            self.skipTest("this session is clean -- nothing to refuse")
+        self.assertEqual(
+            self.client.get("/policies/%s" % ACTIVE_READONLY).status_code, 200)
+
     # -- the quote flow --------------------------------------------------
 
     def test_the_quote_form_does_not_ask_for_sex(self):

@@ -230,7 +230,23 @@ All three are documented in `grail_rest_demo/app.py`, which found them first:
 
 Because the app is single-threaded and shares one session, transaction
 handling is simple: one request at a time, commit at the end of a write
-handler, abort on exception. No locking story to invent.
+handler. No locking story to invent.
+
+**Two corrections to that, both found in the app rather than the plan.**
+
+"Abort on exception" is wrong, and dangerously so. `gemdb.abort()` discards
+the session's uncommitted work, which under Grail includes its compiled
+Python — a handler that aborts throws away the running server's own code.
+There is no rollback to reach for here; the same finding that rules `abort()`
+out of the notebook (finding 4) rules it out of the app.
+
+And a fourth constraint was missing entirely: **the app has to take a new
+view, per request.** A session reads the repository as of its last
+transaction boundary, so `app.py` served whatever was committed when it
+started and nothing since — the one surface of three that could not see the
+others' writes (issue #47). Every request now begins with `commit()` then
+`refresh()`, the notebook's recipe applied per request, so the refresh beat
+below works from the browser too.
 
 ### The model is standard-library only
 

@@ -110,10 +110,10 @@ gemdb run_notebook_check.py         # every notebook cell, in order
 ```
 
 ```console
-Ran 76 tests in 0.284s
-OK (skipped=22)
+Ran 94 tests in 0.291s
+OK (skipped=25)
 
-Ran 22 tests
+Ran 25 tests
 OK
 
 All 10 code cells ran.
@@ -284,6 +284,13 @@ run the cells above leaves `gemdb.needs_commit()` returning `True`.
 `gemdb.abort()` also takes a new view and is the wrong tool: it discards this
 session's uncommitted work, **including the functions defined in earlier
 cells**. See [finding 4](#4-a-read-only-session-is-not-clean).
+
+**The web app does this for you, on every request.** Its `take_new_view()`
+runs the same `commit()` then `refresh()` before each handler, so the browser
+needs no beat of its own: commit a change from a notebook cell or a `gemdb -c`
+one-liner, reload the page, and it is there. Nothing to restart. The notebook
+is deliberately not wired that way — an analysis that shifted under you
+mid-cell would be worse than one that waits to be told.
 
 ---
 
