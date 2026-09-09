@@ -19,11 +19,24 @@ count what those two produced.
 Rates are `None` rather than 0.0 when there is nothing to divide by. An empty
 book has no approval rate; saying 0.0 would claim every claim was refused,
 which is a different fact and a wrong one.
+
+Money is `decimal.Decimal` throughout -- see `brainfreeze.money`. Sums here
+are exact; only the ratios become floats, and only on the way out.
 """
+
+from .money import ZERO, round_half_up
 
 
 def _rounded(value, places=3):
-    return round(value, places)
+    """Half-up, and a float on the way out.
+
+    Bare `round()` is half-up inside the database and banker's outside it, so
+    a published ratio could differ between two surfaces of the same demo. A
+    ratio is not money and stays a float; only the rounding rule is borrowed.
+    """
+    if value is None:
+        return None
+    return float(round_half_up(value, places))
 
 
 def book_summary(book):
@@ -49,8 +62,8 @@ def _loss_ratio_grouped(book, key):
     paid = {}
     for policyholder in book:
         group = key(policyholder)
-        premium[group] = premium.get(group, 0.0) + policyholder.annual_premium
-        paid[group] = paid.get(group, 0.0) + policyholder.total_paid
+        premium[group] = premium.get(group, ZERO) + policyholder.annual_premium
+        paid[group] = paid.get(group, ZERO) + policyholder.total_paid
     return {group: _rounded(paid[group] / total)
             for group, total in premium.items() if total}
 

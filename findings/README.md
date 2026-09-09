@@ -1,6 +1,6 @@
 # Findings, as scripts you can run
 
-Five things about running Python inside GemDB that cost real time while
+Six things about running Python inside GemDB that cost real time while
 building this demo, each reduced to a script that reproduces it on your own
 database rather than asking you to believe a transcript.
 
@@ -11,12 +11,13 @@ gemdb findings/02_main_namespace.py
 gemdb findings/03_class_identity.py     # run this one twice
 gemdb findings/04_dirty_session.py
 gemdb findings/05_module_monkeypatch.py
+gemdb findings/06_decimal_money.py
 ```
 
 `class-identity/` is a fourth-and-a-half: four scripts in two arms, inherited from the demo being retired. See
 [`class-identity/README.md`](class-identity/README.md).
 
-All five are safe. Only 03 writes to `gemdb.root`, and it removes what it
+All six are safe. Only 03 writes to `gemdb.root`, and it removes what it
 wrote; 05 patches the `gemdb` module and puts it back.
 
 Measured on 2026-09-08 against GemStone/S 3.7.5 with Grail `c875e56`. **Two of
@@ -33,6 +34,7 @@ Grail team should hear it.
 | `03_class_identity.py` | editing a class compiles a different class | **contradicts their rule 2** |
 | `04_dirty_session.py` | running any code dirties the session, so `refresh()` refuses | **partly contradicts their rule 4** |
 | `05_module_monkeypatch.py` | a patched module dirties the session for good | **not documented anywhere** |
+| `06_decimal_money.py` | `decimal` works; the operators around it do not | **corrects our own older note** |
 | `class-identity/` | committing after imports is what keeps class identity | **theirs, and it reproduces here** |
 
 ---
@@ -154,6 +156,35 @@ for its own `before_request_funcs`.
 For the product, this wants a better error. "refresh() would discard
 uncommitted changes" is true and points nowhere near a `setattr` three lines
 earlier.
+
+---
+
+## 6. `decimal` works, and everything you reach for next does not
+
+The one that changed this repo's mind. Money was float, and the repo carried a
+note saying `Decimal` was unusable on Grail. **That note was stale.**
+`Decimal("19.99") * 3` returns `59.97`; sums, products and terminating
+divisions are exact; and a `Decimal` survives a commit intact. So money here is
+`decimal.Decimal` — the standard library, doing exact arithmetic inside a
+GemStone database.
+
+What is missing is the apparatus around it, and two of the gaps are not
+exceptions but hard VM errors with no traceback and no line number:
+
+- `round(Decimal, 2)` — **takes the VM down**, `a Decimal does not understand #'*'`
+- a custom Jinja filter — **takes the VM down**, `OffsetError`, even for a
+  filter that only ever sees strings. A Jinja *global* is silently ignored; a
+  callable passed in the render context is the one thing that works.
+- no `quantize`, no `as_tuple`, no floor division, no `statistics` on Decimals
+
+And three that succeed with a *different answer* than CPython, which is worse,
+because nothing fails until two surfaces disagree in front of an audience:
+`int(Decimal)` floors here and truncates there; a `Decimal` compares equal to a
+float that is not equal to it; and `str()` drops trailing zeros, so `$170.10`
+prints as `170.1`.
+
+`brainfreeze/money.py` is the answer to all of it, and `gemdb run_db_tests.py`
+running the same suite in both runtimes is what keeps it honest.
 
 ---
 

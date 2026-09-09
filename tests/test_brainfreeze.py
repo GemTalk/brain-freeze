@@ -9,6 +9,8 @@ start disagreeing, this is what says so.
 
 import unittest
 
+from brainfreeze.money import round_cents, usd
+
 from brainfreeze import (
     REASON_OUTSIDE_TERM,
     REASON_POLICY_LAPSED,
@@ -33,9 +35,13 @@ class Underwriting(unittest.TestCase):
         self.assertEqual(q.plans["Standard"]["monthly"], 14.25)
 
     def test_low_tier_prices(self):
-        self.assertEqual(round(annual_premium("Basic", "Low"), 2), 31.50)
-        self.assertEqual(round(annual_premium("Standard", "Low"), 2), 63.00)
-        self.assertEqual(round(annual_premium("Premium", "Low"), 2), 126.00)
+        # Not `round(x, 2)`. The builtin on a Decimal brings the VM down
+        # inside the database -- "a Decimal does not understand #'*'", with no
+        # Python exception -- which is one of the reasons money rounding lives
+        # in brainfreeze.money rather than being taken from the language.
+        self.assertEqual(round_cents(annual_premium("Basic", "Low")), usd("31.50"))
+        self.assertEqual(round_cents(annual_premium("Standard", "Low")), usd("63.00"))
+        self.assertEqual(round_cents(annual_premium("Premium", "Low")), usd("126.00"))
 
     def test_band_edges(self):
         self.assertEqual(risk_tier(33.9), "Low")
@@ -57,74 +63,74 @@ class Underwriting(unittest.TestCase):
 class Adjudication(unittest.TestCase):
     def test_clm_001288_approved(self):
         # BF-100539, Standard: $60 limit, $5 deductible, three approvals used
-        d = adjudicate(64.32, 60.0, 5.0, 3)
+        d = adjudicate(usd("64.32"), usd("60.0"), usd("5.0"), 3)
         self.assertEqual(d.status, "Approved")
-        self.assertEqual(d.amount, 55.00)
-        self.assertEqual(d.capped_by_limit, 4.32)
-        self.assertEqual(d.deductible_applied, 5.00)
+        self.assertEqual(d.amount, usd("55.00"))
+        self.assertEqual(d.capped_by_limit, usd("4.32"))
+        self.assertEqual(d.deductible_applied, usd("5.00"))
 
     def test_clm_001289_hits_the_annual_cap(self):
-        d = adjudicate(54.53, 60.0, 5.0, 4)
+        d = adjudicate(usd("54.53"), usd("60.0"), usd("5.0"), 4)
         self.assertEqual(d.status, "Denied")
-        self.assertEqual(d.amount, 0.0)
+        self.assertEqual(d.amount, usd("0.00"))
         self.assertEqual(d.reason, "Exceeded annual claim limit")
 
     def test_the_other_three_approvals_on_bf_100539(self):
         # requested, approvals already used, what was paid
-        for assessed, used, expected in ((39.19, 0, 34.19),
-                                         (40.78, 1, 35.78),
-                                         (71.37, 2, 55.00)):
-            d = adjudicate(assessed, 60.0, 5.0, used)
-            self.assertEqual(d.amount, expected, assessed)
+        for assessed, used, expected in (("39.19", 0, "34.19"),
+                                         ("40.78", 1, "35.78"),
+                                         ("71.37", 2, "55.00")):
+            d = adjudicate(usd(assessed), usd("60.00"), usd("5.00"), used)
+            self.assertEqual(d.amount, usd(expected), assessed)
 
     def test_below_the_deductible_is_a_denial_not_a_zero_payment(self):
-        d = adjudicate(8.00, 25.0, 10.0, 0)
+        d = adjudicate(usd("8.00"), usd("25.0"), usd("10.0"), 0)
         self.assertEqual(d.status, "Denied")
         self.assertEqual(d.reason, "Claim amount below deductible")
 
     def test_the_cap_short_circuits_everything(self):
-        d = adjudicate(200.00, 150.0, 0.0, 4)
+        d = adjudicate(usd("200.00"), usd("150.0"), usd("0.0"), 4)
         self.assertEqual(d.status, "Denied")
-        self.assertEqual(d.amount, 0.0)
+        self.assertEqual(d.amount, usd("0.00"))
 
     def test_a_lapsed_policy_pays_nothing(self):
         # CLM-001291: filed 20 April 2027, six weeks after cover ended
-        d = adjudicate(43.09, 60.0, 5.0, 0, policy_in_force=False)
+        d = adjudicate(usd("43.09"), usd("60.0"), usd("5.0"), 0, policy_in_force=False)
         self.assertEqual(d.status, "Denied")
-        self.assertEqual(d.amount, 0.0)
+        self.assertEqual(d.amount, usd("0.00"))
         self.assertEqual(d.reason, "Policy lapsed")
 
     def test_lapse_is_reported_ahead_of_the_cap(self):
         # Both rules would refuse this. The claimant is entitled to the reason
         # that actually applies: there was no cover, cap or no cap.
-        d = adjudicate(43.09, 60.0, 5.0, 4, policy_in_force=False)
+        d = adjudicate(usd("43.09"), usd("60.0"), usd("5.0"), 4, policy_in_force=False)
         self.assertEqual(d.reason, "Policy lapsed")
 
     def test_an_out_of_term_claim_is_not_refused_as_a_lapse(self):
         # A policy that never lapsed cannot be refused for lapsing. The caller
         # says which absence of cover it found; "Policy lapsed" is only the
         # default so that every existing call keeps its wording.
-        d = adjudicate(43.09, 60.0, 5.0, 0, policy_in_force=False,
+        d = adjudicate(usd("43.09"), usd("60.0"), usd("5.0"), 0, policy_in_force=False,
                        no_cover_reason=REASON_OUTSIDE_TERM)
         self.assertEqual(d.status, "Denied")
-        self.assertEqual(d.amount, 0.0)
+        self.assertEqual(d.amount, usd("0.00"))
         self.assertEqual(d.reason, "Event outside policy term")
 
     def test_the_lapse_wording_is_the_default(self):
         # The 254 refusals in claims.csv say "Policy lapsed" and go on saying
         # it; only the new case gets the new wording.
-        self.assertEqual(adjudicate(43.09, 60.0, 5.0, 0,
+        self.assertEqual(adjudicate(usd("43.09"), usd("60.0"), usd("5.0"), 0,
                                     policy_in_force=False).reason,
                          REASON_POLICY_LAPSED)
 
     def test_a_policy_in_force_is_unaffected(self):
         # The default has to stay the old behaviour or every existing call
         # silently changes meaning.
-        self.assertEqual(adjudicate(43.09, 60.0, 5.0, 0).amount,
-                         adjudicate(43.09, 60.0, 5.0, 0, policy_in_force=True).amount)
+        self.assertEqual(adjudicate(usd("43.09"), usd("60.0"), usd("5.0"), 0).amount,
+                         adjudicate(usd("43.09"), usd("60.0"), usd("5.0"), 0, policy_in_force=True).amount)
 
     def test_premium_plan_has_no_deductible(self):
-        d = adjudicate(120.00, 150.0, 0.0, 0)
+        d = adjudicate(usd("120.00"), usd("150.0"), usd("0.0"), 0)
         self.assertEqual(d.amount, 120.00)
         self.assertEqual(d.deductible_applied, 0.0)
 
@@ -133,10 +139,10 @@ class Assessment(unittest.TestCase):
     def test_the_claimant_never_enters_a_figure(self):
         # pain 6.4 over 456.3s, the CLM-001288 episode, before the generator's
         # jitter took it to the $64.32 that is in the CSV
-        self.assertEqual(assess_amount(6.4, 456.3), 71.22)
+        self.assertEqual(assess_amount(6.4, 456.3), usd("71.22"))
 
     def test_bounds(self):
-        self.assertEqual(assess_amount(0, 0), 10.0)
+        self.assertEqual(assess_amount(0, 0), usd("10.00"))
         # the worst episode the generator can produce is nowhere near the cap
         self.assertEqual(assess_amount(10, 900), 115.0)
         # the floor and ceiling only bite with the generator's jitter on top

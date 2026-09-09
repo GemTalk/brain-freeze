@@ -38,7 +38,7 @@ BF-100035,5,M,True,False,moderate,ice cream,60.907488332525865,98.9,High,Standar
 BF-100036,8,F,False,False,slow,slushie,45.10823167179066,59.1,Medium,Standard,60.0,5.0,92.99,7.75,2026-04-17,12,Active,
 BF-100037,15,M,False,False,fast,cold plunge,41.52207822706786,55.5,Medium,Basic,25.0,10.0,43.13,3.59,2026-07-09,12,Lapsed,2027-03-22
 BF-100038,6,F,False,False,fast,smoothie,44.770470919514985,66.8,Medium,Standard,60.0,5.0,91.43,7.62,2026-06-08,12,Active,
-BF-100039,15,F,False,True,moderate,iced soda,55.461799420364144,55.5,Medium,Basic,25.0,10.0,45.66,3.8,2026-07-02,12,Active,
+BF-100039,15,F,False,True,moderate,iced soda,55.461799420364144,55.5,Medium,Basic,25.0,10.0,45.66,3.81,2026-07-02,12,Active,
 BF-100040,5,F,True,False,slow,smoothie,19.93001872173991,37.9,Medium,Basic,25.0,10.0,43.6,3.63,2026-08-31,12,Active,
 BF-100041,9,M,False,False,moderate,cold plunge,9.890920953624704,21.9,Low,Standard,60.0,5.0,61.3,5.11,2026-08-15,12,Active,
 BF-100042,16,M,False,True,fast,ice cream,35.38376054702855,63.4,Medium,Standard,60.0,5.0,88.15,7.35,2026-06-02,12,Active,
@@ -59,7 +59,7 @@ BF-100056,18,Nonbinary/Other,False,False,moderate,iced soda,46.97325793340757,37
 BF-100057,17,F,False,True,moderate,slushie,36.97316878156794,53.0,Medium,Premium,150.0,0.0,192.38,16.03,2026-09-24,12,Active,
 BF-100058,6,M,False,True,fast,ice cream,42.07329718210852,86.1,High,Basic,25.0,10.0,87.08,7.26,2026-03-11,12,Active,
 BF-100059,13,F,False,False,moderate,slushie,31.426290766813963,43.4,Medium,Basic,25.0,10.0,46.31,3.86,2026-06-14,12,Lapsed,2027-06-01
-BF-100060,10,F,False,False,slow,cold plunge,46.37614438669079,40.4,Medium,Basic,25.0,10.0,43.98,3.66,2026-09-23,12,Active,
+BF-100060,10,F,False,False,slow,cold plunge,46.37614438669079,40.4,Medium,Basic,25.0,10.0,43.98,3.67,2026-09-23,12,Active,
 BF-100061,15,F,False,False,moderate,iced soda,44.79652407125561,34.8,Medium,Standard,60.0,5.0,89.28,7.44,2026-07-12,12,Lapsed,2027-02-19
 BF-100062,12,F,False,True,slow,popsicle,22.309648979089992,34.3,Medium,Standard,60.0,5.0,90.6,7.55,2026-01-26,12,Active,
 BF-100063,13,F,False,True,fast,cold plunge,28.776023347846365,58.8,Medium,Basic,25.0,10.0,42.36,3.53,2026-01-28,12,Active,
@@ -80,7 +80,7 @@ BF-100077,14,F,False,False,slow,iced soda,43.34202916438371,31.3,Low,Standard,60
 BF-100078,5,M,False,True,moderate,smoothie,61.79654110380768,75.8,High,Standard,60.0,5.0,173.08,14.42,2026-07-29,12,Active,
 BF-100079,19,F,True,False,moderate,ice cream,39.47561108135103,61.5,Medium,Standard,60.0,5.0,92.28,7.69,2026-05-16,12,Lapsed,2027-03-26
 BF-100080,10,F,False,False,moderate,iced soda,21.06656950063552,17.1,Low,Basic,25.0,10.0,32.63,2.72,2026-10-21,12,Active,
-BF-100081,16,F,True,False,slow,iced soda,42.91666956968608,46.9,Medium,Standard,60.0,5.0,89.58,7.46,2026-07-24,12,Lapsed,2027-05-04
+BF-100081,16,F,True,False,slow,iced soda,42.91666956968608,46.9,Medium,Standard,60.0,5.0,89.58,7.47,2026-07-24,12,Lapsed,2027-05-04
 BF-100082,11,M,False,False,moderate,iced soda,49.5630933065903,45.6,Medium,Premium,150.0,0.0,191.65,15.97,2026-03-03,12,Active,
 BF-100083,9,F,False,False,moderate,slushie,44.20322436807556,66.2,Medium,Premium,150.0,0.0,188.81,15.73,2026-06-29,12,Lapsed,2027-05-15
 BF-100084,6,M,True,False,slow,cold plunge,65.15481678235521,91.2,High,Premium,150.0,0.0,307.95,25.66,2026-04-18,12,Active,
@@ -96,7 +96,7 @@ BF-100093,15,M,False,False,fast,slushie,37.29317987743706,61.3,Medium,Premium,15
 BF-100094,9,F,False,False,moderate,popsicle,71.53566103003013,91.5,High,Standard,60.0,5.0,163.37,13.61,2026-09-07,12,Active,
 BF-100095,7,M,True,False,fast,smoothie,55.89339553834018,99.9,High,Basic,25.0,10.0,89.0,7.42,2026-10-05,12,Active,
 BF-100096,18,M,False,False,fast,iced soda,63.05486124742116,71.1,High,Standard,60.0,5.0,179.77,14.98,2026-03-10,12,Active,
-BF-100097,15,F,True,False,fast,cold plunge,63.53431504481627,99.5,High,Premium,150.0,0.0,341.34,28.44,2026-09-01,12,Active,
+BF-100097,15,F,True,False,fast,cold plunge,63.53431504481627,99.5,High,Premium,150.0,0.0,341.34,28.45,2026-09-01,12,Active,
 BF-100098,12,F,False,False,fast,ice cream,52.63990525333851,76.6,High,Basic,25.0,10.0,84.67,7.06,2026-06-26,12,Active,
 BF-100099,13,M,False,True,moderate,smoothie,44.22488047963364,48.2,Medium,Basic,25.0,10.0,49.42,4.12,2026-10-03,12,Lapsed,2027-05-18
 BF-100100,11,M,False,False,moderate,popsicle,57.30481312859355,67.3,High,Standard,60.0,5.0,174.59,14.55,2026-03-31,12,Lapsed,2027-03-08
@@ -131,7 +131,7 @@ BF-100128,18,Nonbinary/Other,False,False,slow,popsicle,19.16886977656462,15.2,Lo
 BF-100129,8,F,False,False,slow,cold plunge,53.97202646274574,58.0,Medium,Standard,60.0,5.0,87.48,7.29,2026-01-01,12,Active,
 BF-100130,13,F,True,False,moderate,slushie,75.03847926519,100.0,High,Standard,60.0,5.0,167.07,13.92,2026-07-17,12,Active,
 BF-100131,19,F,False,False,moderate,slushie,29.25965908605805,35.3,Medium,Standard,60.0,5.0,92.69,7.72,2026-03-21,12,Lapsed,2027-01-05
-BF-100132,10,F,False,False,moderate,slushie,59.374546698438415,71.4,High,Premium,150.0,0.0,323.82,26.98,2026-02-24,12,Active,
+BF-100132,10,F,False,False,moderate,slushie,59.374546698438415,71.4,High,Premium,150.0,0.0,323.82,26.99,2026-02-24,12,Active,
 BF-100133,13,F,False,False,moderate,ice cream,15.12410446689206,21.1,Low,Basic,25.0,10.0,32.83,2.74,2026-04-04,12,Active,
 BF-100134,19,M,False,False,moderate,cold plunge,60.70363282172493,56.7,Medium,Basic,25.0,10.0,48.29,4.02,2026-08-21,12,Lapsed,2027-05-11
 BF-100135,7,M,False,False,slow,slushie,41.52546938500703,55.5,Medium,Standard,60.0,5.0,98.77,8.23,2026-10-07,12,Active,
@@ -143,7 +143,7 @@ BF-100140,6,F,True,False,slow,iced soda,42.2570582882556,62.3,Medium,Standard,60
 BF-100141,7,M,False,True,moderate,ice cream,44.98594516317317,71.0,High,Basic,25.0,10.0,81.1,6.76,2026-05-04,12,Lapsed,2027-02-21
 BF-100142,8,M,False,True,fast,popsicle,54.78458836813096,100.0,High,Standard,60.0,5.0,176.4,14.7,2026-06-21,12,Active,
 BF-100143,11,F,False,False,fast,popsicle,29.350892058781024,57.4,Medium,Basic,25.0,10.0,46.35,3.86,2026-03-01,12,Active,
-BF-100144,18,M,False,False,slow,smoothie,60.84273288649404,40.8,Medium,Basic,25.0,10.0,44.46,3.7,2026-10-21,12,Lapsed,2027-08-10
+BF-100144,18,M,False,False,slow,smoothie,60.84273288649404,40.8,Medium,Basic,25.0,10.0,44.46,3.71,2026-10-21,12,Lapsed,2027-08-10
 BF-100145,18,M,False,False,fast,slushie,40.28295223097428,64.3,Medium,Premium,150.0,0.0,185.83,15.49,2026-04-26,12,Lapsed,2027-04-05
 BF-100146,5,F,False,False,moderate,slushie,34.41028859441728,56.4,Medium,Basic,25.0,10.0,47.92,3.99,2026-05-20,12,Lapsed,2026-11-15
 BF-100147,8,F,False,True,slow,ice cream,68.89515094780826,86.9,High,Basic,25.0,10.0,77.23,6.44,2026-01-26,12,Active,
@@ -162,10 +162,10 @@ BF-100159,12,M,False,True,moderate,popsicle,31.728712115857828,51.7,Medium,Basic
 BF-100160,11,F,False,True,moderate,slushie,39.2713513029733,61.3,Medium,Basic,25.0,10.0,48.52,4.04,2026-01-26,12,Active,
 BF-100161,9,F,False,False,slow,cold plunge,71.24017885227849,75.2,High,Standard,60.0,5.0,191.71,15.98,2026-05-29,12,Active,
 BF-100162,9,F,False,False,moderate,popsicle,47.85163970117163,67.9,High,Standard,60.0,5.0,172.01,14.33,2026-01-06,12,Lapsed,2026-06-14
-BF-100163,18,F,False,False,moderate,smoothie,32.752282591035225,20.8,Low,Premium,150.0,0.0,121.5,10.12,2026-10-08,12,Active,
+BF-100163,18,F,False,False,moderate,smoothie,32.752282591035225,20.8,Low,Premium,150.0,0.0,121.5,10.13,2026-10-08,12,Active,
 BF-100164,16,F,False,False,fast,popsicle,16.78455395117899,38.8,Medium,Standard,60.0,5.0,91.87,7.66,2026-07-17,12,Lapsed,2027-05-16
 BF-100165,11,M,False,True,slow,smoothie,33.952428574116205,30.0,Low,Standard,60.0,5.0,60.49,5.04,2026-04-03,12,Active,
-BF-100166,9,M,False,False,fast,popsicle,56.55249746900133,94.6,High,Premium,150.0,0.0,342.78,28.56,2026-04-17,12,Active,
+BF-100166,9,M,False,False,fast,popsicle,56.55249746900133,94.6,High,Premium,150.0,0.0,342.78,28.57,2026-04-17,12,Active,
 BF-100167,9,F,True,False,fast,popsicle,68.96379333297175,100.0,High,Standard,60.0,5.0,175.81,14.65,2026-09-03,12,Lapsed,2027-06-22
 BF-100168,18,F,False,False,slow,popsicle,29.81059300780075,25.8,Low,Basic,25.0,10.0,34.84,2.9,2026-09-19,12,Active,
 BF-100169,7,F,False,False,fast,slushie,41.25953629568633,81.3,High,Premium,150.0,0.0,353.8,29.48,2026-03-03,12,Active,
@@ -224,13 +224,13 @@ BF-100221,16,F,True,False,slow,smoothie,42.38692841816705,44.4,Medium,Standard,6
 BF-100222,15,F,False,False,fast,popsicle,64.15883558808996,86.2,High,Basic,25.0,10.0,78.95,6.58,2026-03-06,12,Active,
 BF-100223,9,F,False,False,fast,slushie,31.375225198194737,71.4,High,Standard,60.0,5.0,189.05,15.75,2026-10-24,12,Active,
 BF-100224,7,F,False,False,moderate,cold plunge,30.520565329049866,42.5,Medium,Standard,60.0,5.0,98.35,8.2,2026-05-26,12,Active,
-BF-100225,16,F,False,False,moderate,cold plunge,38.32976452238044,34.3,Medium,Standard,60.0,5.0,87.66,7.3,2026-03-09,12,Active,
+BF-100225,16,F,False,False,moderate,cold plunge,38.32976452238044,34.3,Medium,Standard,60.0,5.0,87.66,7.31,2026-03-09,12,Active,
 BF-100226,17,F,False,True,slow,ice cream,64.83974871053374,66.8,Medium,Standard,60.0,5.0,91.44,7.62,2026-09-12,12,Active,
 BF-100227,8,F,False,True,slow,cold plunge,49.48255998760242,63.5,Medium,Basic,25.0,10.0,45.16,3.76,2026-03-19,12,Active,
 BF-100228,18,F,False,True,fast,popsicle,20.47088008562762,52.5,Medium,Basic,25.0,10.0,43.0,3.58,2026-03-14,12,Active,
 BF-100229,14,M,False,False,slow,popsicle,22.063335741999364,24.1,Low,Basic,25.0,10.0,29.52,2.46,2026-03-27,12,Active,
 BF-100230,18,F,False,False,moderate,ice cream,52.91180067880673,52.9,Medium,Basic,25.0,10.0,47.55,3.96,2026-06-20,12,Active,
-BF-100231,17,Nonbinary/Other,False,False,slow,slushie,41.191076410298244,39.2,Medium,Standard,60.0,5.0,88.86,7.4,2026-03-31,12,Active,
+BF-100231,17,Nonbinary/Other,False,False,slow,slushie,41.191076410298244,39.2,Medium,Standard,60.0,5.0,88.86,7.41,2026-03-31,12,Active,
 BF-100232,17,F,False,False,fast,smoothie,25.23692001391466,31.2,Low,Premium,150.0,0.0,124.26,10.36,2026-03-06,12,Lapsed,2026-09-27
 BF-100233,18,F,True,False,moderate,cold plunge,50.36148814202105,68.4,High,Basic,25.0,10.0,84.27,7.02,2026-09-10,12,Active,
 BF-100234,19,M,False,False,slow,slushie,17.835237025522506,15.8,Low,Standard,60.0,5.0,58.63,4.89,2026-03-26,12,Lapsed,2026-11-21
@@ -243,7 +243,7 @@ BF-100240,12,M,False,False,moderate,iced soda,73.42457147581499,69.4,High,Premiu
 BF-100241,8,F,False,False,moderate,smoothie,40.5123382892591,44.5,Medium,Basic,25.0,10.0,45.57,3.8,2026-10-16,12,Active,
 BF-100242,10,M,False,False,fast,iced soda,31.339262868458594,45.3,Medium,Standard,60.0,5.0,95.78,7.98,2026-07-26,12,Active,
 BF-100243,17,M,False,True,slow,popsicle,34.634855696558404,40.6,Medium,Standard,60.0,5.0,88.37,7.36,2026-04-18,12,Active,
-BF-100244,17,M,False,False,fast,iced soda,28.785308231107905,36.8,Medium,Standard,60.0,5.0,89.82,7.48,2026-08-15,12,Active,
+BF-100244,17,M,False,False,fast,iced soda,28.785308231107905,36.8,Medium,Standard,60.0,5.0,89.82,7.49,2026-08-15,12,Active,
 BF-100245,19,F,False,True,moderate,popsicle,45.78456290112253,59.8,Medium,Basic,25.0,10.0,43.88,3.66,2026-07-27,12,Lapsed,2027-05-18
 BF-100246,17,F,True,False,fast,popsicle,30.735249291916418,74.7,High,Basic,25.0,10.0,76.8,6.4,2026-01-13,12,Active,
 BF-100247,9,M,False,False,fast,cold plunge,55.9081216400132,85.9,High,Basic,25.0,10.0,83.94,7.0,2026-08-14,12,Active,
@@ -329,7 +329,7 @@ BF-100326,11,M,True,False,fast,ice cream,35.640239310120826,81.6,High,Basic,25.0
 BF-100327,7,F,True,False,moderate,smoothie,27.483174370891724,53.5,Medium,Standard,60.0,5.0,87.53,7.29,2026-10-03,12,Active,
 BF-100328,13,M,False,False,fast,ice cream,32.85626529471625,56.9,Medium,Basic,25.0,10.0,47.07,3.92,2026-02-10,12,Lapsed,2026-05-15
 BF-100329,13,M,False,False,moderate,cold plunge,37.19778643066191,39.2,Medium,Standard,60.0,5.0,87.56,7.3,2026-08-11,12,Active,
-BF-100330,7,M,False,False,slow,ice cream,26.339381306206956,34.3,Medium,Standard,60.0,5.0,93.66,7.8,2026-07-21,12,Lapsed,2027-07-01
+BF-100330,7,M,False,False,slow,ice cream,26.339381306206956,34.3,Medium,Standard,60.0,5.0,93.66,7.81,2026-07-21,12,Lapsed,2027-07-01
 BF-100331,13,F,False,False,moderate,smoothie,58.50705875791654,52.5,Medium,Standard,60.0,5.0,93.89,7.82,2026-10-26,12,Lapsed,2027-04-23
 BF-100332,7,M,False,False,slow,smoothie,28.97250319823823,25.0,Low,Standard,60.0,5.0,58.05,4.84,2026-04-10,12,Active,
 BF-100333,13,F,False,False,moderate,iced soda,62.412738073901146,58.4,Medium,Basic,25.0,10.0,43.18,3.6,2026-07-31,12,Lapsed,2026-09-12
@@ -349,10 +349,10 @@ BF-100346,7,M,False,False,slow,slushie,59.33952013415251,73.3,High,Premium,150.0
 BF-100347,16,F,False,True,fast,ice cream,39.5360410334743,67.5,High,Basic,25.0,10.0,91.3,7.61,2026-04-06,12,Active,
 BF-100348,16,M,False,False,moderate,slushie,22.307992564912798,28.3,Low,Basic,25.0,10.0,31.1,2.59,2026-09-29,12,Active,
 BF-100349,14,M,False,False,fast,iced soda,27.177867516520642,41.2,Medium,Basic,25.0,10.0,42.93,3.58,2026-01-27,12,Active,
-BF-100350,8,M,False,False,moderate,slushie,40.50372930546082,62.5,Medium,Standard,60.0,5.0,88.86,7.4,2026-09-12,12,Lapsed,2027-03-03
+BF-100350,8,M,False,False,moderate,slushie,40.50372930546082,62.5,Medium,Standard,60.0,5.0,88.86,7.41,2026-09-12,12,Lapsed,2027-03-03
 BF-100351,14,F,False,False,moderate,smoothie,48.419174942487686,42.4,Medium,Basic,25.0,10.0,45.74,3.81,2026-01-28,12,Active,
-BF-100352,9,F,False,True,fast,cold plunge,30.95574468304814,71.0,High,Basic,25.0,10.0,85.98,7.16,2026-09-21,12,Active,
-BF-100353,19,F,False,False,fast,popsicle,30.029859017698353,52.0,Medium,Standard,60.0,5.0,81.18,6.76,2026-09-24,12,Active,
+BF-100352,9,F,False,True,fast,cold plunge,30.95574468304814,71.0,High,Basic,25.0,10.0,85.98,7.17,2026-09-21,12,Active,
+BF-100353,19,F,False,False,fast,popsicle,30.029859017698353,52.0,Medium,Standard,60.0,5.0,81.18,6.77,2026-09-24,12,Active,
 BF-100354,7,M,True,False,moderate,slushie,60.151238028793664,100.0,High,Basic,25.0,10.0,85.91,7.16,2026-08-16,12,Lapsed,2027-07-27
 BF-100355,18,M,False,True,slow,cold plunge,57.36221250303465,55.4,Medium,Basic,25.0,10.0,42.32,3.53,2026-01-29,12,Active,
 BF-100356,7,F,False,False,slow,smoothie,52.97857389068744,49.0,Medium,Basic,25.0,10.0,43.01,3.58,2026-06-21,12,Active,
@@ -400,7 +400,7 @@ BF-100397,10,F,False,False,moderate,popsicle,21.72946717188768,31.7,Low,Basic,25
 BF-100398,8,F,False,False,fast,popsicle,18.237106338065473,56.2,Medium,Premium,150.0,0.0,176.19,14.68,2026-09-18,12,Active,
 BF-100399,10,F,True,False,slow,ice cream,70.41421470611881,90.4,High,Standard,60.0,5.0,173.97,14.5,2026-01-16,12,Active,
 BF-100400,15,M,False,True,moderate,slushie,32.54853556993737,48.5,Medium,Basic,25.0,10.0,49.79,4.15,2026-03-13,12,Active,
-BF-100401,6,M,False,False,moderate,smoothie,60.34889037035722,64.3,Medium,Standard,60.0,5.0,91.26,7.6,2026-09-01,12,Active,
+BF-100401,6,M,False,False,moderate,smoothie,60.34889037035722,64.3,Medium,Standard,60.0,5.0,91.26,7.61,2026-09-01,12,Active,
 BF-100402,13,F,False,False,slow,smoothie,55.739928049353885,41.7,Medium,Basic,25.0,10.0,49.63,4.14,2026-09-26,12,Active,
 BF-100403,14,M,False,False,moderate,popsicle,50.046683840811745,60.0,Medium,Basic,25.0,10.0,48.53,4.04,2026-10-19,12,Active,
 BF-100404,7,M,False,False,moderate,cold plunge,59.59175287369113,71.6,High,Standard,60.0,5.0,177.72,14.81,2026-02-03,12,Active,
@@ -425,7 +425,7 @@ BF-100422,17,M,False,True,moderate,ice cream,52.39068199906597,62.4,Medium,Premi
 BF-100423,10,F,False,False,moderate,slushie,16.717377410738678,28.7,Low,Standard,60.0,5.0,60.88,5.07,2026-05-15,12,Active,
 BF-100424,17,Nonbinary/Other,False,False,moderate,slushie,27.341563433130705,33.3,Low,Premium,150.0,0.0,141.56,11.8,2026-10-23,12,Active,
 BF-100425,7,F,False,False,slow,slushie,51.09380633307694,65.1,Medium,Basic,25.0,10.0,47.66,3.97,2026-08-04,12,Active,
-BF-100426,14,F,False,False,moderate,smoothie,35.065336772543134,29.1,Low,Basic,25.0,10.0,29.58,2.46,2026-07-10,12,Active,
+BF-100426,14,F,False,False,moderate,smoothie,35.065336772543134,29.1,Low,Basic,25.0,10.0,29.58,2.47,2026-07-10,12,Active,
 BF-100427,8,M,False,False,moderate,ice cream,55.30275709773306,71.3,High,Basic,25.0,10.0,82.39,6.87,2026-09-29,12,Active,
 BF-100428,10,M,False,False,slow,ice cream,18.286212393163787,16.3,Low,Standard,60.0,5.0,60.69,5.06,2026-03-20,12,Active,
 BF-100429,13,F,False,False,fast,popsicle,22.530246404976964,50.5,Medium,Premium,150.0,0.0,175.84,14.65,2026-01-14,12,Lapsed,2026-07-21
@@ -454,7 +454,7 @@ BF-100451,13,M,False,False,fast,cold plunge,55.1560574393685,75.2,High,Basic,25.
 BF-100452,13,M,False,False,moderate,smoothie,52.6557224610486,46.7,Medium,Basic,25.0,10.0,46.07,3.84,2026-04-05,12,Active,
 BF-100453,7,F,False,True,moderate,popsicle,34.0027380822491,64.0,Medium,Basic,25.0,10.0,49.16,4.1,2026-10-23,12,Active,
 BF-100454,6,M,False,False,fast,ice cream,55.72941900340727,89.7,High,Premium,150.0,0.0,337.47,28.12,2026-04-22,12,Active,
-BF-100455,6,M,False,True,fast,smoothie,47.06767663582517,79.1,High,Premium,150.0,0.0,341.82,28.48,2026-10-13,12,Lapsed,2027-02-01
+BF-100455,6,M,False,True,fast,smoothie,47.06767663582517,79.1,High,Premium,150.0,0.0,341.82,28.49,2026-10-13,12,Lapsed,2027-02-01
 BF-100456,16,M,False,False,moderate,popsicle,74.52820391255516,78.5,High,Premium,150.0,0.0,350.8,29.23,2026-07-03,12,Active,
 BF-100457,9,M,False,True,slow,popsicle,49.72738332374674,71.7,High,Standard,60.0,5.0,178.55,14.88,2026-10-05,12,Lapsed,2027-08-26
 BF-100458,19,F,False,False,moderate,iced soda,55.10872111107068,45.1,Medium,Standard,60.0,5.0,86.57,7.21,2026-06-07,12,Lapsed,2026-09-26
@@ -465,7 +465,7 @@ BF-100462,8,F,False,False,moderate,cold plunge,41.16372888222007,53.2,Medium,Sta
 BF-100463,16,F,False,False,fast,smoothie,16.368665015233212,22.4,Low,Premium,150.0,0.0,123.12,10.26,2026-08-19,12,Lapsed,2027-04-05
 BF-100464,8,F,False,False,moderate,smoothie,61.967585802153806,66.0,Medium,Basic,25.0,10.0,43.27,3.61,2026-05-30,12,Active,
 BF-100465,18,F,False,False,moderate,slushie,37.999444936242455,44.0,Medium,Standard,60.0,5.0,94.44,7.87,2026-08-27,12,Active,
-BF-100466,13,F,False,False,moderate,popsicle,54.88721835772899,64.9,Medium,Basic,25.0,10.0,45.42,3.78,2026-08-11,12,Active,
+BF-100466,13,F,False,False,moderate,popsicle,54.88721835772899,64.9,Medium,Basic,25.0,10.0,45.42,3.79,2026-08-11,12,Active,
 BF-100467,13,F,False,False,fast,popsicle,69.2619893956392,97.3,High,Standard,60.0,5.0,164.86,13.74,2026-03-13,12,Active,
 BF-100468,11,F,False,False,slow,ice cream,73.4355793704645,71.4,High,Basic,25.0,10.0,81.59,6.8,2026-10-18,12,Active,
 BF-100469,8,F,False,False,fast,iced soda,39.00057798727399,63.0,Medium,Standard,60.0,5.0,91.04,7.59,2026-03-24,12,Active,
@@ -507,7 +507,7 @@ BF-100504,16,M,False,False,moderate,slushie,60.76549491544563,66.8,Medium,Premiu
 BF-100505,18,F,False,True,moderate,slushie,43.907975440817275,59.9,Medium,Basic,25.0,10.0,44.32,3.69,2026-08-25,12,Active,
 BF-100506,19,M,False,False,moderate,ice cream,37.33981782560695,37.3,Medium,Standard,60.0,5.0,91.81,7.65,2026-04-19,12,Active,
 BF-100507,11,F,False,False,moderate,smoothie,45.34882975993802,39.3,Medium,Basic,25.0,10.0,48.09,4.01,2026-01-31,12,Active,
-BF-100508,19,M,False,False,slow,iced soda,46.73135352865801,28.7,Low,Basic,25.0,10.0,31.5,2.62,2026-02-28,12,Active,
+BF-100508,19,M,False,False,slow,iced soda,46.73135352865801,28.7,Low,Basic,25.0,10.0,31.5,2.63,2026-02-28,12,Active,
 BF-100509,17,M,False,False,moderate,slushie,12.410896659846431,18.4,Low,Basic,25.0,10.0,29.96,2.5,2026-05-06,12,Active,
 BF-100510,13,F,False,True,moderate,cold plunge,65.71593682640777,77.7,High,Standard,60.0,5.0,189.53,15.79,2026-09-06,12,Active,
 BF-100511,8,M,False,False,fast,popsicle,59.76553236202288,97.8,High,Basic,25.0,10.0,76.69,6.39,2026-03-20,12,Active,
@@ -538,7 +538,7 @@ BF-100535,12,F,False,True,slow,slushie,30.903374933211417,44.9,Medium,Basic,25.0
 BF-100536,16,M,False,False,moderate,smoothie,32.345309288513086,20.3,Low,Standard,60.0,5.0,64.26,5.36,2026-01-16,12,Active,
 BF-100537,7,M,False,False,moderate,iced soda,48.67250925352047,54.7,Medium,Standard,60.0,5.0,87.62,7.3,2026-10-09,12,Active,
 BF-100538,18,F,False,False,moderate,smoothie,35.912011374580516,23.9,Low,Basic,25.0,10.0,30.94,2.58,2026-09-08,12,Active,
-BF-100539,9,M,False,False,moderate,slushie,43.23695935480873,65.2,Medium,Standard,60.0,5.0,98.1,8.17,2026-06-04,12,Lapsed,2027-03-10
+BF-100539,9,M,False,False,moderate,slushie,43.23695935480873,65.2,Medium,Standard,60.0,5.0,98.1,8.18,2026-06-04,12,Lapsed,2027-03-10
 BF-100540,19,F,False,False,fast,slushie,30.637307124834436,54.6,Medium,Standard,60.0,5.0,86.54,7.21,2026-08-07,12,Active,
 BF-100541,13,F,False,False,moderate,smoothie,14.208443996752479,8.2,Low,Standard,60.0,5.0,66.03,5.5,2026-06-19,12,Active,
 BF-100542,10,M,False,False,fast,smoothie,32.452966625512076,44.5,Medium,Basic,25.0,10.0,45.98,3.83,2026-09-28,12,Lapsed,2027-03-07
@@ -556,10 +556,10 @@ BF-100553,9,M,False,True,slow,smoothie,49.4218493133531,55.4,Medium,Basic,25.0,1
 BF-100554,12,M,False,False,moderate,popsicle,20.44002774427404,30.4,Low,Basic,25.0,10.0,31.15,2.6,2026-06-13,12,Lapsed,2026-11-26
 BF-100555,10,M,False,False,fast,smoothie,42.113901092077114,54.1,Medium,Basic,25.0,10.0,44.78,3.73,2026-03-08,12,Active,
 BF-100556,13,F,False,False,moderate,ice cream,57.82313706243982,63.8,Medium,Standard,60.0,5.0,95.54,7.96,2026-07-21,12,Active,
-BF-100557,10,F,False,False,slow,cold plunge,60.46886525884369,54.5,Medium,Basic,25.0,10.0,45.66,3.8,2026-05-31,12,Lapsed,2026-07-05
+BF-100557,10,F,False,False,slow,cold plunge,60.46886525884369,54.5,Medium,Basic,25.0,10.0,45.66,3.81,2026-05-31,12,Lapsed,2026-07-05
 BF-100558,13,F,False,False,fast,slushie,43.945555884606456,73.9,High,Standard,60.0,5.0,172.81,14.4,2026-02-18,12,Active,
 BF-100559,12,M,False,False,fast,ice cream,60.17360351232782,84.2,High,Standard,60.0,5.0,166.35,13.86,2026-08-10,12,Active,
-BF-100560,15,M,False,False,slow,iced soda,46.82938065403814,28.8,Low,Basic,25.0,10.0,31.26,2.6,2026-01-02,12,Lapsed,2026-02-04
+BF-100560,15,M,False,False,slow,iced soda,46.82938065403814,28.8,Low,Basic,25.0,10.0,31.26,2.61,2026-01-02,12,Lapsed,2026-02-04
 BF-100561,12,F,False,False,moderate,smoothie,51.597992750381714,45.6,Medium,Standard,60.0,5.0,85.47,7.12,2026-07-12,12,Active,
 BF-100562,17,F,False,False,moderate,slushie,49.61778729258962,55.6,Medium,Basic,25.0,10.0,43.75,3.65,2026-03-26,12,Lapsed,2026-12-02
 BF-100563,5,M,False,False,moderate,smoothie,42.482796581400684,46.5,Medium,Standard,60.0,5.0,97.76,8.15,2026-07-01,12,Active,
@@ -578,7 +578,7 @@ BF-100575,6,F,False,False,moderate,smoothie,38.539901380601904,42.5,Medium,Stand
 BF-100576,7,F,False,True,moderate,iced soda,30.290300054170675,46.3,Medium,Basic,25.0,10.0,50.09,4.17,2026-03-05,12,Lapsed,2027-02-22
 BF-100577,5,F,False,True,moderate,slushie,63.27424426954355,95.3,High,Premium,150.0,0.0,331.8,27.65,2026-04-16,12,Active,
 BF-100578,19,M,True,False,moderate,smoothie,42.933661767968644,52.9,Medium,Basic,25.0,10.0,48.79,4.07,2026-04-27,12,Active,
-BF-100579,9,F,False,False,moderate,ice cream,57.17073350510007,73.2,High,Standard,60.0,5.0,163.5,13.62,2026-01-31,12,Active,
+BF-100579,9,F,False,False,moderate,ice cream,57.17073350510007,73.2,High,Standard,60.0,5.0,163.5,13.63,2026-01-31,12,Active,
 BF-100580,5,F,False,False,moderate,smoothie,42.30309534172059,46.3,Medium,Standard,60.0,5.0,88.24,7.35,2026-04-16,12,Active,
 BF-100581,19,M,False,False,moderate,ice cream,53.97182505436398,54.0,Medium,Standard,60.0,5.0,87.24,7.27,2026-09-14,12,Active,
 BF-100582,10,F,False,False,moderate,cold plunge,42.7130748126111,44.7,Medium,Basic,25.0,10.0,46.69,3.89,2026-05-26,12,Active,
@@ -599,13 +599,13 @@ BF-100596,19,F,False,False,moderate,smoothie,48.49758724299601,36.5,Medium,Premi
 BF-100597,5,F,False,False,slow,ice cream,64.54137463483013,72.5,High,Basic,25.0,10.0,91.61,7.63,2026-04-27,12,Active,
 BF-100598,10,M,True,False,slow,cold plunge,46.48892076823885,62.5,Medium,Standard,60.0,5.0,87.7,7.31,2026-03-28,12,Active,
 BF-100599,10,F,False,False,fast,popsicle,40.36362303207354,68.4,High,Basic,25.0,10.0,88.62,7.39,2026-03-01,12,Active,
-BF-100600,17,F,False,False,moderate,popsicle,64.46404658084664,68.5,High,Standard,60.0,5.0,170.7,14.22,2026-08-17,12,Active,
+BF-100600,17,F,False,False,moderate,popsicle,64.46404658084664,68.5,High,Standard,60.0,5.0,170.7,14.23,2026-08-17,12,Active,
 BF-100601,14,M,False,False,moderate,slushie,34.99042633223662,47.0,Medium,Basic,25.0,10.0,44.77,3.73,2026-01-31,12,Active,
 BF-100602,5,F,True,False,moderate,slushie,39.7508045901536,83.8,High,Basic,25.0,10.0,88.1,7.34,2026-02-28,12,Active,
 BF-100603,11,M,False,False,slow,smoothie,28.22828081210317,14.2,Low,Standard,60.0,5.0,65.54,5.46,2026-03-31,12,Active,
 BF-100604,17,F,False,False,fast,smoothie,55.316059832122576,61.3,Medium,Basic,25.0,10.0,44.49,3.71,2026-07-16,12,Lapsed,2027-06-17
 BF-100605,10,M,False,False,moderate,ice cream,41.04548801617247,47.0,Medium,Standard,60.0,5.0,87.97,7.33,2026-10-14,12,Active,
-BF-100606,15,F,False,True,moderate,ice cream,72.9781765476404,83.0,High,Standard,60.0,5.0,155.34,12.94,2026-04-16,12,Active,
+BF-100606,15,F,False,True,moderate,ice cream,72.9781765476404,83.0,High,Standard,60.0,5.0,155.34,12.95,2026-04-16,12,Active,
 BF-100607,10,F,False,False,moderate,popsicle,44.173327592234756,54.2,Medium,Premium,150.0,0.0,186.44,15.54,2026-05-26,12,Active,
 BF-100608,19,F,False,False,fast,cold plunge,36.6805470980253,50.7,Medium,Standard,60.0,5.0,87.94,7.33,2026-08-28,12,Active,
 BF-100609,10,F,False,True,moderate,popsicle,40.64099963400501,60.6,Medium,Standard,60.0,5.0,90.31,7.53,2026-07-01,12,Active,
@@ -652,12 +652,12 @@ BF-100649,9,F,False,False,slow,cold plunge,39.5077778574999,43.5,Medium,Standard
 BF-100650,9,F,False,True,slow,popsicle,18.909485574568286,40.9,Medium,Standard,60.0,5.0,95.14,7.93,2026-08-11,12,Active,
 BF-100651,10,M,False,False,moderate,ice cream,52.95778163843495,59.0,Medium,Standard,60.0,5.0,89.62,7.47,2026-04-10,12,Active,
 BF-100652,7,F,False,False,slow,slushie,41.89289058364348,55.9,Medium,Basic,25.0,10.0,44.9,3.74,2026-09-26,12,Active,
-BF-100653,11,M,False,True,moderate,ice cream,27.157752640414778,43.2,Medium,Basic,25.0,10.0,40.98,3.41,2026-08-31,12,Lapsed,2026-11-24
+BF-100653,11,M,False,True,moderate,ice cream,27.157752640414778,43.2,Medium,Basic,25.0,10.0,40.98,3.42,2026-08-31,12,Lapsed,2026-11-24
 BF-100654,10,F,False,False,fast,smoothie,35.677056935729794,47.7,Medium,Basic,25.0,10.0,45.58,3.8,2026-04-02,12,Active,
 BF-100655,19,F,False,False,moderate,iced soda,33.28075836274058,23.3,Low,Standard,60.0,5.0,60.85,5.07,2026-09-09,12,Active,
 BF-100656,16,F,False,False,fast,ice cream,67.04059175137195,85.0,High,Standard,60.0,5.0,173.38,14.45,2026-04-08,12,Active,
 BF-100657,12,F,True,False,fast,slushie,47.0399735358297,99.0,High,Standard,60.0,5.0,189.31,15.78,2026-03-31,12,Active,
-BF-100658,15,F,False,False,moderate,iced soda,49.33554804583621,39.3,Medium,Standard,60.0,5.0,83.1,6.92,2026-05-08,12,Active,
+BF-100658,15,F,False,False,moderate,iced soda,49.33554804583621,39.3,Medium,Standard,60.0,5.0,83.1,6.93,2026-05-08,12,Active,
 BF-100659,13,F,False,False,moderate,popsicle,54.21386477324312,64.2,Medium,Basic,25.0,10.0,45.86,3.82,2026-04-06,12,Active,
 BF-100660,11,M,False,True,slow,ice cream,63.224452516872674,71.2,High,Standard,60.0,5.0,175.24,14.6,2026-07-18,12,Lapsed,2026-09-02
 BF-100661,13,M,True,False,slow,smoothie,59.93218968998009,67.9,High,Premium,150.0,0.0,317.43,26.45,2026-04-17,12,Active,
@@ -704,7 +704,7 @@ BF-100701,18,F,True,False,moderate,smoothie,62.70991150285669,72.7,High,Basic,25
 BF-100702,16,F,False,False,moderate,popsicle,31.640141411287665,35.6,Medium,Basic,25.0,10.0,47.99,4.0,2026-06-18,12,Active,
 BF-100703,18,F,False,True,fast,ice cream,71.86908714310329,99.9,High,Premium,150.0,0.0,305.41,25.45,2026-10-20,12,Lapsed,2027-03-15
 BF-100704,5,M,False,False,fast,popsicle,53.656907149299464,91.7,High,Basic,25.0,10.0,90.6,7.55,2026-07-02,12,Active,
-BF-100705,19,M,False,False,slow,popsicle,59.87957254517551,55.9,Medium,Premium,150.0,0.0,193.74,16.14,2026-07-24,12,Lapsed,2026-08-31
+BF-100705,19,M,False,False,slow,popsicle,59.87957254517551,55.9,Medium,Premium,150.0,0.0,193.74,16.15,2026-07-24,12,Lapsed,2026-08-31
 BF-100706,11,Nonbinary/Other,True,False,moderate,ice cream,31.591174552905354,59.6,Medium,Basic,25.0,10.0,45.53,3.79,2026-02-17,12,Lapsed,2026-12-16
 BF-100707,18,M,False,False,moderate,cold plunge,28.744225639070844,24.7,Low,Standard,60.0,5.0,62.34,5.2,2026-07-22,12,Active,
 BF-100708,13,M,False,False,slow,smoothie,32.771828086260506,18.8,Low,Basic,25.0,10.0,32.72,2.73,2026-02-10,12,Active,
@@ -728,7 +728,7 @@ BF-100725,15,M,False,False,fast,cold plunge,44.14113198629657,58.1,Medium,Basic,
 BF-100726,11,M,True,False,slow,smoothie,21.497490576201933,29.5,Low,Basic,25.0,10.0,30.1,2.51,2026-05-31,12,Active,
 BF-100727,9,F,False,False,fast,smoothie,29.21670455949443,51.2,Medium,Basic,25.0,10.0,44.17,3.68,2026-07-01,12,Active,
 BF-100728,19,F,False,False,slow,cold plunge,50.984685068872125,39.0,Medium,Premium,150.0,0.0,189.91,15.83,2026-05-16,12,Lapsed,2027-04-04
-BF-100729,10,M,False,False,moderate,cold plunge,41.0440031322927,43.0,Medium,Basic,25.0,10.0,49.26,4.1,2026-05-20,12,Active,
+BF-100729,10,M,False,False,moderate,cold plunge,41.0440031322927,43.0,Medium,Basic,25.0,10.0,49.26,4.11,2026-05-20,12,Active,
 BF-100730,9,F,False,False,fast,slushie,49.87530541495222,89.9,High,Standard,60.0,5.0,173.42,14.45,2026-10-10,12,Active,
 BF-100731,8,F,False,False,moderate,slushie,36.56757738254189,58.6,Medium,Standard,60.0,5.0,89.98,7.5,2026-06-09,12,Active,
 BF-100732,11,F,True,False,slow,iced soda,65.63902423419336,75.6,High,Premium,150.0,0.0,320.48,26.71,2026-02-09,12,Active,
@@ -763,7 +763,7 @@ BF-100760,8,M,False,True,moderate,popsicle,49.42845946832894,79.4,High,Basic,25.
 BF-100761,7,F,False,False,slow,ice cream,55.991110133998,64.0,Medium,Basic,25.0,10.0,40.55,3.38,2026-05-11,12,Active,
 BF-100762,14,M,False,False,moderate,slushie,21.741068733094586,33.7,Low,Standard,60.0,5.0,64.21,5.35,2026-06-15,12,Active,
 BF-100763,17,F,False,False,moderate,ice cream,42.13417452907596,42.1,Medium,Basic,25.0,10.0,41.49,3.46,2026-05-14,12,Active,
-BF-100764,17,F,False,False,fast,smoothie,58.62196065282724,64.6,Medium,Standard,60.0,5.0,87.66,7.3,2026-03-27,12,Active,
+BF-100764,17,F,False,False,fast,smoothie,58.62196065282724,64.6,Medium,Standard,60.0,5.0,87.66,7.31,2026-03-27,12,Active,
 BF-100765,7,M,False,False,fast,smoothie,57.50347887153801,79.5,High,Basic,25.0,10.0,87.95,7.33,2026-05-19,12,Active,
 BF-100766,5,Nonbinary/Other,False,True,slow,ice cream,54.6105875938801,72.6,High,Standard,60.0,5.0,155.35,12.95,2026-10-16,12,Active,
 BF-100767,9,F,False,False,moderate,cold plunge,52.713519326100304,64.7,Medium,Standard,60.0,5.0,89.44,7.45,2026-02-02,12,Active,
@@ -771,10 +771,10 @@ BF-100768,6,F,False,True,moderate,popsicle,43.88243426311804,73.9,High,Standard,
 BF-100769,8,M,False,False,moderate,slushie,49.04849498418949,71.0,High,Basic,25.0,10.0,80.36,6.7,2026-09-23,12,Active,
 BF-100770,8,M,False,False,slow,iced soda,40.628172331598435,38.6,Medium,Basic,25.0,10.0,41.05,3.42,2026-05-17,12,Active,
 BF-100771,17,F,False,True,slow,popsicle,43.489132829243495,49.5,Medium,Standard,60.0,5.0,88.49,7.37,2026-04-28,12,Active,
-BF-100772,8,F,False,False,fast,slushie,52.624188971261965,92.6,High,Standard,60.0,5.0,158.94,13.24,2026-06-04,12,Active,
+BF-100772,8,F,False,False,fast,slushie,52.624188971261965,92.6,High,Standard,60.0,5.0,158.94,13.25,2026-06-04,12,Active,
 BF-100773,14,M,False,True,fast,popsicle,71.86513972353892,100.0,High,Basic,25.0,10.0,84.31,7.03,2026-02-20,12,Active,
-BF-100774,15,F,True,False,slow,slushie,49.95157734882036,70.0,High,Basic,25.0,10.0,81.42,6.78,2026-07-02,12,Active,
-BF-100775,7,F,False,False,moderate,iced soda,47.41713623964494,53.4,Medium,Premium,150.0,0.0,178.26,14.85,2026-10-06,12,Lapsed,2027-09-23
+BF-100774,15,F,True,False,slow,slushie,49.95157734882036,70.0,High,Basic,25.0,10.0,81.42,6.79,2026-07-02,12,Active,
+BF-100775,7,F,False,False,moderate,iced soda,47.41713623964494,53.4,Medium,Premium,150.0,0.0,178.26,14.86,2026-10-06,12,Lapsed,2027-09-23
 BF-100776,8,F,False,False,moderate,popsicle,21.30491193867438,41.3,Medium,Premium,150.0,0.0,188.21,15.68,2026-03-26,12,Active,
 BF-100777,14,F,False,False,fast,smoothie,51.66790069924146,63.7,Medium,Premium,150.0,0.0,182.78,15.23,2026-06-27,12,Lapsed,2026-09-27
 BF-100778,6,F,False,False,moderate,iced soda,52.592443710790846,58.6,Medium,Standard,60.0,5.0,89.81,7.48,2026-07-18,12,Lapsed,2026-10-28
@@ -787,7 +787,7 @@ BF-100784,10,M,False,True,slow,iced soda,26.490256038743322,24.5,Low,Basic,25.0,
 BF-100785,11,F,False,False,moderate,popsicle,19.744151268666393,29.7,Low,Standard,60.0,5.0,64.16,5.35,2026-01-25,12,Lapsed,2026-04-30
 BF-100786,16,M,False,False,slow,smoothie,39.16350397580153,19.2,Low,Basic,25.0,10.0,32.2,2.68,2026-02-13,12,Lapsed,2026-11-12
 BF-100787,9,F,False,True,slow,cold plunge,35.16727555944474,49.2,Medium,Basic,25.0,10.0,38.81,3.23,2026-04-17,12,Active,
-BF-100788,16,F,False,False,moderate,ice cream,42.03241508472178,42.0,Medium,Basic,25.0,10.0,45.42,3.78,2026-06-10,12,Active,
+BF-100788,16,F,False,False,moderate,ice cream,42.03241508472178,42.0,Medium,Basic,25.0,10.0,45.42,3.79,2026-06-10,12,Active,
 BF-100789,10,F,False,False,moderate,ice cream,45.98912434428947,52.0,Medium,Basic,25.0,10.0,46.58,3.88,2026-09-06,12,Active,
 BF-100790,6,F,False,False,moderate,ice cream,62.41164036386054,78.4,High,Premium,150.0,0.0,353.97,29.5,2026-05-20,12,Active,
 BF-100791,8,F,True,False,moderate,slushie,39.527705473116775,83.5,High,Basic,25.0,10.0,85.44,7.12,2026-06-08,12,Active,
@@ -818,7 +818,7 @@ BF-100815,5,F,False,False,slow,smoothie,34.05648083795392,30.1,Low,Standard,60.0
 BF-100816,9,F,False,False,moderate,iced soda,22.34350043686933,28.3,Low,Standard,60.0,5.0,58.81,4.9,2026-01-05,12,Active,
 BF-100817,17,F,False,False,fast,slushie,52.09937160072165,76.1,High,Basic,25.0,10.0,82.48,6.87,2026-07-14,12,Active,
 BF-100818,9,F,False,False,slow,ice cream,38.80551798327881,46.8,Medium,Standard,60.0,5.0,89.73,7.48,2026-02-23,12,Lapsed,2026-11-10
-BF-100819,12,M,False,False,moderate,popsicle,34.38884028743089,44.4,Medium,Basic,25.0,10.0,48.06,4.0,2026-09-08,12,Lapsed,2027-03-15
+BF-100819,12,M,False,False,moderate,popsicle,34.38884028743089,44.4,Medium,Basic,25.0,10.0,48.06,4.01,2026-09-08,12,Lapsed,2027-03-15
 BF-100820,11,F,False,False,moderate,slushie,50.12786536024503,62.1,Medium,Basic,25.0,10.0,44.83,3.74,2026-09-22,12,Active,
 BF-100821,12,M,False,True,slow,iced soda,24.541854730373824,22.5,Low,Basic,25.0,10.0,32.15,2.68,2026-04-05,12,Active,
 BF-100822,5,F,False,False,moderate,iced soda,32.07834003710607,38.1,Medium,Standard,60.0,5.0,78.01,6.5,2026-09-19,12,Lapsed,2027-05-24

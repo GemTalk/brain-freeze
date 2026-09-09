@@ -15,6 +15,7 @@ from what these functions returned.
 import unittest
 
 from brainfreeze import analysis
+from brainfreeze.money import usd
 import seed
 
 
@@ -29,8 +30,8 @@ class Aggregates(unittest.TestCase):
         self.assertEqual(s["events"], 4993)
         self.assertEqual(s["claims"], 2172)
         self.assertEqual(s["approved"], 1691)
-        self.assertEqual(s["premium"], 92081.22)
-        self.assertEqual(s["paid"], 54671.44)
+        self.assertEqual(s["premium"], usd("92081.22"))
+        self.assertEqual(s["paid"], usd("54671.44"))
         self.assertEqual(s["loss_ratio"], 0.594)
 
     def test_loss_ratio_by_tier(self):

@@ -119,17 +119,81 @@ Both demos independently worked around it: this repo pins every figure to a
 seeded dataset, and theirs spells out `round_div` by hand and never calls
 `round()`.
 
-**6. The Decimal cluster — #846 first, then #856, #857, #867.**
-Today's correct advice is "integer cents everywhere, and format at the edge",
-because `Decimal("19.99") * 3` raises and there is no `quantize`. That is
-sound engineering and a poor look for a database being shown to financial
-services. #846 is the enabling change; the other three fall out of it.
+**6. The Decimal cluster — #846 first, then #856, #857, #867. Partly stale;
+re-measured 2026-09-09 on `c875e56`.**
 
-**7. Module staleness. Unfiled, possibly #824's family.**
+**`Decimal("19.99") * 3` no longer raises.** It returns `Decimal("59.97")`.
+The entry above was written from an older sha and the advice that followed
+from it — "integer cents everywhere" — is no longer the only option. This
+repo now holds money as `decimal.Decimal` and it works: `0.1 * 3` is exactly
+`0.3`, ten dimes sum to exactly `1.0`, and `170.10 / 12` is exactly `14.175`
+where the float is `14.174999999999999`.
+
+What is still missing or wrong, each of which cost time here and each of which
+`brainfreeze/money.py` now works around:
+
+- **No `Decimal.quantize`**, so rounding to the cent has to be hand-written.
+  This is the single most valuable gap to close: it is the operation money
+  code reaches for first.
+- **No `Decimal.as_tuple`.**
+- **`round(Decimal, n)` brings the VM down** with `MessageNotUnderstood ... a
+  Decimal does not understand #'*'` — not a Python exception, no traceback, no
+  line number. The builtin is the obvious thing to reach for and it is a trap.
+- **`Decimal // int` raises `TypeError`.** `int(x / 10)` is the workaround.
+- **`int(Decimal)` floors, where CPython truncates toward zero.** So
+  `int(Decimal("-14.5"))` is `-15` here and `-14` there, and any rounding
+  written over a signed value gives two different answers on two surfaces of
+  the same application. Round a magnitude and reapply the sign.
+- **Trailing zeros are not preserved**: `Decimal("170.10")` is `Decimal("170.1")`,
+  before and after a commit. Values and arithmetic are unaffected, but no
+  display string can come from `str()`.
+- **Division that does not terminate degrades to ~16 significant digits**:
+  `Decimal(1) / Decimal(3)` is `0.3333333333333333`, where CPython gives 28.
+- **`statistics.median` and `statistics.mean` fail on Decimals.**
+- **`Decimal` compares equal to a float** that is not exactly equal to it.
+  Under CPython `Decimal("92081.22") == 92081.22` is `False`, correctly, and
+  here it is `True` — so a test that pins money against a float literal passes
+  in the database and fails outside it.
+
+Persistence is sound: a `Decimal` committed to `gemdb.root` reads back as a
+`Decimal` with its value, ordering and equality intact.
+
+#846 is still the enabling change; #856, #857 and #867 still stand.
+
+**7. Module staleness — a *deployed* package never picks up an edit. Unfiled,
+and now understood; measured 2026-09-09.**
+
 Editing a package submodule keeps returning the previously compiled module,
-while a top-level module in the same tree picks up edits immediately. This repo
-works around it by reading a file and `exec`ing it rather than importing it.
-Re-measure at `ac1e626` before filing.
+while a top-level module in the same tree picks up edits immediately. That much
+was already recorded. What was not: **the mechanism has a name and an error
+message that only appears if you fight it.**
+
+Once `brainfreeze` has been imported once, it is *deployed*. A brand-new
+session's `import brainfreeze` returns what the database compiled, not what the
+file says, and nothing reports the difference. This cost the whole of the money
+work: the database went on returning `31.499999999999996` from a float
+`annual_premium` for an hour after the file on disk had returned exact Decimal,
+with every test passing against the old rules.
+
+The dead end to know about: deleting it from `sys.modules` and re-importing
+does not reset it, it *bricks* it for the rest of the session —
+
+```
+ImportError: module 'brainfreeze' is canonical (deployed); it was removed from
+sys.modules in this session. Use importlib.reload() to re-execute it, or assign
+a replacement into sys.modules to substitute it.
+```
+
+`importlib.reload` does work, with two conditions nothing states. It must run
+in dependency order, because reloading a module makes it briefly unresolvable
+to anything that imports it; and each reloaded module must be put back into
+`sys.modules` by hand, because `reload` leaves a deployed module absent from it
+and the next module up imports by name. `redeploy.py` in this repo is those two
+rules written down, and it is what FR-7.6's "redeploy" has to mean here.
+
+What the product should offer: a command that redeploys a package and says what
+changed, and — more important — **some way to know the code in the database is
+not the code on disk**. Today nothing distinguishes them.
 
 **8. `contextvars` do not span forked green threads. Unfiled.**
 Grail renders each Jinja template in a forked green thread, and the threaded dev

@@ -31,11 +31,13 @@ Run: python3 -m datagen
 """
 
 from datetime import date, timedelta
+from decimal import Decimal
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
+from brainfreeze.money import ZERO, round_cents
 from brainfreeze import (
     ANNUAL_CLAIM_LIMIT,
     COVERAGE_PLANS,
@@ -136,7 +138,12 @@ def make_policyholders(n):
     for i in range(n):
         plan = COVERAGE_PLANS[coverage_plan[i]]
         noise = RNG.normal(1.0, PREMIUM_NOISE_SD)
-        annual_premiums[i] = round(annual_premium(coverage_plan[i], tiers[i]) * noise, 2)
+        # `annual_premium` is exact Decimal now; the noise is a float draw.
+        # The product is a measurement-shaped thing and is rounded once, here,
+        # with the same half-up rule the model uses -- so the number written
+        # to the file is the number the loader will read back.
+        priced = Decimal(str(float(annual_premium(coverage_plan[i], tiers[i])) * noise))
+        annual_premiums[i] = float(round_cents(priced))
         coverage_limits[i] = plan.coverage_limit_per_incident
         deductibles[i] = plan.deductible_per_incident
 
@@ -170,7 +177,11 @@ def make_policyholders(n):
         "coverage_limit_per_incident_usd": coverage_limits,
         "deductible_per_incident_usd": deductibles,
         "annual_premium_usd": annual_premiums,
-        "monthly_premium_usd": np.round(annual_premiums / 12, 2),
+        # Derived the way `Policyholder.monthly_premium` derives it, so the
+        # file and the object cannot disagree -- they did on 23 of 900 rows,
+        # because this said np.round and the model said round (issue #68).
+        "monthly_premium_usd": [float(round_cents(Decimal(str(a)) / 12))
+                                for a in annual_premiums],
         "policy_start_date": start_dates,
         "policy_term_months": POLICY_TERM_MONTHS,
         "policy_status": status,
@@ -234,7 +245,7 @@ def make_claims(policies):
             onset_sec = duration_sec = pain_intensity = np.nan
             pain_location = pain_quality = None
             claim_filed = False
-            claim_amount_requested = claim_amount_approved = 0.0
+            claim_amount_requested = claim_amount_approved = ZERO
             claim_status = "Not Filed"
             denial_reason = None
 
@@ -272,8 +283,8 @@ def make_claims(policies):
                         # those would be true too, but they are not the reason.
                         decision = adjudicate(
                             claim_amount_requested,
-                            pol["coverage_limit_per_incident_usd"],
-                            pol["deductible_per_incident_usd"],
+                            Decimal(str(pol["coverage_limit_per_incident_usd"])),
+                            Decimal(str(pol["deductible_per_incident_usd"])),
                             approved_claims_this_year,
                             policy_in_force=False,
                         )
@@ -282,8 +293,8 @@ def make_claims(policies):
                     elif approved_claims_this_year >= ANNUAL_CLAIM_LIMIT:
                         decision = adjudicate(
                             claim_amount_requested,
-                            pol["coverage_limit_per_incident_usd"],
-                            pol["deductible_per_incident_usd"],
+                            Decimal(str(pol["coverage_limit_per_incident_usd"])),
+                            Decimal(str(pol["deductible_per_incident_usd"])),
                             approved_claims_this_year,
                         )
                         claim_status, claim_amount_approved = decision.status, decision.amount
@@ -295,8 +306,8 @@ def make_claims(policies):
                     else:
                         decision = adjudicate(
                             claim_amount_requested,
-                            pol["coverage_limit_per_incident_usd"],
-                            pol["deductible_per_incident_usd"],
+                            Decimal(str(pol["coverage_limit_per_incident_usd"])),
+                            Decimal(str(pol["deductible_per_incident_usd"])),
                             approved_claims_this_year,
                         )
                         claim_status, claim_amount_approved = decision.status, decision.amount
@@ -311,8 +322,11 @@ def make_claims(policies):
                 "pain_location": pain_location,
                 "pain_quality": pain_quality,
                 "claim_filed": bool(claim_filed),
-                "claim_amount_requested_usd": claim_amount_requested,
-                "claim_amount_approved_usd": claim_amount_approved,
+                # Back to float for the CSV: the delivered artefact is
+                # dollars-as-text, and `seed.py` reads it with `usd()` so the
+                # value becomes exact again the moment it is loaded.
+                "claim_amount_requested_usd": float(claim_amount_requested),
+                "claim_amount_approved_usd": float(claim_amount_approved),
                 "claim_status": claim_status,
                 "denial_reason": denial_reason,
             })

@@ -61,6 +61,7 @@ import gemdb
 
 import brainfreeze
 from brainfreeze.model import Claim, Event, Policyholder
+from brainfreeze.money import ZERO, format_usd
 
 ROOT_KEY = "brainfreeze"
 
@@ -142,6 +143,26 @@ def _band(bands, label, default=None):
 
 def book():
     return gemdb.root[ROOT_KEY]
+
+
+def render(template, **context):
+    """Render, with `usd` always available to format money.
+
+    Money is Decimal and must never reach a template raw: Grail drops trailing
+    zeros, so `$170.10` prints as `170.1`, and `'%.2f'|format` on a Decimal
+    fails inside the database with a Smalltalk-level "a Decimal does not
+    understand #'*'".
+
+    It arrives in the CONTEXT rather than as a Jinja filter or global, and
+    that is measured rather than stylistic. Registering a custom filter --
+    `app.jinja_env.filters["usd"] = ...` -- brings the VM down with
+    `OffsetError ... objErrBadOffsetIncomplete` on the first render, with no
+    Python exception and no line number, even for a filter that only ever
+    sees strings. `jinja_env.globals` is quietly ignored; the name is
+    undefined at render time. A callable in the context is the one of the
+    three that works.
+    """
+    return render_template_string(template, usd=format_usd, **context)
 
 
 def take_new_view():
@@ -250,7 +271,7 @@ def create_app():
 
         window = everyone[start:start + PAGE]
         rows = [(p,) + cover_state(p, today) for p in window]
-        return render_template_string(
+        return render(
             PICKER, rows=rows, total=len(book()), shown=len(everyone),
             start=start, page=PAGE, wanted=wanted)
 
@@ -258,7 +279,7 @@ def create_app():
 
     @app.route("/quote")
     def quote_form():
-        return render_template_string(
+        return render(
             QUOTE_FORM, triggers=TRIGGERS, speeds=SPEED_BANDS)
 
     def _answers():
@@ -277,7 +298,7 @@ def create_app():
     def quote_result():
         answers = _answers()
         offer = brainfreeze.quote(**answers)
-        return render_template_string(PLANS, offer=offer, answers=answers)
+        return render(PLANS, offer=offer, answers=answers)
 
     @app.route("/policies", methods=["POST"])
     def create_policy():
@@ -311,7 +332,7 @@ def create_app():
         policy = _policy_or_404(policy_id)
         today = date.today()
         label, css = cover_state(policy, today)
-        return render_template_string(
+        return render(
             HISTORY, p=policy, cover=label, cover_css=css,
             limit=brainfreeze.ANNUAL_CLAIM_LIMIT)
 
@@ -352,7 +373,7 @@ def create_app():
     @app.route("/policies/<policy_id>/claims/new")
     def claim_form(policy_id):
         policy = _policy_or_404(policy_id)
-        return render_template_string(
+        return render(
             CLAIM_FORM, p=policy, triggers=TRIGGERS, colds=COLD_BANDS,
             portions=PORTION_BANDS, speeds=SPEED_BANDS,
             durations=DURATION_BANDS, locations=PAIN_LOCATIONS,
@@ -414,8 +435,14 @@ def create_app():
         policy = _policy_or_404(policy_id)
         for event in policy.events:
             if event.claim is not None and event.claim.claim_id == claim_id:
-                return render_template_string(
-                    DECISION, p=policy, e=event, c=event.claim)
+                claim = event.claim
+                # Worked out here rather than in the template. Handlers do the
+                # sums; templates print them. A conditional expression over
+                # Decimals inside `{{ }}` is more Grail-compiled Jinja than
+                # this needs to be.
+                trimmed = claim.requested - claim.approved - policy.deductible
+                return render(DECISION, p=policy, e=event, c=claim,
+                              trimmed=max(ZERO, trimmed))
         abort(404)
 
     return app
@@ -486,7 +513,7 @@ PICKER = _STYLE + """
     <td class="num">{{ p.risk_tier }}, {{ p.underwriting_risk_score }}</td>
     <td><span class="tag {{ css }}">{{ label }}</span></td>
     <td class="num">{{ p.approved_claims|length }}/{{ p.claims|length }}</td>
-    <td class="num">${{ '%.2f'|format(p.total_paid) }}</td>
+    <td class="num">{{ usd(p.total_paid) }}</td>
   </tr>
   {% endfor %}
 </table>
@@ -552,12 +579,12 @@ PLANS = _STYLE + """
   <div class="row">
     <div>
       <strong>{{ name }}</strong>
-      <div class="muted">${{ '%.2f'|format(plan.limit) }} an episode,
-        ${{ '%.2f'|format(plan.deductible) }} deductible</div>
+      <div class="muted">{{ usd(plan.limit) }} an episode,
+        {{ usd(plan.deductible) }} deductible</div>
     </div>
     <div style="text-align:right">
-      <div class="big num">${{ '%.2f'|format(plan.annual) }}</div>
-      <div class="muted">a year &middot; ${{ '%.2f'|format(plan.monthly) }} a month</div>
+      <div class="big num">{{ usd(plan.annual) }}</div>
+      <div class="muted">a year &middot; {{ usd(plan.monthly) }} a month</div>
     </div>
   </div>
   {% for key, value in answers.items() %}
@@ -577,8 +604,8 @@ HISTORY = _STYLE + """
 <h1 class="num">{{ p.policy_id }}</h1>
 <p class="sub">{{ p.plan_name }} &middot; {{ p.risk_tier }} band,
   <span class="num">{{ p.underwriting_risk_score }}</span> &middot;
-  ${{ '%.2f'|format(p.coverage_limit) }} an episode,
-  ${{ '%.2f'|format(p.deductible) }} deductible &middot;
+  {{ usd(p.coverage_limit) }} an episode,
+  {{ usd(p.deductible) }} deductible &middot;
   <span class="tag {{ cover_css }}">{{ cover }}</span>
 </p>
 
@@ -586,7 +613,7 @@ HISTORY = _STYLE + """
   <div><div class="big num">{{ p.events|length }}</div><div class="muted">cold treats</div></div>
   <div><div class="big num">{{ p.brain_freeze_events|length }}</div><div class="muted">gave a headache</div></div>
   <div><div class="big num">{{ p.claims|length }}</div><div class="muted">claims sent</div></div>
-  <div><div class="big num">${{ '%.2f'|format(p.total_paid) }}</div><div class="muted">paid out</div></div>
+  <div><div class="big num">{{ usd(p.total_paid) }}</div><div class="muted">paid out</div></div>
   <div><div class="big num">{{ p.approved_claims|length }}/{{ limit }}</div><div class="muted">claims used</div></div>
 </div>
 
@@ -609,7 +636,7 @@ HISTORY = _STYLE + """
       <td class="num">{{ e.claim.claim_id if e.claim else '' }}</td>
       <td>{% if not e.claim %}<span class="muted">not claimed</span>
           {% elif e.claim.is_approved %}
-            <span class="num">${{ '%.2f'|format(e.claim.approved) }}</span>
+            <span class="num">{{ usd(e.claim.approved) }}</span>
           {% else %}<span class="tag no">{{ e.claim.reason }}</span>{% endif %}</td>
     </tr>
     {% endfor %}
@@ -679,7 +706,7 @@ CLAIM_FORM = _STYLE + """
 
 DECISION = _STYLE + """
 {% if c.is_approved %}
-<h1>${{ '%.2f'|format(c.approved) }} is yours</h1>
+<h1>{{ usd(c.approved) }} is yours</h1>
 {% else %}
 <h1>Not this time</h1>
 {% endif %}
@@ -691,20 +718,18 @@ DECISION = _STYLE + """
 <div class="card">
   <table>
     <tr><td>What we worked it out at</td>
-        <td class="num" style="text-align:right">${{ '%.2f'|format(c.requested) }}</td></tr>
+        <td class="num" style="text-align:right">{{ usd(c.requested) }}</td></tr>
     {% if c.is_approved %}
-    <tr><td>Trimmed to your ${{ '%.2f'|format(p.coverage_limit) }} episode cap</td>
-        <td class="num" style="text-align:right">&minus;${{
-          '%.2f'|format(c.requested - c.approved - p.deductible
-                        if c.requested - c.approved - p.deductible > 0 else 0) }}</td></tr>
+    <tr><td>Trimmed to your {{ usd(p.coverage_limit) }} episode cap</td>
+        <td class="num" style="text-align:right">&minus;{{ usd(trimmed) }}</td></tr>
     <tr><td>Your deductible</td>
-        <td class="num" style="text-align:right">&minus;${{ '%.2f'|format(p.deductible) }}</td></tr>
+        <td class="num" style="text-align:right">&minus;{{ usd(p.deductible) }}</td></tr>
     {% else %}
     <tr><td colspan="2"><span class="tag no">{{ c.reason }}</span></td></tr>
     {% endif %}
     <tr><td><strong>Paid to you</strong></td>
         <td class="num" style="text-align:right">
-          <strong>${{ '%.2f'|format(c.approved) }}</strong></td></tr>
+          <strong>{{ usd(c.approved) }}</strong></td></tr>
   </table>
 </div>
 

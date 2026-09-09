@@ -223,6 +223,48 @@ the *outcome* of a decision (`status`, `approved`, `reason`), not the decision.
 If you want the breakdown for a historical claim you have to re-run
 `adjudicate()`, and you will not reproduce the generator's jitter.
 
+## 3a. Money is `Decimal`, and the usual operators are traps
+
+Every money value on these objects — `annual_premium`, `monthly_premium`,
+`total_paid`, a claim's `requested` and `approved`, a plan's `coverage_limit`
+and `deductible` — is a `decimal.Decimal`. Not a float. A float cannot hold
+most of them, and this book once shipped 23 monthly premiums that disagreed
+with their own annual figure because two libraries rounded a float differently.
+
+Import the helpers rather than reaching for the language:
+
+```python
+from brainfreeze.money import ZERO, format_usd, round_cents, usd
+```
+
+- `usd("170.10")` builds money from text or an int. **It raises on a float**,
+  deliberately: by then the value is already gone.
+- `round_cents(x)` rounds half-up to the cent.
+- `format_usd(x)` gives `"$170.10"`. Use it for anything a person reads.
+
+Five things that will bite you if you treat it as a number, all measured
+inside this database:
+
+| What you would write | What happens |
+| --- | --- |
+| `round(amount, 2)` | brings the VM down, no Python traceback |
+| `amount // 10` | `TypeError` — no floor division |
+| `"%.2f" % amount` | fails inside the database |
+| `str(amount)` | `170.1`, not `170.10` — trailing zeros are dropped |
+| `statistics.mean(amounts)` | fails; sum and divide yourself |
+
+And two that are quieter. `int(Decimal)` **floors** here where CPython
+truncates toward zero, so anything you write over a signed value will disagree
+between the two. And a `Decimal` compares equal to a float that is not
+actually equal to it, so `total_premium == 92081.22` is `True` here and
+`False` outside — never pin money against a float literal.
+
+Sums are exact, which is the whole reason for it: `sum(amounts, ZERO)` over
+900 premiums is exact, not 900 roundings deep.
+
+Ratios are **not** money. `loss_ratio`, approval rates and the values from
+`analysis` come back as plain floats.
+
 ## 4. The CSV column names are not the attribute names
 
 This is the single most likely way to write code that looks right and is not.

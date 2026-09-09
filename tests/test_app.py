@@ -23,6 +23,7 @@ except ImportError:  # plain CPython -- nothing to test against
 if gemdb is not None:
     import app as bf_app
     import seed
+    from brainfreeze.money import usd
 
 
 # The database is shared across these tests and filing a claim mutates it, so
@@ -169,7 +170,7 @@ class TheApp(unittest.TestCase):
         policy = book[new_id]
         self.assertEqual(policy.plan_name, "Standard")
         self.assertEqual(policy.risk_tier, "High")
-        self.assertEqual(policy.annual_premium, 171.00)
+        self.assertEqual(policy.annual_premium, usd("171.00"))
         self.assertEqual(policy.events, [])
 
     # -- history ---------------------------------------------------------
@@ -258,7 +259,7 @@ class TheApp(unittest.TestCase):
         self.assertEqual(r.status_code, 302)
         claim = self.book()[policy_id].events[-1].claim
         self.assertEqual(claim.status, "Denied")
-        self.assertEqual(claim.approved, 0.0)
+        self.assertEqual(claim.approved, usd("0.00"))
         self.assertEqual(claim.reason, "Event outside policy term")
 
     def test_the_picker_distinguishes_lapsed_from_lapses_later(self):
@@ -322,7 +323,7 @@ class TheApp(unittest.TestCase):
         claim = self.book()[LAPSED].events[-1].claim
         self.assertEqual(claim.status, "Denied")
         self.assertEqual(claim.reason, "Policy lapsed")
-        self.assertEqual(claim.approved, 0.0)
+        self.assertEqual(claim.approved, usd("0.00"))
 
     # -- CUJ-4: two fields added after the data was already committed -----
 

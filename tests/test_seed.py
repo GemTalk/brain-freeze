@@ -11,6 +11,7 @@ import unittest
 from datetime import date, timedelta
 
 import brainfreeze
+from brainfreeze.money import usd
 import seed
 
 
@@ -29,8 +30,8 @@ class TheLoad(unittest.TestCase):
         self.assertEqual(sum(len(p.events) for p in self.book), 4993)
 
     def test_money_matches_the_generator(self):
-        self.assertEqual(self.book.total_premium, 92081.22)
-        self.assertEqual(self.book.total_paid, 54671.44)
+        self.assertEqual(self.book.total_premium, usd("92081.22"))
+        self.assertEqual(self.book.total_paid, usd("54671.44"))
         self.assertEqual(self.book.loss_ratio, 0.594)
 
     def test_claim_counts(self):
@@ -49,6 +50,44 @@ class TheLoad(unittest.TestCase):
         refused = [c for c in self.book.claims if not c.is_approved]
         self.assertTrue(all(c.reason for c in refused))
         self.assertTrue(all(c.approved == 0.0 for c in refused))
+
+
+class MoneyIsExact(unittest.TestCase):
+    """Issue #68: the file and the model disagreed on 23 of 900 monthly
+    premiums, because the generator rounded with numpy and the model with
+    Python's `round`, and the two disagree on decimal halves.
+
+    Both are gone now -- money is Decimal and both sides round half-up through
+    `brainfreeze.money` -- so this asserts the property rather than the fix."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.book = seed.load()
+        with open(seed.POLICYHOLDERS_CSV, newline="") as handle:
+            cls.rows = {r["policy_id"]: r for r in csv.DictReader(handle)}
+
+    def test_the_stored_monthly_premium_matches_the_derived_one(self):
+        wrong = [p.policy_id for p in self.book
+                 if usd(self.rows[p.policy_id]["monthly_premium_usd"])
+                 != p.monthly_premium]
+        self.assertEqual(wrong, [], "%d policies disagree" % len(wrong))
+
+    def test_the_stored_annual_premium_survives_the_round_trip(self):
+        wrong = [p.policy_id for p in self.book
+                 if usd(self.rows[p.policy_id]["annual_premium_usd"])
+                 != p.annual_premium]
+        self.assertEqual(wrong, [])
+
+    def test_no_money_on_a_policy_is_a_float(self):
+        for policy in self.book:
+            self.assertNotIsInstance(policy.annual_premium, float, policy.policy_id)
+            self.assertNotIsInstance(policy.monthly_premium, float, policy.policy_id)
+            self.assertNotIsInstance(policy.total_paid, float, policy.policy_id)
+
+    def test_no_money_on_a_claim_is_a_float(self):
+        for claim in self.book.claims:
+            self.assertNotIsInstance(claim.requested, float, claim.claim_id)
+            self.assertNotIsInstance(claim.approved, float, claim.claim_id)
 
 
 class TheUnderwritingBase(unittest.TestCase):
@@ -285,8 +324,8 @@ class BF100539(unittest.TestCase):
         self.assertEqual(p.underwriting_risk_score, 65.2)
         self.assertEqual(p.coverage_limit, 60.0)
         self.assertEqual(p.deductible, 5.0)
-        self.assertEqual(p.annual_premium, 98.10)
-        self.assertEqual(p.monthly_premium, 8.17)
+        self.assertEqual(p.annual_premium, usd("98.10"))
+        self.assertEqual(p.monthly_premium, usd("8.18"))
         self.assertEqual(p.policy_status, "Lapsed")
         self.assertEqual(p.policy_lapse_date, date(2027, 3, 10))
 
@@ -296,12 +335,14 @@ class BF100539(unittest.TestCase):
         self.assertEqual(len(p.claims), 8)
         self.assertEqual(len(p.approved_claims), 4)
         self.assertEqual(len(p.brain_freeze_events), 9)
-        self.assertEqual(p.total_paid, 179.97)
+        self.assertEqual(p.total_paid, usd("179.97"))
         self.assertEqual(p.claims_remaining_this_year, 0)
 
     def test_the_amounts_in_order(self):
         paid = [c.approved for c in self.policy.claims]
-        self.assertEqual(paid, [34.19, 35.78, 55.00, 55.00, 0.0, 0.0, 0.0, 0.0])
+        self.assertEqual(paid, [usd(t) for t in
+                                ("34.19", "35.78", "55.00", "55.00",
+                                 "0.00", "0.00", "0.00", "0.00")])
 
     def test_the_refusals_tell_the_story_in_order(self):
         # Four paid, then the cap bites, then cover ends. A screen showing

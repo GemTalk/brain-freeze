@@ -39,6 +39,7 @@ import sys
 from datetime import date
 
 from brainfreeze.model import Book, Claim, Event, Policyholder
+from brainfreeze.money import format_usd, usd
 
 #: `data/` beside this file, not beside the working directory. `gemdb seed.py`
 #: and the tests both need to find these whatever directory they start from.
@@ -57,6 +58,12 @@ def _bool(text):
 
 
 def _float(text):
+    """For measurements -- temperature, millilitres, seconds, pain.
+
+    NOT for money. Money goes through `brainfreeze.money.usd`, which takes the
+    text straight from the file and refuses a float, so a premium is never a
+    float even for the instant between reading and storing it.
+    """
     return float(text) if text else None
 
 
@@ -88,7 +95,7 @@ def read_policyholders(path=POLICYHOLDERS_CSV):
                 favourite_trigger=row["favorite_trigger"],
                 underwriting_base=float(row["underwriting_base"]),
                 plan_name=row["coverage_plan"],
-                annual_premium=float(row["annual_premium_usd"]),
+                annual_premium=usd(row["annual_premium_usd"]),
                 policy_start_date=_date(row["policy_start_date"]),
                 policy_term_months=int(row["policy_term_months"]),
                 policy_status=row["policy_status"],
@@ -118,8 +125,8 @@ def attach_events(book, path=CLAIMS_CSV):
             if row["claim_id"]:
                 claim = Claim(
                     claim_id=row["claim_id"],
-                    requested=float(row["claim_amount_requested_usd"]),
-                    approved=float(row["claim_amount_approved_usd"]),
+                    requested=usd(row["claim_amount_requested_usd"]),
+                    approved=usd(row["claim_amount_approved_usd"]),
                     status=row["claim_status"],
                     reason=_text(row["denial_reason"]),
                 )
@@ -193,9 +200,9 @@ def report(book):
 
     sample = book.policies.get("BF-100539")
     if sample is not None:
-        print("  %s: %d events, %d claims, %d approved, $%.2f paid, cap %d of %d used" % (
+        print("  %s: %d events, %d claims, %d approved, %s paid, cap %d of %d used" % (
             sample.policy_id, len(sample.events), len(sample.claims),
-            len(sample.approved_claims), sample.total_paid,
+            len(sample.approved_claims), format_usd(sample.total_paid),
             len(sample.approved_claims), len(sample.approved_claims) + sample.claims_remaining_this_year))
 
 

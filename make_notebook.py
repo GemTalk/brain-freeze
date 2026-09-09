@@ -96,14 +96,26 @@ about this data, not a scripted one — and it is the kind of thing that is
 tedious to reach through an ORM and trivial when the objects are just there."""),
 
     (PY, """# 3. What an approved claim is actually worth.
-import statistics
+#
+# Money here is decimal.Decimal, not float -- see brainfreeze/money.py. Two
+# consequences show up in this cell. `statistics.median` and `%.2f` both fail
+# on a Decimal inside the database, so the middle is taken by hand and the
+# printing goes through format_usd, which also restores the trailing zero
+# Grail drops.
+from brainfreeze.money import ZERO, format_usd, round_cents
 
 paid = sorted(claim.approved for claim in book.claims if claim.is_approved)
+middle = len(paid) // 2
+if len(paid) % 2:
+    median = paid[middle]
+else:
+    median = round_cents((paid[middle - 1] + paid[middle]) / 2)
+mean = round_cents(sum(paid, ZERO) / len(paid))
 
-print("approved claims  :", len(paid))
-print("min / median / max: $%.2f / $%.2f / $%.2f"
-      % (paid[0], statistics.median(paid), paid[-1]))
-print("mean             : $%.2f" % statistics.mean(paid))"""),
+print("approved claims   :", len(paid))
+print("min / median / max:", format_usd(paid[0]),
+      "/", format_usd(median), "/", format_usd(paid[-1]))
+print("mean              :", format_usd(mean))"""),
 
     (MD, """## A chart, with no plotting library
 
@@ -128,9 +140,13 @@ bar_chart([(tier, ratios[tier]) for tier in ("Low", "Medium", "High")
            if tier in ratios])"""),
 
     (PY, """# Severity, in $10 bands -- where the payouts actually cluster.
+#
+# `int(amount // 10)` would be the obvious way to band these, and Grail has no
+# floor division for Decimal -- it raises TypeError. `int()` truncates toward
+# zero, which is the same thing for money that is never negative.
 bands = {}
 for amount in paid:
-    low = int(amount // 10) * 10
+    low = int(amount / 10) * 10
     bands[low] = bands.get(low, 0) + 1
 
 print("Approved claim amounts\\n")

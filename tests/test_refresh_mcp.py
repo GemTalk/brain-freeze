@@ -113,8 +113,8 @@ class PublishedPreambleTests(unittest.TestCase):
     def test_the_real_document_publishes_a_preamble_that_binds_brainfreeze(self):
         """Question 6 calls `brainfreeze.score_breakdown`, so the name has to
         be bound by the preamble a reader is told to paste."""
-        published = refresh_mcp.published_preamble(
-            open(refresh_mcp.DOC).read())
+        with open(refresh_mcp.DOC) as handle:
+            published = refresh_mcp.published_preamble(handle.read())
         self.assertIsNotNone(published)
         self.assertIn("import brainfreeze", published)
 

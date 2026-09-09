@@ -14,7 +14,10 @@ drew while the app passes BASE_RISK; closing the gap properly means recording
 the drawn base alongside the score.
 """
 
+from decimal import Decimal
 from typing import NamedTuple
+
+from .money import round_cents, usd
 
 #: Everyone starts here before their answers move them.
 BASE_RISK = 45.0
@@ -51,22 +54,24 @@ LOW_MAX = 34.0
 MEDIUM_MAX = 67.0
 
 #: Tier loading on the base premium. Exaggerated on purpose.
-RISK_TIER_MULT = {"Low": 0.7, "Medium": 1.0, "High": 1.9}
+#: Decimal, not float, because these multiply money -- one float in the chain
+#: is enough to put the answer back on the wrong side of a half cent.
+RISK_TIER_MULT = {"Low": usd("0.7"), "Medium": usd("1.0"), "High": usd("1.9")}
 
 
 class Plan(NamedTuple):
     """A coverage plan's fixed terms, before any tier loading."""
 
-    base_annual_premium: float
-    coverage_limit_per_incident: float
-    deductible_per_incident: float
+    base_annual_premium: Decimal
+    coverage_limit_per_incident: Decimal
+    deductible_per_incident: Decimal
 
 
 #: The three plans on offer.
 COVERAGE_PLANS = {
-    "Basic": Plan(45.0, 25.0, 10.0),
-    "Standard": Plan(90.0, 60.0, 5.0),
-    "Premium": Plan(180.0, 150.0, 0.0),
+    "Basic": Plan(usd("45.00"), usd("25.00"), usd("10.00")),
+    "Standard": Plan(usd("90.00"), usd("60.00"), usd("5.00")),
+    "Premium": Plan(usd("180.00"), usd("150.00"), usd("0.00")),
 }
 
 
@@ -117,8 +122,11 @@ def risk_tier(score: float) -> str:
     return "High"
 
 
-def annual_premium(plan_name: str, tier: str) -> float:
-    """What a plan costs a year for a given tier, before any noise."""
+def annual_premium(plan_name: str, tier: str) -> Decimal:
+    """What a plan costs a year for a given tier, before any noise.
+
+    Exact: `45.00 * 0.7` is `31.50` here and not `31.499999999999996`.
+    """
     return COVERAGE_PLANS[plan_name].base_annual_premium * RISK_TIER_MULT[tier]
 
 
@@ -171,10 +179,10 @@ def quote(
     tier = risk_tier(score)
     plans = {}
     for name, plan in COVERAGE_PLANS.items():
-        annual = round(annual_premium(name, tier), 2)
+        annual = round_cents(annual_premium(name, tier))
         plans[name] = {
             "annual": annual,
-            "monthly": round(annual / 12, 2),
+            "monthly": round_cents(annual / 12),
             "limit": plan.coverage_limit_per_incident,
             "deductible": plan.deductible_per_incident,
         }

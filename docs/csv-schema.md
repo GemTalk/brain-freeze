@@ -79,7 +79,7 @@ the `Book` under that id.
 | `coverage_limit_per_incident_usd` | `float` | no | **nothing — derived** | 25.0 / 60.0 / 150.0, one per plan. Read off `COVERAGE_PLANS` instead. |
 | `deductible_per_incident_usd` | `float` | no | **nothing — derived** | 10.0 / 5.0 / 0.0, one per plan. |
 | `annual_premium_usd` | `float`, USD | no | **`annual_premium`** (`float`) | $27.81 to $374.18. The plan's base premium, loaded for the tier, times a little noise. |
-| `monthly_premium_usd` | `float`, USD | no | **nothing — derived** | `annual_premium_usd / 12`. Disagrees with the object in 23 of 900 rows; see [stored versus derived](#stored-versus-derived). |
+| `monthly_premium_usd` | `Decimal`, USD | no | **nothing — derived** | `annual_premium_usd / 12`, half-up. Agrees with `p.monthly_premium` on all 900; see [stored versus derived](#stored-versus-derived). |
 | `policy_start_date` | ISO date | no | `policy_start_date` (`date`) | 2026-01-01 to 2026-10-27. |
 | `policy_term_months` | `int` | no | `policy_term_months` (`int`) | 12 on every row. `policy_end_date` is start plus 30 days a month, so a term is 360 days, not a calendar year. |
 | `policy_status` | `str` | no | `policy_status` (`str`) | `Active` (683) or `Lapsed` (217). **This is a fate over the whole term, not "in force today"** — most of those lapse dates have not arrived. Use `is_in_force_on(date)`. |
@@ -172,7 +172,7 @@ pandas, not a source of truth.
 | `risk_tier` | `p.risk_tier` — the band that score falls in |
 | `coverage_limit_per_incident_usd` | `p.coverage_limit` — off `COVERAGE_PLANS[p.plan_name]` |
 | `deductible_per_incident_usd` | `p.deductible` — likewise |
-| `monthly_premium_usd` | `p.monthly_premium` — `round(annual_premium / 12, 2)` |
+| `monthly_premium_usd` | `p.monthly_premium` — `round_cents(annual_premium / 12)` |
 | `claim_filed` | `event.claim is not None` |
 
 Deriving rather than storing is what keeps the numbers from drifting: change a
@@ -187,12 +187,24 @@ the band on every row. That is not luck — `tests/test_seed.py` reads the colum
 and asserts it, and it is the only use anything in the repo makes of it. It is
 the drift detector for the whole underwriting path.
 
-**`monthly_premium_usd` does not agree, on 23 of 900 rows.** The generator
-rounds `annual/12` with numpy and the model rounds it with Python's `round`, and
-where the third decimal is an exact half the two land a cent apart — BF-100000's
-$170.10 is `14.18` in the file and `14.17` on the object. Nothing reads the
-column, so nothing is wrong today, but any report that mixes the CSV and the
-book will be off by a cent on those rows. The object is the one to quote.
+**`monthly_premium_usd` agrees on all 900 rows — since 2026-09-09.**
+
+It did not when this document was written, and the reason is worth keeping.
+The generator rounded `annual / 12` with numpy and the model rounded it with
+Python's `round`, and where the exact quotient ends in a half they landed a
+cent apart on 23 rows. Neither was wrong. Both were floats: `170.10 / 12` is
+`14.174999999999999`, so Python respected the float and rounded down while
+numpy scaled by 100 and carried it up.
+
+Money is now `decimal.Decimal` everywhere — see `brainfreeze/money.py` — and
+both sides round half-up through the same function, so there is one answer.
+Fixing it moved **36** monthly premiums, not 23: those were the rows where the
+two libraries disagreed with each other, while the full set of exact halves
+is 36 and both had been rounding all of them down. `annual_premium_usd` did
+not move, and `claims.csv` is byte-identical.
+
+`tests/test_seed.py` now asserts the stored and derived values agree for all
+900, so it cannot drift back.
 
 ## What changes if the dataset is regenerated
 

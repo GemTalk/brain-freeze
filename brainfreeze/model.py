@@ -22,6 +22,7 @@ from .adjudication import (
     REASON_OUTSIDE_TERM,
     REASON_POLICY_LAPSED,
 )
+from .money import ZERO, format_usd, round_cents, round_half_up, usd
 from .underwriting import COVERAGE_PLANS, risk_score, risk_tier
 
 
@@ -39,8 +40,11 @@ class Claim:
     def __init__(self, claim_id, requested, approved, status, reason=None,
                  flavour=None, toppings=None):
         self.claim_id = claim_id
-        self.requested = requested
-        self.approved = approved
+        #: Through `usd`, which refuses a float outright. Money enters the
+        #: model here and at Policyholder, and nowhere else, so those two
+        #: calls are the whole guarantee that none of it is a float.
+        self.requested = usd(requested)
+        self.approved = usd(approved)
         self.status = status
         self.reason = reason
         if flavour is not None:
@@ -53,7 +57,8 @@ class Claim:
         return self.status == "Approved"
 
     def __repr__(self):
-        return "<Claim %s %s $%.2f>" % (self.claim_id, self.status, self.approved)
+        return "<Claim %s %s %s>" % (self.claim_id, self.status,
+                                     format_usd(self.approved))
 
 
 class Event:
@@ -103,7 +108,7 @@ class Policyholder:
         self.favourite_trigger = favourite_trigger
         self.underwriting_base = underwriting_base
         self.plan_name = plan_name
-        self.annual_premium = annual_premium
+        self.annual_premium = usd(annual_premium)
         self.policy_start_date = policy_start_date
         self.policy_term_months = policy_term_months
         self.policy_status = policy_status
@@ -145,7 +150,11 @@ class Policyholder:
 
     @property
     def monthly_premium(self):
-        return round(self.annual_premium / 12, 2)
+        #: Half-up on an exact division, so this cannot disagree with the
+        #: same figure computed anywhere else. `170.10 / 12` is exactly
+        #: `14.175`; rounding it is a decision, and the decision is written
+        #: down rather than inherited from whichever library ran last.
+        return round_cents(self.annual_premium / 12)
 
     @property
     def policy_end_date(self):
@@ -195,7 +204,7 @@ class Policyholder:
 
     @property
     def total_paid(self):
-        return round(sum(c.approved for c in self.approved_claims), 2)
+        return round_cents(sum((c.approved for c in self.approved_claims), ZERO))
 
     @property
     def claims_remaining_this_year(self):
@@ -217,7 +226,10 @@ class Policyholder:
         """Paid out over premium collected. Above 1.0 and we are losing money."""
         if not self.annual_premium:
             return None
-        return round(self.total_paid / self.annual_premium, 3)
+        # A ratio is not money, so it is published as a float -- but it is
+        # rounded half-up rather than by bare `round()`, which is half-up in
+        # the database and banker's outside it.
+        return float(round_half_up(self.total_paid / self.annual_premium, 3))
 
     def add_event(self, event):
         self.events.append(event)
@@ -265,17 +277,24 @@ class Book:
 
     @property
     def total_premium(self):
-        return round(sum(p.annual_premium for p in self), 2)
+        return round_cents(sum((p.annual_premium for p in self), ZERO))
 
     @property
     def total_paid(self):
-        return round(sum(p.total_paid for p in self), 2)
+        return round_cents(sum((p.total_paid for p in self), ZERO))
 
     @property
     def loss_ratio(self):
+        """Paid over premium for the whole book, as a float.
+
+        Summing 900 exact premiums and then dividing once is the right order
+        anyway, and with Decimal the sum is exact rather than 900 roundings
+        deep. See `analysis.loss_ratio_by_tier` for why this is never an
+        average of ratios.
+        """
         if not self.total_premium:
             return None
-        return round(self.total_paid / self.total_premium, 3)
+        return float(round_half_up(self.total_paid / self.total_premium, 3))
 
     def __repr__(self):
         return "<Book %d policies, %d events, loss ratio %s>" % (

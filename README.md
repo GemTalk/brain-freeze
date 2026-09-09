@@ -104,20 +104,27 @@ that way, and takes about nine seconds.
 ### The tests
 
 ```sh
-python3 -m unittest discover        # the model, the load, the package boundary
-gemdb run_app_tests.py              # the web app, through Flask's test client
+python3 -m unittest discover        # everything, under CPython
+gemdb run_db_tests.py               # the same tests, inside the database
 gemdb run_notebook_check.py         # every notebook cell, in order
 ```
 
 ```console
-Ran 104 tests in 0.350s
+Ran 133 tests in 0.433s
 OK (skipped=27)
 
-Ran 27 tests
+Ran 133 tests
 OK
 
 All 10 code cells ran.
 ```
+
+**Running the same suite twice is the demo's central claim reduced to a
+check.** One set of rules, two runtimes, identical answers. It matters most
+for money: `round()` is half-up inside the database and banker's outside it,
+`round(Decimal, 2)` brings the VM down, and `int(Decimal)` floors here and
+truncates there. `brainfreeze/money.py` exists so none of that can reach a
+premium, and the second run is what proves it.
 
 The 27 skips are the app's tests: they need a database, so under plain CPython
 the module skips itself and `unittest discover` stays green.
@@ -403,7 +410,7 @@ reached another script's zero-argument `main` and failed inside it.
 
 Relatedly, `gemdb file.py` puts the *script's* directory on `sys.path`, not the
 working directory, and a module already compiled into the database can be
-served stale in preference to an edited file on disk — `run_app_tests.py` reads
+served stale in preference to an edited file on disk — `run_db_tests.py` reads
 and execs its test module rather than importing it for exactly that reason.
 
 *(The companion document's finding 5 is the same family.)*

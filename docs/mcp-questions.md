@@ -33,7 +33,7 @@ analysis.book_summary(book)
 ```
 
 ```
-{'policies': 900, 'events': 4993, 'brain_freeze_events': 3730, 'claims': 2172, 'approved': 1691, 'premium': 92081.22, 'paid': 54671.44, 'loss_ratio': 0.594}
+{'policies': 900, 'events': 4993, 'brain_freeze_events': 3730, 'claims': 2172, 'approved': 1691, 'premium': Decimal('92081.22'), 'paid': Decimal('54671.44'), 'loss_ratio': 0.594}
 ```
 
 ## 2. What is the loss ratio by risk tier?
