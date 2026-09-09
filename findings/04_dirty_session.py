@@ -40,7 +40,7 @@ def pure_arithmetic(n):
     return n * 2 + 1
 
 
-def main():
+def dirty_session():
     import gemdb
 
     print(TITLE)
@@ -114,4 +114,4 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(dirty_session())

@@ -25,8 +25,11 @@ So `app.py`'s `if __name__ == "__main__": main()` reached the question
 generator's `main()` and died inside it. Nothing about the failure pointed at
 the cause.
 
-The rule that falls out: **do not name a script's entry point `main`.** This
-repo's are `serve()` and `generate()`.
+The rule that falls out: **do not name a script's entry point `main`.** Give
+it a name the file owns, so no two of them can be the same zero-argument
+selector. Every script in this repo does: `serve()`, `generate()`,
+`refresh()`, `seed_database()`, `check_shim()`, `main_namespace()`,
+`class_identity()`, `dirty_session()`, `module_monkeypatch()`.
 """
 
 import sys
@@ -36,8 +39,8 @@ import sys
 TITLE = """Finding 2: `__main__` is shared by every script, and dispatch is\nby argument count."""
 
 
-def report():
-    mine = {"report", "inherited", "sys"}
+def main_namespace():
+    mine = {"main_namespace", "inherited", "sys"}
     inherited = sorted(n for n in globals()
                        if not n.startswith("__") and n not in mine)
 
@@ -65,10 +68,20 @@ def report():
         print("  and they persist in the database between sessions.")
 
     print()
-    print("  The dispatch half, demonstrated:")
+    print("  The dispatch half:")
     print()
+    stray = callable(globals().get("main"))
     print("    a zero-argument `main` inherited from elsewhere:",
-          "yes" if callable(globals().get("main")) else "no (none inherited)")
+          "yes" if stray else "no")
+    print()
+    if stray:
+        print("  Something this database ran left a `main` behind, and any")
+        print("  `main()` call from any later script now lands in it.")
+    else:
+        print("  \"no\" is this rule being kept, not the hazard being absent.")
+        print("  No script in this repo names its entry point `main`, so")
+        print("  there is nothing here for a stray `main()` to resolve to.")
+        print("  Run a script that defines one and this line says yes.")
     print()
     print("  A call site with no arguments resolves to a zero-argument")
     print("  definition. Defaults are not part of the selector, so")
@@ -78,4 +91,4 @@ def report():
 
 
 if __name__ == "__main__":
-    sys.exit(report())
+    sys.exit(main_namespace())

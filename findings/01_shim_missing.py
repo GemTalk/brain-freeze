@@ -38,7 +38,7 @@ def check(label, thunk):
         return False, "%-34s %s: %s" % (label, type(error).__name__, error)
 
 
-def main():
+def check_shim():
     print(TITLE)
     print("-" * 70)
 
@@ -105,4 +105,4 @@ def _try(name):
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(check_shim())

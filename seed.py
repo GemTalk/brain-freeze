@@ -199,7 +199,7 @@ def report(book):
             len(sample.approved_claims), len(sample.approved_claims) + sample.claims_remaining_this_year))
 
 
-def main(argv):
+def seed_database(argv):
     dry_run = "--dry-run" in argv
     book = load()
 
@@ -225,4 +225,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    sys.exit(seed_database(sys.argv[1:]))

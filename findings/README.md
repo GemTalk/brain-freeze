@@ -62,7 +62,13 @@ not disambiguate — a call to `main()` can land in a different file's `main`.
 
 That is not hypothetical: `gemdb app.py` failed with `name 'PREAMBLE' is not
 defined`, a global belonging to `make_mcp_questions.py`. **Do not name a
-script's entry point `main`.** This repo's are `serve()` and `generate()`.
+script's entry point `main`.** Name it something the file owns, so that no two
+of them are the same zero-argument selector. Every script here does:
+`serve()`, `generate()`, `refresh()`, `seed_database()`, `check_shim()`,
+`main_namespace()`, `class_identity()`, `dirty_session()`,
+`module_monkeypatch()` — including all five scripts in this directory, three
+of which used to define a zero-argument `main` and so collided with each other
+through the very namespace they document.
 
 ## 3. Editing a class compiles a different class
 
