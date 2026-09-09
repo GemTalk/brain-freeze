@@ -1,6 +1,6 @@
 """Money, as `decimal.Decimal` rather than as `float`.
 
-    from brainfreeze.money import usd, round_cents, format_usd
+    from brainfreeze.money import usd, round_cents, format_usd, wire_usd
 
 A premium is not a measurement. It is an exact quantity of cents that someone
 is charged, and a `float` cannot hold most of them: `0.1 * 3` is not `0.3`,
@@ -37,6 +37,13 @@ Trailing zeros are not preserved -- `Decimal("170.10")` reads back as
 arithmetic is identical, but a display string can never come from `str()`.
 That is what `format_usd` is for, and why nothing should interpolate money
 with `%s`.
+
+AND MONEY LEAVING THE BUILDING
+
+`format_usd` is for a screen. `wire_usd` is for a wire: an exact decimal
+string, `"170.10"`, which is what the JSON API publishes and what `usd()`
+reads straight back. Nothing else may turn money into text, and nothing at
+all may turn it into a float on the way out.
 
 AND ONE THING TO KNOW
 
@@ -129,19 +136,63 @@ def round_cents(value):
     return round_half_up(value, 2)
 
 
+def wire_usd(value):
+    """Money as an exact decimal string: `"92081.22"`. For JSON, not for eyes.
+
+    Always two places, no symbol and no grouping. `None` stays `None` -- JSON
+    writes that as `null`, which is no money *recorded* and a different fact
+    from `"0.00"`.
+
+    WHY A STRING AND NOT A NUMBER
+
+    `json.dumps` cannot serialise a Decimal at all, so a JSON API has to
+    choose a wire format, and the choice is the interesting part rather than a
+    detail (issue #50). A float is not one of the options: it would put back
+    the two answers this module exists to remove, and #68 is what that costs.
+
+    That leaves an exact string or integer cents. Both are exact; the string
+    wins on one argument, which is that it is *the same text `usd()` already
+    reads*. A figure published here goes back into the model unchanged, and
+    nothing at either end multiplies or divides by a hundred -- and dividing
+    money is where this repo's bugs have lived. It is also what most financial
+    APIs put on the wire, so a reader does not have to be told.
+
+    NEVER `str(value)`, AND NEVER `format(value, '.2f')`
+
+    Inside the database a Decimal does not keep its trailing zeros, so
+    `str()` would publish `$170.10` as `"170.1"` and the API would answer
+    differently in each runtime -- the exact failure the demo cannot afford.
+    `format(value, '.2f')` raises there, and `round(value, 2)` brings the
+    session down. So the arithmetic is written out, and `format_usd` is built
+    on top of it rather than beside it.
+    """
+    if value is None:
+        return None
+    cents = round_cents(value)
+    negative = cents < 0
+    magnitude = -cents if negative else cents     # never int() a negative here
+    whole = int(magnitude)
+    fraction = int((magnitude - whole) * _HUNDRED + Decimal("0.5"))
+    return "%s%d.%02d" % ("-" if negative else "", whole, fraction)
+
+
 def format_usd(value):
     """A display string, always two places, thousands grouped.
 
     Never `str(value)`: Grail does not keep trailing zeros, so a premium of
     `$170.10` would print as `170.1`. `None` is `--`, because a field with no
     money recorded should not read as free.
+
+    The two places come from `wire_usd`, so the screen and the JSON body
+    cannot round a half-cent differently; this adds the symbol and the commas
+    and nothing else. Which is also the reason this one must never reach a
+    payload: `"$92,081.22"` is not a number.
     """
     if value is None:
         return "--"
-    cents = round_cents(value)
-    negative = cents < 0
-    magnitude = -cents if negative else cents     # never int() a negative here
-    whole = int(magnitude)
-    fraction = int((magnitude - whole) * _HUNDRED + Decimal("0.5"))
-    grouped = "{:,}".format(whole)
-    return "%s$%s.%02d" % ("-" if negative else "", grouped, fraction)
+    text = wire_usd(value)
+    sign = ""
+    if text[0] == "-":
+        sign, text = "-", text[1:]
+    whole, fraction = text.split(".")
+    return "%s$%s.%s" % (sign, "{:,}".format(int(whole)), fraction)

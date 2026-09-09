@@ -12,6 +12,7 @@ re-running the seed is how this demo resets, so leaning on that keeps them
 deterministic and leaves the database in a known state afterwards.
 """
 
+import json
 import unittest
 from datetime import date
 
@@ -424,6 +425,217 @@ class TheApp(unittest.TestCase):
         body = self.client.get(
             "/policies/%s/claims/new" % ACTIVE_READONLY).data.decode()
         self.assertNotIn('name="amount"', body)
+
+
+@unittest.skipIf(gemdb is None, "needs the database -- run under gemdb")
+class TheJsonApi(unittest.TestCase):
+    """Issue #50: the same objects, over `curl`.
+
+    The shapes are pinned in `tests/test_api.py`, which runs under CPython
+    against a seeded book. What is left for here is what only a live database
+    can answer: that the routes exist, that they answer JSON rather than an
+    HTML error page, and -- the one that matters -- that the money in a body
+    is the exact figure the model holds, in a runtime whose Decimals do not
+    keep their trailing zeros.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        # Nothing here writes, so it does not need its own seed -- but it
+        # must not depend on another class having run first either.
+        try:
+            gemdb.root["brainfreeze"]
+        except KeyError:
+            gemdb.root["brainfreeze"] = seed.load()
+            gemdb.commit()
+        cls.app = bf_app.create_app()
+        cls.app.config["TESTING"] = True
+
+    def setUp(self):
+        self.client = self.app.test_client()
+
+    def book(self):
+        return gemdb.root["brainfreeze"]
+
+    def get(self, path, status=200):
+        response = self.client.get(path)
+        self.assertEqual(response.status_code, status, path)
+        self.assertIn("application/json", response.headers["Content-Type"])
+        return json.loads(response.data.decode())
+
+    def post(self, path, payload, status=200):
+        response = self.client.post(
+            path, data=json.dumps(payload),
+            content_type="application/json")
+        self.assertEqual(response.status_code, status, path)
+        self.assertIn("application/json", response.headers["Content-Type"])
+        return json.loads(response.data.decode())
+
+    # -- the questionnaire, as data --------------------------------------
+
+    def test_the_questions_are_the_ones_the_form_asks(self):
+        body = self.get("/api/questions")
+        names = [q["name"] for q in body["questions"]]
+        self.assertEqual(names, ["age", "migraine_history",
+                                 "tension_type_headache_history",
+                                 "typical_consumption_speed",
+                                 "favourite_trigger"])
+        # FR-5.2: sex is in the CSVs and carries no weight in the model, so
+        # the JSON surface does not ask for it either.
+        self.assertNotIn("sex", json.dumps(body).lower())
+
+    def test_the_options_are_the_values_the_model_accepts(self):
+        body = self.get("/api/questions")
+        by_name = {q["name"]: q for q in body["questions"]}
+        speeds = [o["value"] for o in by_name["typical_consumption_speed"]["options"]]
+        self.assertEqual(speeds, ["slow", "moderate", "fast"])
+        triggers = [o["value"] for o in by_name["favourite_trigger"]["options"]]
+        self.assertEqual(triggers, bf_app.TRIGGERS)
+
+    def test_the_answers_it_describes_are_the_answers_it_prices(self):
+        # The pair is the point: GET the questions, POST them back.
+        questions = self.get("/api/questions")["questions"]
+        answers = {q["name"]: q["default"] for q in questions}
+        body = self.post("/api/quote", answers)
+        self.assertEqual(body["answers"], answers)
+        self.assertIn("Standard", body["quote"]["plans"])
+
+    # -- pricing ----------------------------------------------------------
+
+    def test_a_quote_is_the_models_quote(self):
+        body = self.post("/api/quote", {
+            "age": 11, "migraine_history": False,
+            "tension_type_headache_history": False,
+            "typical_consumption_speed": "fast",
+            "favourite_trigger": "slushie"})
+        offer = bf_app.brainfreeze.quote(11, False, False, "fast", "slushie")
+        self.assertEqual(body["quote"]["score"], offer.score)
+        self.assertEqual(body["quote"]["tier"], "High")
+        self.assertEqual(body["quote"]["plans"]["Standard"]["annual"], "171.00")
+
+    def test_money_in_a_body_is_a_string_and_not_a_number(self):
+        # The decision this card turns on. `str()` on a Decimal inside the
+        # database drops the trailing zero, so this would read "171.0" if the
+        # serialiser were not doing the two places itself -- and a float would
+        # put back the disagreement #68 removed.
+        plan = self.post("/api/quote", {
+            "age": 11, "typical_consumption_speed": "fast",
+            "favourite_trigger": "slushie"})["quote"]["plans"]["Standard"]
+        for key in ("annual", "monthly", "limit", "deductible"):
+            self.assertIsInstance(plan[key], str, key)
+        self.assertEqual(plan["annual"], "171.00")
+        self.assertEqual(plan["deductible"], "5.00")
+
+    def test_a_figure_from_the_wire_goes_back_into_the_model_unchanged(self):
+        body = self.get("/api/policy/%s" % LAPSES_LATER)
+        policy = self.book()[LAPSES_LATER]
+        self.assertEqual(usd(body["annual_premium"]), policy.annual_premium)
+        self.assertEqual(usd(body["total_paid"]), policy.total_paid)
+        self.assertEqual(usd(body["coverage_limit"]), policy.coverage_limit)
+
+    def test_an_unpriceable_answer_is_a_400_and_not_a_500(self):
+        # Without validation this reaches a KeyError inside the risk model and
+        # the caller gets an HTML traceback page from a JSON endpoint.
+        body = self.post("/api/quote", {"favourite_trigger": "gravel"},
+                         status=400)
+        self.assertIn("error", body)
+        body = self.post("/api/quote", {"age": "eleven"}, status=400)
+        self.assertIn("error", body)
+
+    def test_a_quote_with_no_body_at_all_says_so(self):
+        response = self.client.post("/api/quote")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("error", json.loads(response.data.decode()))
+
+    def test_pricing_commits_nothing(self):
+        # The JSON surface is read-only. /api/quote is a POST because it
+        # carries a body, not because it writes.
+        before = len(self.book())
+        self.post("/api/quote", {"age": 11})
+        self.assertEqual(len(self.book()), before)
+
+    # -- the book ---------------------------------------------------------
+
+    def test_the_policies_endpoint_lists_the_whole_book(self):
+        # The HTML picker pages because Grail renders each row in a forked
+        # green thread; JSON has no such cost, and a script wants all of it.
+        body = self.get("/api/policies")
+        self.assertEqual(body["count"], len(self.book()))
+        self.assertEqual(len(body["policies"]), body["count"])
+        ids = [p["policy_id"] for p in body["policies"]]
+        self.assertEqual(ids, sorted(ids))
+
+    def test_one_policy_carries_its_whole_history(self):
+        policy = self.book()[LAPSES_LATER]
+        body = self.get("/api/policy/%s" % LAPSES_LATER)
+        self.assertEqual(len(body["events"]), len(policy.events))
+        claimed = [e for e in body["events"] if e["claim"] is not None]
+        self.assertEqual(len(claimed), len(policy.claims))
+
+    def test_a_lapsed_policy_says_why_rather_than_how_to_phrase_it(self):
+        body = self.get("/api/policy/%s" % LAPSED)
+        self.assertFalse(body["in_force"])
+        self.assertEqual(body["no_cover_reason"], "Policy lapsed")
+
+    def test_an_unknown_policy_is_a_json_404_not_an_html_one(self):
+        body = self.get("/api/policy/BF-999999", status=404)
+        self.assertIn("error", body)
+        self.assertIn("BF-999999", body["error"])
+
+    # -- one claim --------------------------------------------------------
+
+    def test_a_claim_can_be_fetched_by_its_own_id(self):
+        # The HTML route needs the policy id as well; a claim id is enough
+        # here, which is what makes it useful from a shell.
+        policy = self.book()[LAPSES_LATER]
+        claim = policy.claims[0]
+        body = self.get("/api/claim/%s" % claim.claim_id)
+        self.assertEqual(body["policy_id"], LAPSES_LATER)
+        self.assertEqual(body["claim"]["claim_id"], claim.claim_id)
+        self.assertEqual(usd(body["claim"]["approved"]), claim.approved)
+        self.assertIsNotNone(body["event"]["event_id"])
+
+    def test_a_refused_claim_carries_the_reason_it_was_refused(self):
+        policy = self.book()[LAPSES_LATER]
+        refused = [c for c in policy.claims if not c.is_approved][0]
+        body = self.get("/api/claim/%s" % refused.claim_id)
+        self.assertFalse(body["claim"]["is_approved"])
+        self.assertEqual(body["claim"]["reason"], refused.reason)
+        self.assertEqual(body["claim"]["approved"], "0.00")
+
+    def test_an_unknown_claim_is_a_json_404(self):
+        body = self.get("/api/claim/CLM-999999", status=404)
+        self.assertIn("error", body)
+
+    # -- the aggregates ---------------------------------------------------
+
+    def test_the_stats_agree_with_the_book_they_came_from(self):
+        book = self.book()
+        body = self.get("/api/stats")
+        self.assertEqual(body["policy_count"], len(book))
+        self.assertEqual(body["event_count"], len(book.events))
+        self.assertEqual(usd(body["premium"]), book.total_premium)
+        self.assertEqual(usd(body["paid"]), book.total_paid)
+        self.assertEqual(body["loss_ratio"], book.loss_ratio)
+
+    def test_the_stats_are_the_analysis_helpers(self):
+        body = self.get("/api/stats")
+        self.assertEqual(body["loss_ratio_by_tier"],
+                         bf_app.brainfreeze.loss_ratio_by_tier(self.book()))
+        self.assertIn("reason", body["denial_reasons"][0])
+
+    # -- and the HTML surface is untouched --------------------------------
+
+    def test_the_html_routes_still_answer_html(self):
+        response = self.client.get("/policies/%s" % ACTIVE_READONLY)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("text/html", response.headers["Content-Type"])
+
+    def test_an_unknown_policy_is_still_an_html_404_on_the_html_route(self):
+        # The JSON 404s are returned by the API handlers themselves rather
+        # than by a global error handler, precisely so this stays true.
+        self.assertEqual(
+            self.client.get("/policies/BF-999999").status_code, 404)
 
 
 if __name__ == "__main__":

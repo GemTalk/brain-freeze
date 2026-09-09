@@ -9,7 +9,7 @@ import unittest
 from decimal import Decimal
 
 from brainfreeze.money import (
-    ZERO, format_usd, round_cents, round_half_up, usd)
+    ZERO, format_usd, round_cents, round_half_up, usd, wire_usd)
 
 
 class ParsingTests(unittest.TestCase):
@@ -122,6 +122,67 @@ class FormattingTests(unittest.TestCase):
 
     def test_zero_is_shown_as_zero(self):
         self.assertEqual(format_usd(ZERO), "$0.00")
+
+
+class WireFormatTests(unittest.TestCase):
+    """What money looks like leaving the building (issue #50).
+
+    `json.dumps` cannot serialise a Decimal, so the JSON API had to choose a
+    wire format. It is an exact decimal string. A float would have put back
+    the two answers this module removed; integer cents would have been exact
+    but would make every reader divide by a hundred. A string is the same text
+    `usd()` already reads.
+
+    This class is the one that has to pass in both runtimes, because the two
+    disagree about the thing it turns on: inside the database a Decimal does
+    not keep its trailing zeros, so `str()` on a $170.10 premium is "170.1"
+    there and "170.10" here.
+    """
+
+    def test_it_always_gives_two_places(self):
+        self.assertEqual(wire_usd(Decimal("170.1")), "170.10")
+        self.assertEqual(wire_usd(Decimal("15")), "15.00")
+        self.assertEqual(wire_usd(usd("171.00")), "171.00")
+
+    def test_it_rounds_half_up_to_the_cent(self):
+        self.assertEqual(wire_usd(Decimal("14.175")), "14.18")
+        self.assertEqual(wire_usd(Decimal("14.1749")), "14.17")
+
+    def test_it_carries_no_symbol_and_no_grouping(self):
+        # The difference from `format_usd`, which is "$92,081.22" and is not
+        # a number. Nothing but a screen may use that one.
+        self.assertEqual(wire_usd(Decimal("92081.22")), "92081.22")
+
+    def test_it_is_a_string_and_never_a_float(self):
+        self.assertIsInstance(wire_usd(usd("0.01")), str)
+
+    def test_zero_money_is_zero(self):
+        self.assertEqual(wire_usd(ZERO), "0.00")
+
+    def test_no_money_recorded_stays_nothing(self):
+        # `null` in JSON. A field with no money recorded is not a free one,
+        # and both facts are in the CSVs.
+        self.assertIsNone(wire_usd(None))
+
+    def test_it_rounds_negatives_away_from_zero_in_both_runtimes(self):
+        # The signed case that disagreed between the two runtimes before
+        # `round_half_up` -- `int(Decimal)` floors here and truncates there.
+        self.assertEqual(wire_usd(Decimal("-14.175")), "-14.18")
+        self.assertEqual(wire_usd(Decimal("-0.005")), "-0.01")
+
+    def test_a_figure_survives_the_round_trip(self):
+        # The argument for a string over integer cents: what goes out is what
+        # `usd()` reads back, and nothing at either end divides.
+        for text in ("170.10", "0.00", "92081.22", "-14.18"):
+            self.assertEqual(usd(wire_usd(usd(text))), usd(text))
+
+    def test_the_display_string_is_built_on_it(self):
+        # One two-place conversion, so a screen and a payload cannot round a
+        # half-cent differently.
+        for value in (Decimal("14.175"), Decimal("-14.175"), ZERO,
+                      Decimal("92081.225")):
+            self.assertIn(wire_usd(value).replace("-", ""),
+                          format_usd(value).replace(",", ""))
 
 
 if __name__ == "__main__":

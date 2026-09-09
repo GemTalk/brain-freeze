@@ -184,6 +184,61 @@ well as by the lapse, and a claim outside the term is refused for that and told
 so in those words, because a policy that never lapsed cannot be refused for
 lapsing.
 
+### The same objects over `curl`
+
+Six JSON endpoints sit beside the HTML routes, so a demo can show one object
+through a browser and through a shell without a notebook or MCP in the way:
+
+```
+GET  /api/questions        the quote questionnaire, as data
+POST /api/quote            price a set of answers
+GET  /api/policies         the whole book
+GET  /api/policy/<id>      one policy and every event under it
+GET  /api/claim/<id>       one claim, by claim id alone
+GET  /api/stats            book-level aggregates
+```
+
+```console
+$ curl -s localhost:5000/api/stats
+{"policy_count": 900, "event_count": 4993, "claim_count": 2172,
+ "approved_claim_count": 1691, "premium": "92081.22", "paid": "54671.44",
+ "loss_ratio": 0.594, "claim_approval_rate": 0.7785,
+ "loss_ratio_by_tier": {"Low": 0.409, "Medium": 0.729, "High": 0.501}, ...}
+```
+
+**Money is an exact decimal string.** `json.dumps` cannot serialise a
+`Decimal` at all, so the wire format had to be decided rather than inherited,
+and `"92081.22"` is the decision — two places always, no symbol, no grouping,
+`null` where no money was recorded. Not a float, which would put back the two
+answers the move to `Decimal` removed (issue #68); not integer
+cents, which would be exact but would make every reader divide by a hundred.
+A string is the same text `money.usd()` already reads, so a figure goes back
+into the model unchanged. `money.wire_usd` is the only function that turns
+money into text for a payload, and `brainfreeze/wire.py` is the only place
+that builds one.
+
+```console
+$ curl -s localhost:5000/api/quote -H 'Content-Type: application/json' \
+       -d '{"age": 11, "typical_consumption_speed": "fast",
+            "favourite_trigger": "slushie"}'
+{"answers": {...},
+ "quote": {"score": 75.0, "tier": "High", "breakdown": [...],
+           "plans": {"Basic":    {"annual": "85.50",  "monthly": "7.13", ...},
+                     "Standard": {"annual": "171.00", "monthly": "14.25", ...},
+                     "Premium":  {"annual": "342.00", "monthly": "28.50", ...}}}}
+```
+
+`"171.00"` is the point of it: `str()` on a Decimal inside the database drops
+the trailing zero, so the naive spelling would publish `171.0` there and
+`171.00` here — one figure, two answers, which is the failure the whole demo
+argues against. `"7.13"` is `85.50 / 12` rounded half-up, by the same rule the
+screen and the notebook use.
+
+The JSON surface is **read-only**. `/api/quote` is a POST because it carries a
+body; it prices answers and commits nothing. Taking out a policy and filing a
+claim stay POSTs from a form, where the redirect after the write is what stops
+a refresh re-submitting them.
+
 ---
 
 ## CUJ-2 — Ask an agent
@@ -487,7 +542,7 @@ docs/          the PRD, the questions the demo promises to answer, the
                for writing Python that runs inside the database, and the
                column dictionary for the two CSVs
 findings/      the eight things that cost time, as scripts you can run
-app.py         the web app
+app.py         the web app -- the HTML screens and the JSON API
 seed.py        data/ -> gemdb.root
 PLAN.md        the working notes, including what is still open
 ```
