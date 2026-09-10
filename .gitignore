@@ -19,3 +19,4 @@ docs/two-demos-compared.md
 # files are the documentation. See issue #73.
 .venv-acceptance/
 artifacts/
+.acceptance-pages/

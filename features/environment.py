@@ -177,6 +177,16 @@ def before_scenario(context, scenario):
 
 
 def after_scenario(context, scenario):
+    # Scenario-specific restoration first, and always -- a scenario that
+    # lapses a policy has to put it back even when it failed, or one bad run
+    # leaves a fixture broken for every run after it and the next person
+    # debugs the fixture rather than their change.
+    try:
+        from cross_surface_steps import after_scenario_restore
+        after_scenario_restore(context)
+    except Exception:
+        pass
+
     if scenario.status == "failed":
         # The most useful screenshot in the run is the one nobody asked for.
         try:
