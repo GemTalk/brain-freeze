@@ -36,6 +36,22 @@ THREE CONSTRAINTS FROM GRAIL, ALL FOUND FIRST BY grail_rest_demo/app.py
 Every write is a POST that mutates, commits and redirects, so a refresh never
 re-submits.
 
+A QUOTE IS AN OBJECT, WHICH IS WHY THERE ARE NO HIDDEN FIELDS
+
+`POST /quote` used to price a quote, render it, and post the five answers back
+to the browser as hidden fields so that taking out a policy could work them
+out again. That is state round-tripped through the client, in the one demo
+whose whole argument is that these are just objects in the database -- and it
+was done that way because a quote had nowhere to live. Now it does: a
+`SavedQuote` goes in the book, `GET /quote/<id>` re-opens it, and
+`POST /quote/<id>/accept` sells it at the price it quoted rather than at a
+price computed a second time. Nothing in this file emits a hidden input; the
+plan a customer picks rides on the button that picks it.
+
+Quotes are kept in `Book.quotes`, which is deliberately not `Book.policies`:
+`len(book)` is the policy count that `verify_book.py` and `tests/test_seed.py`
+pin, and a quote must not move it.
+
 THE JSON API IS THE SAME OBJECTS, NOT A SECOND MODEL
 
 `/api/...` answers the six endpoints issue #50 asks for, beside the HTML
@@ -88,7 +104,7 @@ import gemdb
 
 import brainfreeze
 import brainfreeze.wire
-from brainfreeze.model import Claim, Event, Policyholder
+from brainfreeze.model import Claim, Event, Policyholder, SavedQuote
 from brainfreeze.money import ZERO, format_usd
 
 ROOT_KEY = "brainfreeze"
@@ -405,17 +421,74 @@ def create_app():
             favourite_trigger=request.form.get("trigger", "ice cream"),
         )
 
+    def _quotes(the_book):
+        """The book's quotes, or a 500 that says what to do about it.
+
+        `Book.quotes` did not exist when the sample book was committed, and a
+        class-level default declared now would not reach it: editing a class
+        compiles a DIFFERENT class and instances keep the one they were made
+        under (findings/03_class_identity.py, docs/prd-corrections.md
+        correction 5). So an old book raises AttributeError here rather than
+        quietly starting a second store on the side, and the message names the
+        two commands that fix it -- because the reader who meets this will
+        otherwise reasonably conclude the code is broken.
+
+        `abort` here is Flask's. `gemdb.abort()` must never appear in this
+        file; see `take_new_view`.
+        """
+        try:
+            return the_book.quotes
+        except AttributeError:
+            abort(500, "This book was committed before quotes had a class of "
+                       "their own. Run `gemdb redeploy.py` to give the "
+                       "database the current brainfreeze package, then "
+                       "`gemdb seed.py` to rebuild the book under it.")
+
+    def _quote_or_404(quote_id):
+        try:
+            return _quotes(book())[quote_id]
+        except KeyError:
+            abort(404)
+
     @app.route("/quote", methods=["POST"])
     def quote_result():
-        answers = _answers()
-        offer = brainfreeze.quote(**answers)
-        return render(PLANS, offer=offer, answers=answers)
+        """Price a quote, keep it, and send the browser to its address.
 
-    @app.route("/policies", methods=["POST"])
-    def create_policy():
+        A write like any other here, so it commits and redirects: refreshing
+        the result re-opens the quote instead of minting a second one, and the
+        quote's id is in the address bar where a person can copy it.
+        """
         answers = _answers()
         offer = brainfreeze.quote(**answers)
+        the_book = book()
+        saved = the_book.add_quote(SavedQuote(
+            quote_id=_next_id(_quotes(the_book), "QTE", 6, 1),
+            quoted_on=date.today(),
+            score=offer.score,
+            tier=offer.tier,
+            breakdown=offer.breakdown,
+            plans=offer.plans,
+            **answers))
+        gemdb.commit()
+        return redirect(url_for("saved_quote", quote_id=saved.quote_id))
+
+    @app.route("/quote/<quote_id>")
+    def saved_quote(quote_id):
+        return render(PLANS, q=_quote_or_404(quote_id))
+
+    @app.route("/quote/<quote_id>/accept", methods=["POST"])
+    def accept_quote(quote_id):
+        """Turn a quote into a policy, at the price the quote quoted.
+
+        Note what is NOT here: a second call to `brainfreeze.quote`. The
+        answers and the three prices were stored when the quote was given, and
+        a customer is sold what they were shown. Re-pricing at this point
+        would be the old round-trip with the hidden fields taken out.
+        """
+        saved = _quote_or_404(quote_id)
         plan_name = request.form.get("plan", "Standard")
+        if plan_name not in saved.plans:
+            abort(404)
 
         the_book = book()
         policy = Policyholder(
@@ -423,10 +496,13 @@ def create_app():
             sex=None,
             underwriting_base=brainfreeze.BASE_RISK,
             plan_name=plan_name,
-            annual_premium=offer.plans[plan_name]["annual"],
+            annual_premium=saved.plans[plan_name]["annual"],
             policy_start_date=date.today(),
-            **answers)
+            **saved.answers)
         the_book.add(policy)
+        # The quote remembers what it became, so re-opening it says so rather
+        # than offering to sell the same cover a second time.
+        saved.policy_id = policy.policy_id
         gemdb.commit()
         return redirect(url_for("history", policy_id=policy.policy_id))
 
@@ -744,23 +820,40 @@ QUOTE_FORM = _STYLE + """
 </form>
 """
 
+# The five answers used to be posted back through this screen as hidden
+# fields, because a quote had nowhere to live. It has one now, so the only
+# thing this form carries is which plan was picked -- and that rides on the
+# button rather than on a hidden input, which is what a button's `value` is
+# for. There is no hidden field anywhere in this file, and
+# tests/test_quote_flow.py pins that.
 PLANS = _STYLE + """
 <h1>Three ways to cover it</h1>
-<p class="sub">Risk band <strong>{{ offer.tier }}</strong>,
-   scored <span class="num">{{ offer.score }}</span>.</p>
+<p class="sub">Risk band <strong>{{ q.tier }}</strong>,
+   scored <span class="num">{{ q.score }}</span>.</p>
+<p class="muted"><span class="num">{{ q.quote_id }}</span>,
+   quoted {{ q.quoted_on }}. This quote is saved &mdash; come back to it at
+   <a href="{{ url_for('saved_quote', quote_id=q.quote_id) }}"
+      class="num">/quote/{{ q.quote_id }}</a>.</p>
+
+{% if q.policy_id %}
+<div class="warn">This quote was taken up as
+  <a href="{{ url_for('history', policy_id=q.policy_id) }}"
+     class="num">{{ q.policy_id }}</a>.</div>
+{% endif %}
 
 <div class="card">
   <strong>How that score was reached</strong>
   <table>
-    {% for label, points in offer.breakdown %}
+    {% for label, points in q.breakdown %}
     <tr><td>{{ label }}</td>
         <td class="num" style="text-align:right">{{ '%+.1f'|format(points) }}</td></tr>
     {% endfor %}
   </table>
 </div>
 
-{% for name, plan in offer.plans.items() %}
-<form method="post" action="{{ url_for('create_policy') }}" class="card">
+{% for name, plan in q.plans.items() %}
+<form method="post"
+      action="{{ url_for('accept_quote', quote_id=q.quote_id) }}" class="card">
   <div class="row">
     <div>
       <strong>{{ name }}</strong>
@@ -772,15 +865,7 @@ PLANS = _STYLE + """
       <div class="muted">a year &middot; {{ usd(plan.monthly) }} a month</div>
     </div>
   </div>
-  {% for key, value in answers.items() %}
-  <input type="hidden" name="{{
-    {'migraine_history':'migraine','tension_type_headache_history':'tth',
-     'typical_consumption_speed':'speed','favourite_trigger':'trigger',
-     'age':'age'}[key] }}" value="{{
-    'yes' if value is sameas true else ('no' if value is sameas false else value) }}">
-  {% endfor %}
-  <input type="hidden" name="plan" value="{{ name }}">
-  <button type="submit">Take out {{ name }}</button>
+  <button type="submit" name="plan" value="{{ name }}">Take out {{ name }}</button>
 </form>
 {% endfor %}
 """

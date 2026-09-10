@@ -412,8 +412,16 @@ class TheRouteContract(unittest.TestCase):
 
     def test_the_html_routes_are_untouched(self):
         # Additive, per the card: the JSON surface goes beside the HTML one.
+        #
+        # `POST /policies` was on this list until #53. It is the one HTML
+        # route that has moved since, and it moved because it was the wrong
+        # address: it took the five answers back off the form and priced them
+        # a second time. Selling a quote now happens at the quote's own
+        # address, and the two that replaced it are listed here so this test
+        # goes on saying what it was written to say.
         found = self.routes()
-        for path in ("/", "/quote", "/policies", "/policies/<policy_id>",
+        for path in ("/", "/quote", "/quote/<quote_id>",
+                     "/quote/<quote_id>/accept", "/policies/<policy_id>",
                      "/policies/<policy_id>/claims/new",
                      "/policies/<policy_id>/claims",
                      "/policies/<policy_id>/claims/<claim_id>"):
