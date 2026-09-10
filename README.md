@@ -159,8 +159,17 @@ Those numbers come from `brainfreeze.quote()`, the same function that priced
 the 900 policies in the CSVs. The screen also shows `score_breakdown()`, so the
 price explains itself rather than asserting itself.
 
-Take out a plan and the app creates BF-100900 and commits it. That handler is
-four lines: build a `Policyholder`, `book.add(...)`, `gemdb.commit()`, redirect.
+Note the address of that screen: `/quote/QTE-000001`. The quote is an object in
+the book — the five answers, the score, the reasoning and all three prices —
+so it can be closed, mailed to somebody and re-opened, and there is no hidden
+form field anywhere in the app. It used to post the answers back through the
+browser, because a quote had nowhere else to live.
+
+Take out a plan and the app creates BF-100900 and commits it, at the price the
+quote quoted rather than at one worked out a second time. That handler is four
+lines: build a `Policyholder` from `quote.answers`, `book.add(...)`,
+`gemdb.commit()`, redirect. Re-open the quote afterwards and it says which
+policy it became.
 
 Now file a claim on **BF-100092** (Active, three of four approvals used):
 

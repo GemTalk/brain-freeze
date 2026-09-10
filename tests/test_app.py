@@ -181,10 +181,28 @@ class TheApp(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertNotIn("sex", r.data.decode().lower())
 
+    #: The five answers the mockups are drawn from: age 11, eats fast,
+    #: favourite is a slushie, no headache history. Scores 75.0, High tier,
+    #: $171.00 a year on Standard -- all three pinned in test_brainfreeze.
+    MOCKUP_ANSWERS = {"age": "11", "migraine": "no", "tth": "no",
+                      "speed": "fast", "trigger": "slushie"}
+
+    def a_quote(self, answers=None):
+        """Ask for a quote and return (its id, the page it redirects to).
+
+        `POST /quote` is a write now -- it puts a SavedQuote in the book --
+        so it answers 303/302 and the screen is a GET of the quote's own
+        address. Issue #53: the answers used to come back as hidden fields
+        instead, which is the one place this app kept state in the browser.
+        """
+        posted = self.client.post("/quote", data=answers or self.MOCKUP_ANSWERS)
+        self.assertEqual(posted.status_code, 302)    # POST/redirect/GET
+        location = posted.headers["Location"]
+        quote_id = location.rstrip("/").split("/")[-1]
+        return quote_id, self.client.get(location)
+
     def test_a_quote_shows_what_the_model_says(self):
-        r = self.client.post("/quote", data={
-            "age": "11", "migraine": "no", "tth": "no",
-            "speed": "fast", "trigger": "slushie"})
+        quote_id, r = self.a_quote()
         self.assertEqual(r.status_code, 200)
         body = r.data.decode()
         offer = bf_app.brainfreeze.quote(11, False, False, "fast", "slushie")
@@ -195,19 +213,59 @@ class TheApp(unittest.TestCase):
         for plan in ("Basic", "Standard", "Premium"):
             self.assertIn(plan, body)
         self.assertIn("171.00", body)            # Standard at the High loading
+        self.assertIn(quote_id, body)            # and it says which quote
 
     def test_the_quote_explains_itself(self):
         # CUJ-2 needs the breakdown visible, not just the total.
-        r = self.client.post("/quote", data={
-            "age": "11", "migraine": "no", "tth": "no",
-            "speed": "fast", "trigger": "slushie"})
-        self.assertIn("Everyone starts here", r.data.decode())
+        self.assertIn("Everyone starts here", self.a_quote()[1].data.decode())
+
+    # -- a quote is an object (issue #53) --------------------------------
+
+    def test_a_quote_is_an_object_in_the_book(self):
+        before = len(self.book().quotes)
+        quote_id, _ = self.a_quote()
+        quotes = self.book().quotes
+        self.assertEqual(len(quotes), before + 1)
+        saved = quotes[quote_id]
+        self.assertEqual(saved.quote_id, quote_id)
+        self.assertTrue(quote_id.startswith("QTE-"))
+        self.assertEqual(saved.answers, dict(
+            age=11, migraine_history=False,
+            tension_type_headache_history=False,
+            typical_consumption_speed="fast", favourite_trigger="slushie"))
+        self.assertEqual(saved.tier, "High")
+        self.assertEqual(saved.plans["Standard"]["annual"], usd("171.00"))
+        self.assertEqual(saved.quoted_on, date.today())
+        self.assertIsNone(saved.policy_id)
+
+    def test_a_quote_does_not_count_as_a_policy(self):
+        # verify_book.py and tests/test_seed.py pin the policy count. A quote
+        # is not a policy and must not move it.
+        before = len(self.book())
+        self.a_quote()
+        self.assertEqual(len(self.book()), before)
+
+    def test_a_quote_can_be_re_opened(self):
+        # The whole point of giving it an identity: the same page comes back
+        # from a plain GET, with nothing carried in the request.
+        quote_id, first = self.a_quote()
+        again = self.client.get("/quote/%s" % quote_id)
+        self.assertEqual(again.status_code, 200)
+        self.assertEqual(again.data, first.data)
+
+    def test_an_unknown_quote_is_a_404(self):
+        self.assertEqual(self.client.get("/quote/QTE-999999").status_code, 404)
+
+    def test_the_quote_screen_sends_nothing_back_through_the_browser(self):
+        # The defect in one line. A hidden field on this page is a quote's
+        # state living in the client because it had nowhere else to live.
+        self.assertNotIn('type="hidden"', self.a_quote()[1].data.decode())
 
     def test_taking_out_a_policy_persists_it(self):
         before = len(self.book())
-        r = self.client.post("/policies", data={
-            "age": "11", "migraine": "no", "tth": "no",
-            "speed": "fast", "trigger": "slushie", "plan": "Standard"})
+        quote_id, _ = self.a_quote()
+        r = self.client.post("/quote/%s/accept" % quote_id,
+                             data={"plan": "Standard"})
         self.assertEqual(r.status_code, 302)     # POST/redirect/GET
         book = self.book()
         self.assertEqual(len(book), before + 1)
@@ -217,6 +275,41 @@ class TheApp(unittest.TestCase):
         self.assertEqual(policy.risk_tier, "High")
         self.assertEqual(policy.annual_premium, usd("171.00"))
         self.assertEqual(policy.events, [])
+
+    def test_the_policy_is_sold_at_the_price_that_was_quoted(self):
+        # Not re-priced on the way through. The stored figure is the one the
+        # customer was shown, and it is the one on the policy.
+        quote_id, _ = self.a_quote()
+        saved = self.book().quotes[quote_id]
+        r = self.client.post("/quote/%s/accept" % quote_id,
+                             data={"plan": "Premium"})
+        policy = self.book()[r.headers["Location"].rstrip("/").split("/")[-1]]
+        self.assertEqual(policy.annual_premium,
+                         saved.plans["Premium"]["annual"])
+        self.assertEqual(policy.annual_premium, usd("342.00"))
+
+    def test_an_accepted_quote_remembers_what_it_became(self):
+        quote_id, _ = self.a_quote()
+        r = self.client.post("/quote/%s/accept" % quote_id,
+                             data={"plan": "Basic"})
+        policy_id = r.headers["Location"].rstrip("/").split("/")[-1]
+        saved = self.book().quotes[quote_id]
+        self.assertEqual(saved.policy_id, policy_id)
+        self.assertTrue(saved.is_accepted)
+        # ...and says so when it is re-opened.
+        self.assertIn(policy_id, self.client.get("/quote/%s" % quote_id)
+                      .data.decode())
+
+    def test_accepting_a_plan_that_was_never_quoted_is_a_404(self):
+        quote_id, _ = self.a_quote()
+        r = self.client.post("/quote/%s/accept" % quote_id,
+                             data={"plan": "Platinum"})
+        self.assertEqual(r.status_code, 404)
+
+    def test_accepting_a_quote_that_does_not_exist_is_a_404(self):
+        r = self.client.post("/quote/QTE-999999/accept",
+                             data={"plan": "Standard"})
+        self.assertEqual(r.status_code, 404)
 
     # -- history ---------------------------------------------------------
 
