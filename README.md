@@ -110,10 +110,10 @@ gemdb run_notebook_check.py         # every notebook cell, in order
 ```
 
 ```console
-Ran 225 tests in 0.934s
-OK (skipped=48)
+Ran 251 tests in 0.901s
+OK (skipped=57)
 
-Ran 175 tests
+Ran 194 tests
 OK
 
 All 10 code cells ran.
@@ -126,7 +126,7 @@ for money: `round()` is half-up inside the database and banker's outside it,
 truncates there. `brainfreeze/money.py` exists so none of that can reach a
 premium, and the second run is what proves it.
 
-The 48 skips are the app's tests, HTML and JSON alike: they need a database,
+The 57 skips are the app's tests, HTML and JSON alike: they need a database,
 so under plain CPython
 the module skips itself and `unittest discover` stays green.
 

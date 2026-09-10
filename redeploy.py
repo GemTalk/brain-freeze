@@ -51,14 +51,42 @@ ORDER = [
     "brainfreeze.adjudication",
     "brainfreeze.model",
     "brainfreeze.analysis",
+    "brainfreeze.wire",
     "brainfreeze",
 ]
+
+
+def unlisted_modules():
+    """Modules in `brainfreeze/` that ORDER does not name.
+
+    ORDER has to be hand-written, because reload order is a dependency
+    question no directory listing can answer. But a hand-written list drifts:
+    `brainfreeze.wire` arrived with the JSON API and sat unlisted, so anyone
+    editing it and running this would have kept the old compiled copy with
+    nothing to say so -- which is the exact failure this script exists to
+    prevent, reintroduced one module at a time.
+
+    So the ORDER is checked rather than trusted. Two lists that must agree is
+    the bug; one list and a check is not.
+    """
+    here = os.path.join(os.path.dirname(os.path.abspath(__file__)), "brainfreeze")
+    on_disk = set()
+    for name in os.listdir(here):
+        if name.endswith(".py") and name != "__init__.py":
+            on_disk.add("brainfreeze.%s" % name[:-3])
+    return sorted(on_disk - set(ORDER))
 
 
 def redeploy():
     import importlib
 
     import gemdb
+
+    missing = unlisted_modules()
+    if missing:
+        print("  ORDER does not list: %s" % ", ".join(missing))
+        print("  Add them in dependency order, leaves first, and re-run.")
+        return 2
 
     if HERE not in sys.path:
         sys.path.insert(0, HERE)
