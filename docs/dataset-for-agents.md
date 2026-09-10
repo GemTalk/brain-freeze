@@ -16,6 +16,12 @@ themselves — nine questions with the exact figures a freshly seeded book
 returns — are in [`mcp-questions.md`](mcp-questions.md); this is the map, that
 is the pinned expectation.
 
+This file is for **reading** the data over MCP. Changing the Python that
+defines it is a different job with a different toolset — not MCP's — and
+[`adding-a-feature.md`](adding-a-feature.md) is that one: where a new field
+goes, which commands make it live, and why `Claim.rule` has to be read through
+`getattr` while `Claim.flavour` does not.
+
 Everything here was read out of `brainfreeze/`, `seed.py`, `data/*.csv` and
 the findings scripts. Where a figure is date-dependent or was measured on one
 particular build, it says so.

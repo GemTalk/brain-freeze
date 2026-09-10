@@ -648,11 +648,14 @@ tests/         the suite -- python3 -m unittest discover
 mockups/       nine screens, an insurer sketch, and build_c.py that makes them
 docs/          the PRD, the questions the demo promises to answer, the
                dataset description an agent needs to ask its own, the rules
-               for writing Python that runs inside the database, and the
-               column dictionary for the two CSVs
+               for writing Python that runs inside the database, what it
+               takes to add a feature to this repo, and the column
+               dictionary for the two CSVs
+features/      the acceptance suite -- .venv-acceptance/bin/behave
 findings/      the eight things that cost time, as scripts you can run
 app.py         the web app -- the HTML screens and the JSON API
 seed.py        data/ -> gemdb.root
+redeploy.py    make the database run the brainfreeze/ that is on disk now
 PLAN.md        the working notes, including what is still open
 ```
 
@@ -673,6 +676,17 @@ committed module the database then serves forever — with the through-line that
 in most of these, **the code that exists to report a problem is the code that
 breaks.** The evidence is [`findings/`](findings/README.md), summarised
 [below](#what-this-cost-us).
+
+[`docs/adding-a-feature.md`](docs/adding-a-feature.md) is the third of that set
+and the one to read before **changing** anything in here. The demo's line is "I
+didn't write any code — I told the agent to add toppings and flavours", and
+this is what makes that a conversation rather than a guess: where a new field
+goes and why a class-level default is free only before the first commit, that a
+change to `brainfreeze/` is not live until `gemdb redeploy.py`, when a reseed is
+needed as well, both test commands and why there are two, and the surfaces that
+have to stay in agreement. It is a worked example rather than a list of rules —
+`flavour`/`toppings` cost nothing and `SavedQuote` cost a redeploy and a reseed,
+and the difference between them is the whole lesson.
 
 `brainfreeze/` imports nothing outside the standard library and is not allowed
 to — it is compiled and run inside the database, where numpy and pandas do not
