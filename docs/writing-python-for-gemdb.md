@@ -15,6 +15,12 @@ the real field names, the questions and their traps. The two do not overlap on
 purpose: that one tells you what a `Policyholder` is, this one tells you what
 the runtime will do to the code you write about it.
 
+A third, [`adding-a-feature.md`](adding-a-feature.md), turns this one into a
+procedure for **changing this repository** — where a field goes, which commands
+deploy it, what the tests are and which surfaces move together. It links back
+here for every fact rather than restating one, so read this first and that one
+when you are about to edit something.
+
 The evidence is [`findings/`](../findings/): eight scripts that reproduce these
 on your own database rather than asking you to believe a transcript. Where this
 file states a fact, the finding that measured it is named.
