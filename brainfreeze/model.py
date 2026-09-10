@@ -290,6 +290,111 @@ class Policyholder:
             self.policy_id, self.age, self.plan_name, self.risk_tier, len(self.events))
 
 
+class SavedQuote:
+    """A quote that was given, kept as an object rather than as a form post.
+
+    Not `Quote` -- that name belongs to the NamedTuple `brainfreeze.quote()`
+    hands back, which is a price worked out and returned. This is the one that
+    is kept: it has an identity, an address in the web app, and a record of
+    which policy it turned into.
+
+    WHAT IT KEEPS AND WHAT IT DERIVES, WHICH IS THE ARGUMENT WORTH HAVING
+
+    It keeps everything: the five answers, the score, the reasoning behind the
+    score, and all three prices. That is the opposite of
+    `Policyholder.underwriting_risk_score`, which is derived on purpose so that
+    changing a weight moves it rather than leaving a number frozen at seed
+    time -- and the difference is not an inconsistency.
+
+    A quote is a promise made on a date. A policy sold from one has to be sold
+    at the figure the customer was shown, and a re-opened quote that had
+    quietly re-priced itself would be the same round-trip the hidden form
+    fields were, with the state going through the rules instead of through the
+    browser. A policy's score, by contrast, is a statement about a person and
+    should be true today.
+
+    IT HOLDS MONEY, SO IT HOLDS DECIMAL
+
+    Twelve figures of it -- annual, monthly, limit and deductible for each of
+    the three plans -- and every one arrives through `usd`, which refuses a
+    float outright. Money enters the model at `Claim`, at `Policyholder` and
+    here, and nowhere else; those three calls are the whole guarantee that
+    none of it is a float. A committed Decimal keeps its value, its ordering
+    and its equality, measured; what it does not keep is its trailing zero, so
+    nothing here may print one with `str()`.
+    """
+
+    #: Which policy this quote became, once someone took it up. A class
+    #: attribute as well as an instance one, declared before this class was
+    #: ever committed, which is the only moment a default can be added for
+    #: free -- see `Claim.rule` above and docs/prd-corrections.md correction 5.
+    policy_id = None
+
+    def __init__(self, quote_id, quoted_on, age, migraine_history,
+                 tension_type_headache_history, typical_consumption_speed,
+                 favourite_trigger, score, tier, breakdown, plans,
+                 policy_id=None):
+        self.quote_id = quote_id
+        self.quoted_on = quoted_on
+
+        #: The five answers, spelled exactly as `underwriting.quote` and
+        #: `Policyholder` both spell them. See the `answers` property.
+        self.age = age
+        self.migraine_history = migraine_history
+        self.tension_type_headache_history = tension_type_headache_history
+        self.typical_consumption_speed = typical_consumption_speed
+        self.favourite_trigger = favourite_trigger
+
+        #: A score is not money and is honestly a float; so are the points in
+        #: the breakdown. Only the plans below go through `usd`.
+        self.score = score
+        self.tier = tier
+        self.breakdown = [(label, points) for label, points in breakdown]
+
+        priced = {}
+        for name in plans:
+            plan = plans[name]
+            priced[name] = {
+                "annual": usd(plan["annual"]),
+                "monthly": usd(plan["monthly"]),
+                "limit": usd(plan["limit"]),
+                "deductible": usd(plan["deductible"]),
+            }
+        self.plans = priced
+
+        if policy_id is not None:
+            self.policy_id = policy_id
+
+    @property
+    def answers(self):
+        """The five answers, keyed the way both callers want them.
+
+        `brainfreeze.quote(**saved.answers)` re-prices it and
+        `Policyholder(..., **saved.answers)` sells it, with nothing restated
+        in between. Restating them is what the hidden fields were.
+        """
+        return dict(
+            age=self.age,
+            migraine_history=self.migraine_history,
+            tension_type_headache_history=self.tension_type_headache_history,
+            typical_consumption_speed=self.typical_consumption_speed,
+            favourite_trigger=self.favourite_trigger,
+        )
+
+    @property
+    def is_accepted(self):
+        return self.policy_id is not None
+
+    def __repr__(self):
+        # `.get`, because a repr that raises is worse than a repr that says
+        # less -- and `format_usd(None)` is already "--".
+        standard = self.plans.get("Standard")
+        return "<SavedQuote %s %s %s%s>" % (
+            self.quote_id, self.tier,
+            format_usd(standard["annual"] if standard else None),
+            " -> %s" % self.policy_id if self.policy_id else "")
+
+
 class Book:
     """The whole book of business -- the one object the database root holds.
 
@@ -303,10 +408,30 @@ class Book:
 
     def __init__(self):
         self.policies = {}
+        #: Quotes given, by quote id. A separate mapping rather than a
+        #: policy's field, because most quotes never become a policy -- and
+        #: deliberately not in `policies`, which `len(self)` counts and
+        #: `verify_book.py` pins at 900.
+        self.quotes = {}
 
     def add(self, policyholder):
         self.policies[policyholder.policy_id] = policyholder
         return policyholder
+
+    def add_quote(self, a_quote):
+        """Keep a quote. It is not a policy and is counted as neither.
+
+        A Book committed before this field existed has no `quotes` slot of its
+        own, and declaring one on the class now would not reach it: editing a
+        class compiles a DIFFERENT class and instances keep the one they were
+        made under (findings/03_class_identity.py, docs/prd-corrections.md
+        correction 5). So this raises AttributeError on an old book rather
+        than pretending, and the fix is the documented pair -- `gemdb
+        redeploy.py` to give the database the new code, then `gemdb seed.py`
+        to rebuild the book under it.
+        """
+        self.quotes[a_quote.quote_id] = a_quote
+        return a_quote
 
     def __len__(self):
         return len(self.policies)

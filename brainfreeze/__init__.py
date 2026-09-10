@@ -26,6 +26,7 @@ from .model import (
     Claim,
     Event,
     Policyholder,
+    SavedQuote,
 )
 from .analysis import (
     book_summary,
@@ -65,7 +66,7 @@ __all__ = [
     "RULE_ANNUAL_LIMIT", "RULE_BELOW_DEDUCTIBLE", "RULE_OUTSIDE_TERM",
     "RULE_PER_INCIDENT_LIMIT", "RULE_POLICY_LAPSED",
     "adjudicate", "assess_amount", "rule_for_reason",
-    "Book", "Claim", "Event", "Policyholder",
+    "Book", "Claim", "Event", "Policyholder", "SavedQuote",
     "book_summary", "claim_approval_rate", "denial_reasons", "denial_rules",
     "least_profitable_plan", "loss_ratio_by_plan", "loss_ratio_by_tier",
     "top_n_by_expected_claims", "top_n_by_loss_ratio",

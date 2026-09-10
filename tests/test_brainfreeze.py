@@ -9,10 +9,11 @@ start disagreeing, this is what says so.
 
 import unittest
 from datetime import date
+from decimal import Decimal
 
 from brainfreeze.money import round_cents, usd
 
-from brainfreeze.model import Event, Policyholder
+from brainfreeze.model import Book, Event, Policyholder, SavedQuote
 
 from brainfreeze import (
     COVERAGE_PLANS,
@@ -334,6 +335,104 @@ class Assessment(unittest.TestCase):
         # the floor and ceiling only bite with the generator's jitter on top
         self.assertEqual(assess_amount(0, 0, jitter=-50), 5.0)
         self.assertEqual(assess_amount(10, 900, jitter=500), 200.0)
+
+
+class QuotesAreObjects(unittest.TestCase):
+    """Issue #53: a quote used to have no identity.
+
+    `POST /quote` priced one, rendered it, and posted the five answers back
+    to the browser as hidden fields so that accepting could work them out
+    again -- state round-tripped through the client because there was nowhere
+    in the book to put it. A `SavedQuote` is that somewhere.
+
+    What it keeps and what it derives is the argument worth having. The
+    answers and the prices are kept, because a quote is a promise made on a
+    date and a policy sold from one must be sold at the figure the customer
+    was shown. That is the opposite of `Policyholder.underwriting_risk_score`,
+    which is derived so that changing a weight moves it -- and deliberately so.
+    """
+
+    def setUp(self):
+        self.answers = dict(
+            age=11, migraine_history=False,
+            tension_type_headache_history=False,
+            typical_consumption_speed="fast", favourite_trigger="slushie")
+        self.offer = quote(**self.answers)
+        self.saved = SavedQuote(
+            quote_id="QTE-000001", quoted_on=date(2026, 9, 10),
+            score=self.offer.score, tier=self.offer.tier,
+            breakdown=self.offer.breakdown, plans=self.offer.plans,
+            **self.answers)
+
+    def test_it_keeps_the_answers_it_was_given(self):
+        self.assertEqual(self.saved.answers, self.answers)
+
+    def test_the_answers_are_spelled_the_way_a_policyholder_wants_them(self):
+        # The point of the property: accepting a quote is `Policyholder(...,
+        # **saved.answers)`, with nothing restated and nothing recomputed.
+        policy = Policyholder(
+            policy_id="BF-100900", sex=None, underwriting_base=45.0,
+            plan_name="Standard",
+            annual_premium=self.saved.plans["Standard"]["annual"],
+            policy_start_date=date(2026, 9, 10), **self.saved.answers)
+        self.assertEqual(policy.risk_tier, "High")
+        self.assertEqual(policy.annual_premium, usd("171.00"))
+
+    def test_it_keeps_the_price_it_quoted(self):
+        self.assertEqual(self.saved.tier, "High")
+        self.assertEqual(self.saved.score, 75.0)
+        self.assertEqual(self.saved.plans["Standard"]["annual"], usd("171.00"))
+        self.assertEqual(self.saved.plans["Standard"]["monthly"], usd("14.25"))
+        self.assertEqual(self.saved.plans["Basic"]["annual"], usd("85.50"))
+        self.assertEqual(self.saved.plans["Premium"]["deductible"], usd("0.00"))
+
+    def test_the_money_on_a_quote_is_decimal(self):
+        # A quote holds money, so it holds Decimal, and a committed Decimal
+        # keeps its value, ordering and equality. What it must never hold is
+        # a float -- see brainfreeze.money and issue #68.
+        for name in ("Basic", "Standard", "Premium"):
+            for field in ("annual", "monthly", "limit", "deductible"):
+                amount = self.saved.plans[name][field]
+                self.assertIsInstance(amount, Decimal,
+                                      "%s %s is %r" % (name, field, amount))
+
+    def test_a_float_price_is_refused_rather_than_quietly_converted(self):
+        # Money enters the model through `usd`, at Claim, at Policyholder and
+        # now here, and nowhere else. That is the whole guarantee.
+        plans = {"Basic": {"annual": 85.5, "monthly": 7.13,
+                           "limit": 25.0, "deductible": 10.0}}
+        with self.assertRaises(TypeError):
+            SavedQuote(quote_id="QTE-000002", quoted_on=date(2026, 9, 10),
+                       score=75.0, tier="High", breakdown=[], plans=plans,
+                       **self.answers)
+
+    def test_it_carries_the_reasoning_that_produced_it(self):
+        # CUJ-2 asks an agent to explain a price. It can only do that from the
+        # rows the customer was actually shown.
+        labels = [label for label, _ in self.saved.breakdown]
+        self.assertIn("Everyone starts here", labels)
+        self.assertIn("Favourite treat: slushie", labels)
+
+    def test_a_fresh_quote_has_not_been_taken_up(self):
+        self.assertIsNone(self.saved.policy_id)
+        self.assertFalse(self.saved.is_accepted)
+
+    def test_taking_it_up_records_which_policy_it_became(self):
+        self.saved.policy_id = "BF-100900"
+        self.assertTrue(self.saved.is_accepted)
+
+    def test_a_book_starts_with_no_quotes(self):
+        self.assertEqual(Book().quotes, {})
+
+    def test_the_book_holds_quotes_without_counting_them_as_policies(self):
+        # verify_book.py and tests/test_seed.py pin policies, events and
+        # claims. A quote is none of those and must move none of them.
+        book = Book()
+        self.assertIs(book.add_quote(self.saved), self.saved)
+        self.assertEqual(len(book), 0)
+        self.assertEqual(book.events, [])
+        self.assertEqual(book.claims, [])
+        self.assertIs(book.quotes["QTE-000001"], self.saved)
 
 
 if __name__ == "__main__":
