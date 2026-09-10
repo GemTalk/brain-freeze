@@ -13,3 +13,9 @@ docs/two-demos-compared.md
 
 # Agent worktrees and local tooling state, not part of the demo.
 .claude/
+
+# The acceptance suite (CUJ-5). Its virtualenv carries a browser, and its
+# screenshots are evidence of a run rather than documentation -- the feature
+# files are the documentation. See issue #73.
+.venv-acceptance/
+artifacts/

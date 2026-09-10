@@ -101,6 +101,34 @@ gemdb -c 'import gemdb; b = gemdb.root["brainfreeze"]; print(len(b), "policies |
 leaves one book of 900 policies, not two. Every step below can be started over
 that way, and takes about nine seconds.
 
+### The acceptance suite
+
+Everything above asserts against objects. None of it says a person can use the
+demo. That is what `features/` is for: Gherkin scenarios that drive the real
+app in a real browser and leave screenshots behind as evidence.
+
+```sh
+.venv-acceptance/bin/behave
+```
+
+It seeds the book, starts `gemdb app.py`, drives it, stops it, and **fails the
+run if the port is still open afterwards** — a leaked app is a leaked GemStone
+session, and the stone allows ten.
+
+Screenshots land in `artifacts/`, which is gitignored. They are evidence of a
+run, not documentation: the app renders today's date, so identical passing
+runs differ tomorrow. **The feature files are the documentation** — they are
+committed, readable, and written in the language of insurance rather than of
+clicking.
+
+Setting it up once, because it carries a browser:
+
+```sh
+python3 -m venv .venv-acceptance
+.venv-acceptance/bin/pip install behave playwright
+.venv-acceptance/bin/playwright install chromium
+```
+
 ### The tests
 
 ```sh
