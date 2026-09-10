@@ -122,6 +122,16 @@ Five journeys: the app is up, quote to policy, filing a claim to a decision,
 the three refusals, and a policy changed from a shell while the browser
 watches. Eighteen screenshots.
 
+**The feature files are the record.** They describe the demo and cite nothing
+outside it — no issue numbers, no tracker references. A tracker is private and
+impermanent; `features/` is the durable description of what this thing does,
+and has to be readable by someone who has never seen the project board. Write
+the reason, not the reference.
+
+**Everything gets an acceptance test.** Not only the web journeys these five
+started with. When something is built or fixed, what its acceptance test says
+is part of the work.
+
 **Each scenario was checked by breaking the thing it exists to catch.** Disable
 the app's per-request refresh and the cross-surface scenario fails; tell a
 policy that never lapsed that it lapsed and the refusals fail; show what was

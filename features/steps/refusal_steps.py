@@ -297,7 +297,7 @@ def the_two_refusals_differ(context):
     assert first != second, (
         "both policies are refused with the same sentence:\n  %r\n"
         "One of them lapsed and the other has not started yet. Saying the "
-        "same thing about both is the bug #46 fixed." % first)
+        "same thing about both is a bug this demo has had." % first)
 
 
 @then('"{ended}" speaks of cover that ended, and "{not_started}" does not')
@@ -322,7 +322,7 @@ def only_one_speaks_of_cover_ending(context, ended, not_started):
         assert forbidden not in other_text.lower(), (
             "the refusal for %s says %r. That policy never lapsed and its "
             "term has not ended -- it has not begun. Telling its customer "
-            "otherwise is the bug #46 fixed:\n  %r"
+            "otherwise is the bug this check exists for:\n  %r"
             % (other_id, forbidden, other_text))
 
 

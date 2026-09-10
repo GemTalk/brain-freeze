@@ -208,7 +208,7 @@ def shown_a_decision(context):
 
     The claim id is the handle everything after this uses. It is never a
     position: the claim was filed today into a history that runs into 2027,
-    so it lands in the middle of the table rather than at the end (#69, #71).
+    so it lands in the middle of the table rather than at the end.
     """
     match = re.search(r"/policies/(BF-\d+)/claims/(CLM-\d+)$", context.page.url)
     assert match, (
@@ -384,7 +384,7 @@ def claim_is_on_the_record(context):
 
 @then('it sits in date order, among episodes that have not happened yet')
 def it_sits_in_date_order(context):
-    """#69 and #71: events are kept in date order, not appended.
+    """Events are kept in date order, not appended.
 
     This policy's seeded history runs into 2027, so a claim filed today
     belongs in the middle of it. A row at the end would mean the record is

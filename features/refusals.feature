@@ -9,9 +9,9 @@ Feature: The refusals, and being told why
   still work next year.
 
   The pair worth the trouble is the last one. A policy whose term has not
-  started never lapsed, and telling its customer that it did is exactly the
-  thing #46 fixed, so the two refusals are read against each other rather than
-  only one at a time. The wording is checked against the reason the rules
+  started never lapsed, and telling its customer that it did is a mistake this
+  demo has made before. So the two refusals are read against each other rather
+  than one at a time, and each is checked against the reason the rules
   themselves give, so the screen and the adjudicator cannot drift apart.
 
   Background:
