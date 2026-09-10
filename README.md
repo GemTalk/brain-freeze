@@ -111,6 +111,23 @@ app in a real browser and leave screenshots behind as evidence.
 .venv-acceptance/bin/behave
 ```
 
+```console
+5 features passed, 0 failed, 0 skipped
+8 scenarios passed, 0 failed, 0 skipped
+99 steps passed, 0 failed, 0 skipped
+Took 0min 44.539s
+```
+
+Five journeys: the app is up, quote to policy, filing a claim to a decision,
+the three refusals, and a policy changed from a shell while the browser
+watches. Eighteen screenshots.
+
+**Each scenario was checked by breaking the thing it exists to catch.** Disable
+the app's per-request refresh and the cross-surface scenario fails; tell a
+policy that never lapsed that it lapsed and the refusals fail; show what was
+requested instead of what was approved and the claim scenario fails. A green
+run that has never been made to go red is not evidence.
+
 It seeds the book, starts `gemdb app.py`, drives it, stops it, and **fails the
 run if the port is still open afterwards** — a leaked app is a leaked GemStone
 session, and the stone allows ten.
