@@ -751,16 +751,28 @@ Two things below are now measured false and corrected in place: the session
 leak is fixed upstream, and `eval_python` keeps names between calls. See
 `docs/gemdb-code-tasks.md` §1.4 and §2.4, and issue #43.
 
-**Still to do:** nothing about the transport. A packaging bug stops the payload
-GemDB assembles from starting at all (issue #65), and no released GemDB carries
-any of this yet. Claude Desktop's `mcp-remote` shim cannot be tested against a
-server no released build ships.
+**Done.** The transport is verified, and connecting a client is written up in
+the README with output that was actually produced:
 
-Connection: the server forks with the database and appears in VS Code agent
-mode on its own. For any other client the whole step is
-`http://127.0.0.1:8787/mcp` (Streamable HTTP, loopback, no auth). Claude Code
-takes that directly; **Claude Desktop probably needs an `mcp-remote` shim —
-verify before documenting it.**
+```
+gemdb: http://127.0.0.1:50390/mcp (HTTP) - ✔ Connected
+```
+
+Claude Code takes the endpoint directly — Streamable HTTP, loopback, no auth,
+no shim, no wrapper. FR-4.2 asks for **at least one** popular client, and that
+is it.
+
+**The `mcp-remote` guess is deleted rather than settled.** This section used to
+say Claude Desktop "probably needs an `mcp-remote` shim — verify before
+documenting it". Nobody needs to verify it. The demo's audience is already in
+an editor with the GemDB extension, the server is loopback-only on the machine
+running the database, and the requirement is met. A guess with "probably" in it
+is worth less than no sentence at all, and this is the one place it lived.
+
+No released GemDB carries MCP at all, so the README says to build the extension
+from `main` — and says, loudly, to set `gemdb.reinstallPythonOnUpdate` to
+`false` first, because otherwise the update reinstalls Python and orphans every
+committed object (#72).
 
 **Watch the session budget, and it is tighter than it looks.** The ceiling is
 ten — `Stone Session limit: 10` in the Community Edition keyfile GemDB
