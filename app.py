@@ -874,6 +874,7 @@ HISTORY = _STYLE + """
 <h1 class="num">{{ p.policy_id }}</h1>
 <p class="sub">{{ p.plan_name }} &middot; {{ p.risk_tier }} band,
   <span class="num">{{ p.underwriting_risk_score }}</span> &middot;
+  {{ usd(p.annual_premium) }} a year &middot;
   {{ usd(p.coverage_limit) }} an episode,
   {{ usd(p.deductible) }} deductible &middot;
   <span class="tag {{ cover_css }}">{{ cover }}</span>

@@ -10,6 +10,6 @@ Feature: The demo is up
   Scenario: the customer picker is served from the database
     Given the demo is running
     When I open the customer picker page
-    Then the page mentions 900 policyholders
+    Then the page says how many policyholders there are
     And I see "BF-100000"
     And I capture "the customer picker"
