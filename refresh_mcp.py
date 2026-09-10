@@ -40,6 +40,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import socket
 import urllib.request
 
 UPSTREAM = "https://github.com/GemTalk/mcp_server.git"
@@ -334,12 +335,35 @@ def router(action):
         cwd=MCP_DIR, env=gemstone_env())
 
 
+def router_is_listening(port=PORT):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        probe.settimeout(1.0)
+        return probe.connect_ex(("127.0.0.1", port)) == 0
+
+
 def verify():
-    """Start the router, ask every promise, compare, stop the router."""
+    """Ask every promise over MCP, and leave the router as we found it.
+
+    A router already listening is the NORMAL case once someone has connected
+    a client: it is a long-lived server, and Claude Code keeps pointing at it.
+    An earlier version of this assumed the port was free, tried to start a
+    second router, and reported `run-server failed` -- which says nothing
+    about the actual situation and sent me looking for a broken payload.
+
+    So: if one is already there, use it and say so, and do NOT stop it on the
+    way out. Stopping a server this script did not start would take somebody's
+    connected agent down with it.
+    """
     expected = read_promises()
     print("  %d promises in docs/mcp-questions.md" % len(expected))
 
-    router("run")
+    borrowed = router_is_listening()
+    if borrowed:
+        print("  a router is already serving on port %d -- using it, and" % PORT)
+        print("  leaving it running. Its version is reported below.")
+    else:
+        router("run")
+
     client = Client()
     try:
         info = client.open()
@@ -364,8 +388,11 @@ def verify():
         return 1 if broken else 0
     finally:
         client.close()
-        router("stop")
-        print("  router stopped")
+        if borrowed:
+            print("  router left running -- it was not ours to stop")
+        else:
+            router("stop")
+            print("  router stopped")
 
 
 def preamble():

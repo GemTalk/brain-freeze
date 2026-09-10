@@ -20,3 +20,7 @@ docs/two-demos-compared.md
 .venv-acceptance/
 artifacts/
 .acceptance-pages/
+
+# Coverage measurement, run on demand rather than committed.
+.coverage
+htmlcov/
