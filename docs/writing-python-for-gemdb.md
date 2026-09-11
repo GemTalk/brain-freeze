@@ -21,11 +21,11 @@ deploy it, what the tests are and which surfaces move together. It links back
 here for every fact rather than restating one, so read this first and that one
 when you are about to edit something.
 
-The evidence is [`findings/`](../findings/): eight scripts that reproduce these
+The evidence is [`findings/`](../findings/): nine scripts that reproduce these
 on your own database rather than asking you to believe a transcript. Where this
 file states a fact, the finding that measured it is named.
 
-**Measured** 2026-09-08 and 2026-09-09, against GemStone/S 3.7.5 carrying Grail
+**Measured** between 2026-09-08 and 2026-09-11, against GemStone/S 3.7.5 carrying Grail
 `c875e56` with one method patched in
 ([Grail#895](https://github.com/GemTalk/Grail/pull/895)) — `GRAIL_VERSION` on
 that database reads `grail=c875e56+gemtalk-grail-pr895`. Grail moves fast and
@@ -567,7 +567,7 @@ this page:
 - **Its entry point is `run_db_tests()`, not `main()`** (§3 above).
 
 Tests that need a database skip themselves under CPython, so
-`unittest discover` stays green — 27 of the 133 here.
+`unittest discover` stays green — 57 of the 283 here.
 
 ---
 
@@ -580,9 +580,9 @@ Said plainly, because guessing here is how a confident wrong answer gets written
   `sys.argv` is the host topaz command line and `sys.argv[1]` is `-L`, and
   `docs/grail-improvements.md` repeated it. Measured on `c875e56`,
   `gemdb script.py one --two` gives `['/path/to/script.py', 'one', '--two']`.
-  The issue was taken on an older sha. `seed.py --dry-run`,
-  `run_db_tests.py money seed` and `verify_book.py BF-100539` were not
-  untested carry-over after all; they work.
+  The issue was taken on an older sha. `tools/seed.py --dry-run`,
+  `tools/run_db_tests.py money seed` and `tools/verify_book.py BF-100539` were
+  not untested carry-over after all; they work.
 
 ---
 
@@ -598,6 +598,7 @@ Said plainly, because guessing here is how a confident wrong answer gets written
 | [`findings/06_decimal_money.py`](../findings/06_decimal_money.py) | `decimal` works; the operators around it do not |
 | [`findings/07_logging_stub.py`](../findings/07_logging_stub.py) | an exception in a view is invisible |
 | [`findings/08_script_imports.py`](../findings/08_script_imports.py) | what a script can import, and what the database keeps |
+| [`findings/09_imported_module_sys.py`](../findings/09_imported_module_sys.py) | a module cannot fix its importer's `sys.path` once it is committed |
 | [`findings/class-identity/`](../findings/class-identity/README.md) | committing after imports is what keeps class identity |
 
 [`grail-improvements.md`](grail-improvements.md) is the same material addressed

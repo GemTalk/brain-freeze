@@ -32,12 +32,18 @@ stale listener at startup is a refusal rather than something to quietly reuse:
 a suite that silently tested yesterday's server would be worse than no suite.
 """
 
+import ast
+import json
 import os
-import signal
+import re
 import shutil
+import signal
 import socket
 import subprocess
 import time
+import urllib.error
+import urllib.parse
+import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
@@ -53,6 +59,120 @@ BASE_URL = "http://%s:%d" % (HOST, PORT)
 #: and teach everyone to re-run rather than to read.
 PAGE_TIMEOUT_MS = 60000
 APP_START_TIMEOUT_S = 120
+
+
+#: The modules that declare routes. Read rather than imported: they import
+#: `gemdb` and `flask`, so this process cannot load them.
+ROUTE_MODULES = ("routes_html.py", "routes_api.py")
+
+def note_request(context, method, url):
+    """Record one request against the routing table.
+
+    WHY THIS IS NOT A LIST OF URLS IN THE FEATURE FILES
+
+    Most of these pages are reached by clicking, not by typing an address --
+    accepting a quote is a form button, opening the claim form is a link. A
+    check that grepped the feature files for URLs would call those uncovered,
+    and would call a scenario that merely MENTIONS an address covered. This
+    records what was actually asked for.
+
+    WHY IT IS KEPT ON THE CONTEXT AND NOT IN A MODULE GLOBAL
+
+    It was a module global, and half the requests went missing. A step file
+    that says `from environment import ...` gets a DIFFERENT module object
+    from the one behave loaded to run these hooks, so the steps recorded into
+    one set and `after_all` read another. The context is the single thing
+    both halves demonstrably share.
+    """
+    context.driven.add((method.upper(), urllib.parse.urlparse(url).path))
+
+
+def watch(context, page):
+    """Record every request a page makes, navigations and form posts alike."""
+    page.on("request",
+            lambda request: note_request(context, request.method, request.url))
+
+
+#: The JSON surface answers `curl`, so the steps drive it with an HTTP client
+#: rather than a browser. Long enough for a cold first render, like the page
+#: timeout above and for the same reason.
+API_TIMEOUT_S = 60
+
+
+def fetch_json(context, path, method="GET", body=None):
+    """Call the JSON surface, returning (status, decoded payload).
+
+    An error status is a result here, not an exception: half of what the
+    surface promises is what it says when it cannot answer.
+    """
+    url = "%s%s" % (context.base_url, path)
+    data = None
+    headers = {}
+    if body is not None:
+        data = json.dumps(body).encode("utf-8")
+        headers["Content-Type"] = "application/json"
+    request = urllib.request.Request(url, data=data, headers=headers,
+                                     method=method)
+    note_request(context, method, url)
+    try:
+        with urllib.request.urlopen(request, timeout=API_TIMEOUT_S) as response:
+            return response.status, json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as refused:
+        return refused.code, json.loads(refused.read().decode("utf-8"))
+
+
+def keep(context, name, text, extension="json"):
+    """Write a payload beside the screenshots, numbered in the same series.
+
+    A JSON endpoint has no screenshot, and "the evidence is a picture" was
+    never the point -- the point is that a reader can see afterwards exactly
+    what the run was shown.
+    """
+    context.shot_number += 1
+    path = os.path.join(context.shot_dir,
+                        "%02d-%s.%s" % (context.shot_number, slug(name),
+                                        extension))
+    with open(path, "w") as handle:
+        handle.write(text)
+        handle.write("\n")
+    return path
+
+
+def declared_routes():
+    """(rule, method) for every route the app registers."""
+    found = []
+    for name in ROUTE_MODULES:
+        with open(os.path.join(REPO, "web", name)) as handle:
+            tree = ast.parse(handle.read(), filename=name)
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.FunctionDef):
+                continue
+            for decorator in node.decorator_list:
+                if not (isinstance(decorator, ast.Call)
+                        and getattr(decorator.func, "attr", "") == "route"
+                        and decorator.args):
+                    continue
+                methods = ["GET"]
+                for keyword in decorator.keywords:
+                    if keyword.arg == "methods":
+                        methods = [item.value for item in keyword.value.elts]
+                for method in methods:
+                    found.append((decorator.args[0].value, method))
+    return found
+
+
+def matches(rule, path):
+    """Does this request path belong to this rule? `<converters>` are
+    one path segment each, so a rule cannot claim a deeper address."""
+    pattern = "^%s$" % "[^/]+".join(
+        re.escape(part) for part in re.split(r"<[^>]+>", rule))
+    return re.match(pattern, path) is not None
+
+
+def undriven_routes(driven):
+    return [(rule, method) for rule, method in declared_routes()
+            if not any(seen_method == method and matches(rule, seen_path)
+                       for seen_method, seen_path in driven)]
 
 
 def gemdb_env():
@@ -88,6 +208,14 @@ def before_all(context):
 
     shutil.rmtree(ARTIFACTS, ignore_errors=True)
     os.makedirs(ARTIFACTS)
+
+    #: (method, path) for every request this run drives. `after_all` requires
+    #: every route the app declares to appear here.
+    context.driven = set()
+
+    #: Which feature files this run actually executed. Route coverage is only
+    #: meaningful when all of them did -- see `after_all`.
+    context.features_run = set()
 
     print("  seeding the book ...", flush=True)
     run_gemdb("tools/seed.py")
@@ -151,6 +279,32 @@ def after_all(context):
             "leaked GemStone session, and the stone allows ten" % BASE_URL)
     print("\n  app stopped, port free. Screenshots in artifacts/", flush=True)
 
+    # Last, so that a coverage complaint can never be the reason a leaked
+    # session goes unreported.
+    #
+    # Only when the whole suite ran. `behave features/quote.feature` is what
+    # anyone does while writing a scenario, and a run told to drive one
+    # feature has not failed to drive the others.
+    #
+    # Which features ran, rather than what was on the command line: behave
+    # fills `config.paths` in for itself when given none, so asking it what
+    # it was told skipped the check on every run.
+    on_disk = {name for name in os.listdir(HERE) if name.endswith(".feature")}
+    skipped = sorted(on_disk - context.features_run)
+    if skipped:
+        print("  ran %d of %d features, so route coverage was not checked."
+              % (len(context.features_run), len(on_disk)), flush=True)
+        return
+
+    missing = undriven_routes(context.driven)
+    if missing:
+        raise RuntimeError(
+            "the suite never drove these routes:\n  %s\n"
+            "Every route this app serves is supposed to be exercised by a "
+            "scenario. Add one, or take the route out."
+            % "\n  ".join("%s %s" % (method, rule) for rule, method in missing))
+    print("  every route the app declares was driven by a scenario.", flush=True)
+
 
 def stop_process_group(app):
     """Signal the whole group, because the thing holding the port is a
@@ -167,12 +321,34 @@ def stop_process_group(app):
             continue
 
 
+def slug(name):
+    """A filename that still reads like the sentence it came from."""
+    return "".join(c if c.isalnum() else "-" for c in name.lower()).strip("-")
+
+
+def before_feature(context, feature):
+    context.features_run.add(os.path.basename(feature.filename))
+    context.feature_dir = os.path.join(ARTIFACTS, slug(feature.name))
+
+    # Behave pops everything a scenario hook sets, so a counter incremented
+    # there would be 1 every time. The feature already knows the order.
+    context.scenario_order = [s.name for s in feature.scenarios]
+
+
 def before_scenario(context, scenario):
     context.page = context.browser.new_page(viewport={"width": 1100, "height": 900})
     context.page.set_default_timeout(PAGE_TIMEOUT_MS)
+    watch(context, context.page)
     context.shot_number = 0
+
+    # A directory per SCENARIO, not per feature. The shot numbers restart
+    # with each scenario, so two scenarios in one feature both wrote a `01-`,
+    # and two that captured the same moment under the same name overwrote
+    # each other in silence -- evidence a reader would have had no way to
+    # know was missing.
+    position = context.scenario_order.index(scenario.name) + 1
     context.shot_dir = os.path.join(
-        ARTIFACTS, scenario.feature.name.lower().replace(" ", "-"))
+        context.feature_dir, "%d-%s" % (position, slug(scenario.name)))
     os.makedirs(context.shot_dir, exist_ok=True)
 
 
@@ -193,6 +369,14 @@ def after_scenario(context, scenario):
             shoot(context, "FAILED")
         except Exception:
             pass
+    elif not os.listdir(context.shot_dir):
+        # A scenario that passes and leaves nothing behind is a scenario
+        # nobody can check afterwards. The suite exists to be read as much as
+        # to be run.
+        raise RuntimeError(
+            "%r passed without capturing anything. Every scenario ends in "
+            "evidence a reader can look at -- a screenshot, or the payload "
+            "for a surface that has no picture." % scenario.name)
     try:
         context.page.close()
     except Exception:
@@ -202,7 +386,7 @@ def after_scenario(context, scenario):
 def shoot(context, name):
     """Screenshot the page, numbered so a reader can follow the journey."""
     context.shot_number += 1
-    slug = "".join(c if c.isalnum() else "-" for c in name.lower()).strip("-")
-    path = os.path.join(context.shot_dir, "%02d-%s.png" % (context.shot_number, slug))
+    path = os.path.join(context.shot_dir,
+                        "%02d-%s.png" % (context.shot_number, slug(name)))
     context.page.screenshot(path=path, full_page=True)
     return path

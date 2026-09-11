@@ -58,3 +58,4 @@ Feature: The refusals, and being told why
     And "the lapse" speaks of cover that ended, and "the term that has not begun" does not
     And neither refusal names a date the policy does not have
     And the rules tell the two apart as well
+    And I capture "the second of the two refusals, side by side with the rules"

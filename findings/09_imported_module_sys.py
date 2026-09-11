@@ -50,15 +50,19 @@ import, before and after a commit alike. That is why `tools/run_db_tests.py`
 can put `web/` on the path and then execute test modules that `import app`.
 Only the other direction is lost.
 
-NOTE: this leaves one throwaway module compiled in the database, the way any
-script that imports something and commits does. That is the finding.
+NOTE: each cycle leaves one throwaway module compiled in the database, the way
+any script that imports something and commits does. That is the finding -- and
+it is why each run uses a module name this database has not seen before, since
+re-using one would make the script work exactly once.
 """
 
 import os
 import sys
+import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-HELPER = os.path.join(HERE, "_finding09_helper.py")
+
+#: Which module this cycle is using, so run 2 imports the one run 1 made.
 MARKER_FILE = os.path.join(HERE, ".finding09_ran")
 
 MARKER = "/finding-09-was-here"
@@ -73,6 +77,21 @@ if MARKER not in sys.path:
 WHAT_I_SEE = list(sys.path)
 MY_SYS = sys
 ''' % MARKER
+
+
+def helper_path(name):
+    return os.path.join(HERE, "%s.py" % name)
+
+
+def fresh_name():
+    """A module name this database has never compiled.
+
+    Re-using one name would make the script work exactly once per database:
+    after the first cycle the committed copy is what gets served, so run 1
+    would start in the state run 2 exists to show. The clock is enough --
+    Grail has no `random.Random`.
+    """
+    return "_finding09_helper_%d" % time.time()
 
 
 def report(helper):
@@ -94,21 +113,31 @@ def main():
 
     first_run = not os.path.exists(MARKER_FILE)
     if first_run:
-        with open(HELPER, "w") as handle:
+        name = fresh_name()
+        with open(helper_path(name), "w") as handle:
             handle.write(HELPER_SOURCE)
+    else:
+        with open(MARKER_FILE) as handle:
+            name = handle.read().strip()
+        if not os.path.exists(helper_path(name)):
+            print("  %s.py is gone -- starting the cycle over." % name)
+            os.remove(MARKER_FILE)
+            return 1
 
-    import _finding09_helper as helper
+    helper = __import__(name)
     reached_the_caller = report(helper)
 
     if first_run:
         if not reached_the_caller:
-            print("  Unexpected: it did not work even before a commit.")
-            print("  Nothing below is worth reading; investigate that first.")
+            print("  Unexpected: it did not work even before a commit, on a")
+            print("  module this database has never seen. Investigate that")
+            print("  before reading anything else here.")
+            os.remove(helper_path(name))
             return 1
         print("  Before any commit, the helper does what it was written to do.")
         gemdb.commit()
         with open(MARKER_FILE, "w") as handle:
-            handle.write("committed\n")
+            handle.write(name)
         print("  Committed, exactly as `gemdb tools/redeploy.py` does.")
         print()
         print("  Run this again.")
@@ -119,15 +148,15 @@ def main():
         print("  path helper would be safe here. It is not safe on the build")
         print("  this was measured on.")
     else:
-        print("  LOST. Same helper, same source, same REPO -- and the caller's")
-        print("  path is unchanged, so a script leaning on it fails with")
-        print("  `No module named 'brainfreeze'`: a message that names the")
-        print("  package rather than the mechanism.")
+        print("  LOST. Same helper, same source, same constants -- and the")
+        print("  caller's path is unchanged, so a script leaning on it fails")
+        print("  with `No module named 'brainfreeze'`: a message that names")
+        print("  the package rather than the mechanism.")
         print()
         print("  Every entry point in `tools/` and `web/` therefore repeats")
         print("  the three lines itself.")
 
-    for junk in (HELPER, MARKER_FILE):
+    for junk in (helper_path(name), MARKER_FILE):
         if os.path.exists(junk):
             os.remove(junk)
     print()

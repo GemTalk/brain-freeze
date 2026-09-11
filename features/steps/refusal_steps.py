@@ -26,15 +26,13 @@ file is the only place the two meet.
 """
 
 import csv
-import json
 import os
 import sys
-import urllib.request
 from datetime import date
 
 from behave import given, then, when
 
-from environment import REPO
+from environment import REPO, fetch_json
 
 if REPO not in sys.path:                    # behave puts features/ on the
     sys.path.insert(0, REPO)                # path, not the repo root
@@ -48,8 +46,6 @@ POLICYHOLDERS_CSV = os.path.join(REPO, "data", "policyholders.csv")
 NO_COVER_REASONS = (brainfreeze.REASON_POLICY_LAPSED,
                     brainfreeze.REASON_OUTSIDE_TERM)
 
-API_TIMEOUT_S = 60
-
 
 # -- reading the two sources ----------------------------------------------
 
@@ -61,9 +57,9 @@ def api_policy(context, policy_id=None):
     with the feature file while disagreeing with the server.
     """
     policy_id = policy_id or context.policy_id
-    url = "%s/api/policy/%s" % (context.base_url, policy_id)
-    with urllib.request.urlopen(url, timeout=API_TIMEOUT_S) as response:
-        return json.loads(response.read().decode("utf-8"))
+    status, payload = fetch_json(context, "/api/policy/%s" % policy_id)
+    assert status == 200, "GET /api/policy/%s answered %d" % (policy_id, status)
+    return payload
 
 
 def not_yet_started(today):

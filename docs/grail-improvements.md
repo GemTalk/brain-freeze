@@ -248,9 +248,10 @@ entry here repeated it without checking.
 
 This one is worth chasing down rather than just deleting, because the wrong
 version of it is load-bearing advice: it tells anyone writing a CLI-shaped
-script to take parameters from the environment instead. `seed.py --dry-run`,
-`run_db_tests.py money seed`, `verify_book.py BF-100539` and `lapse.py
-BF-100184 --reinstate` all read `sys.argv` and all work.
+script to take parameters from the environment instead.
+`tools/seed.py --dry-run`, `tools/run_db_tests.py money seed`,
+`tools/verify_book.py BF-100539` and `tools/lapse.py BF-100184 --reinstate`
+all read `sys.argv` and all work.
 
 ## P2 — worth having
 

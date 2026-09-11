@@ -22,7 +22,7 @@ defines it is a different job with a different toolset — not MCP's — and
 goes, which commands make it live, and why `Claim.rule` has to be read through
 `getattr` while `Claim.flavour` does not.
 
-Everything here was read out of `brainfreeze/`, `seed.py`, `data/*.csv` and
+Everything here was read out of `brainfreeze/`, `tools/seed.py`, `data/*.csv` and
 the findings scripts. Where a figure is date-dependent or was measured on one
 particular build, it says so.
 
@@ -45,8 +45,8 @@ working directory is the stone's, not the repository's, so `brainfreeze` is not
 importable until you put the checkout on the path. A notebook or a `gemdb
 script.py` run already has that directory on `sys.path`, which is why the
 preamble printed at the top of `mcp-questions.md` omits it — that document's
-snippets are written to be runnable both ways. `refresh_mcp.py` adds the path
-itself before replaying them over the transport. If your first `import
+snippets are written to be runnable both ways. `tools/refresh_mcp.py` adds the
+path itself before replaying them over the transport. If your first `import
 brainfreeze` raises `ModuleNotFoundError`, this is why, and the fix is the path
 and not the package.
 
@@ -77,14 +77,14 @@ them:
   three cells earlier stops answering after an `abort()`. By the same mechanism
   it should take your preamble with it, though that has not been measured over
   MCP specifically.
-- **Do not run `seed.py` or `make_mcp_questions.py`.** Both replace
+- **Do not run `tools/seed.py` or `tools/make_mcp_questions.py`.** Both replace
   `gemdb.root["brainfreeze"]` wholesale. That is the demo's reset button, not
   an analysis step, and someone else may be looking at the book.
 
 ## 2. One lookup, and everything hangs off it
 
 ```python
-gemdb.root["brainfreeze"]            # a Book -- the only key seed.py writes
+gemdb.root["brainfreeze"]            # a Book -- the only key the seed writes
     .policies["BF-100539"]           # a Policyholder, by policy id
         .events                      # every cold treat, oldest first
             [0].claim                # a Claim, or None
@@ -148,7 +148,7 @@ Stored:
 | `policy_term_months` | `int` | 12 for every policy in the seeded book |
 | `policy_status` | `str` | `"Active"` or `"Lapsed"` — see §7, this is a trap |
 | `policy_lapse_date` | `date` or `None` | |
-| `events` | `list[Event]` | oldest first — sorted by `seed.py` on the way in, ties by `event_id` |
+| `events` | `list[Event]` | oldest first — sorted by the loader on the way in, ties by `event_id` |
 
 Derived:
 
@@ -223,7 +223,7 @@ were created under. Read it as `getattr(claim, "rule", None)`, never
 for a claim that predates it. `analysis.denial_rules` does both.
 
 The CSV has a third `claim_status`, `"Not Filed"`, on 2,821 rows. Those rows
-have no claim id, so `seed.py` gives the event `claim=None` and no `Claim`
+have no claim id, so the loader gives the event `claim=None` and no `Claim`
 object is ever built. **Do not filter for `"Not Filed"`; filter for
 `e.claim is None`.**
 
@@ -295,7 +295,7 @@ Ratios are **not** money. `loss_ratio`, approval rates and the values from
 ## 4. The CSV column names are not the attribute names
 
 This is the single most likely way to write code that looks right and is not.
-`data/*.csv` is the generator's output and uses one set of names; `seed.py`
+`data/*.csv` is the generator's output and uses one set of names; the loader
 translates them into another. Only the objects exist in the database.
 
 | CSV column | attribute |

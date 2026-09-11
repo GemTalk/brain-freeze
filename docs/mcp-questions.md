@@ -8,9 +8,9 @@ writing Python that runs inside the database.
 Every answer below was produced by running the snippet beside it, not typed
 in, against a **freshly seeded** database -- the state CUJ-0 starts from and
 the figures `tests/test_seed.py` pins. Regenerate with `gemdb
-make_mcp_questions.py` after any change to the data or the rules; if an
-answer moves, either the change was wrong or this file is the record of what
-the demo now promises.
+tools/make_mcp_questions.py` after any change to the data or the rules; if
+an answer moves, either the change was wrong or this file is the record of
+what the demo now promises.
 
 Each snippet assumes this preamble:
 

@@ -14,9 +14,9 @@ docs/two-demos-compared.md
 # Agent worktrees and local tooling state, not part of the demo.
 .claude/
 
-# The acceptance suite (CUJ-5). Its virtualenv carries a browser, and its
-# screenshots are evidence of a run rather than documentation -- the feature
-# files are the documentation. See issue #73.
+# The acceptance suite. Its virtualenv carries a browser, and its screenshots
+# and payloads are evidence of a run rather than documentation -- the feature
+# files are the documentation.
 .venv-acceptance/
 artifacts/
 .acceptance-pages/
@@ -24,3 +24,7 @@ artifacts/
 # Coverage measurement, run on demand rather than committed.
 .coverage
 htmlcov/
+
+# What finding 9 leaves between its two runs, if a cycle is interrupted.
+findings/.finding09_ran
+findings/_finding09_helper_*.py

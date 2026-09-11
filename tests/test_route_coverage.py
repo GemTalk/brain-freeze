@@ -133,5 +133,43 @@ class EveryRouteIsDriven(unittest.TestCase):
                           "%r is excused but no longer declared" % rule)
 
 
+class TheAcceptanceSuiteStillEnforcesItsHalf(unittest.TestCase):
+    """The strong check lives in `features/environment.py` and only runs
+    behind a browser. Nothing else would notice it being removed."""
+
+    def setUp(self):
+        with open(os.path.join(REPO, "features", "environment.py")) as handle:
+            self.source = handle.read()
+        self.tree = ast.parse(self.source)
+
+    def defined(self, name):
+        return any(isinstance(node, ast.FunctionDef) and node.name == name
+                   for node in ast.walk(self.tree))
+
+    def test_it_still_records_what_it_drives(self):
+        for name in ("note_request", "watch", "declared_routes",
+                     "undriven_routes"):
+            self.assertTrue(self.defined(name),
+                            "features/environment.py no longer defines %s, so "
+                            "a full run cannot tell which routes it drove"
+                            % name)
+
+    def test_it_still_fails_the_run_on_a_route_nobody_drove(self):
+        called = [node for node in ast.walk(self.tree)
+                  if isinstance(node, ast.Call)
+                  and getattr(node.func, "id", "") == "undriven_routes"]
+        self.assertTrue(called,
+                        "undriven_routes is defined and never called -- the "
+                        "acceptance suite would pass with a route nobody "
+                        "reached")
+        self.assertIn("the suite never drove these routes", self.source,
+                      "the complaint that names the missing routes is gone")
+
+    def test_it_still_requires_every_scenario_to_leave_evidence(self):
+        self.assertIn("passed without capturing anything", self.source,
+                      "a scenario can now pass leaving nothing a reader can "
+                      "look at, which is half of what this suite is for")
+
+
 if __name__ == "__main__":
     unittest.main()

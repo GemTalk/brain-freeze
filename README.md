@@ -112,15 +112,16 @@ app in a real browser and leave screenshots behind as evidence.
 ```
 
 ```console
-5 features passed, 0 failed, 0 skipped
-8 scenarios passed, 0 failed, 0 skipped
-99 steps passed, 0 failed, 0 skipped
-Took 0min 44.539s
+7 features passed, 0 failed, 0 skipped
+13 scenarios passed, 0 failed, 0 skipped
+163 steps passed, 0 failed, 0 skipped
+Took 1min 13.863s
 ```
 
-Five journeys: the app is up, quote to policy, filing a claim to a decision,
-the three refusals, and a policy changed from a shell while the browser
-watches. Eighteen screenshots.
+Seven journeys: the app is up; finding one customer among nine hundred; quote
+to policy; filing a claim to a decision; the four refusals; the same policies
+over `curl`; and a policy changed from a shell while the browser watches.
+Twenty-five screenshots and seven payloads.
 
 **The feature files are the record.** They describe the demo and cite nothing
 outside it — no issue numbers, no tracker references. A tracker is private and
@@ -128,9 +129,23 @@ impermanent; `features/` is the durable description of what this thing does,
 and has to be readable by someone who has never seen the project board. Write
 the reason, not the reference.
 
-**Everything gets an acceptance test.** Not only the web journeys these five
-started with. When something is built or fixed, what its acceptance test says
-is part of the work.
+**Everything gets an acceptance test.** Not only the web journeys this started
+with. When something is built or fixed, what its acceptance test says is part
+of the work.
+
+**And the suite proves that about itself rather than promising it.** A full
+run records every request it drives — the browser's navigations and form
+posts, and the calls the steps make to the JSON surface — and fails at the end
+if any route the app declares was never reached. That is why it is not a list
+of URLs in the feature files: most of these pages are reached by clicking, so
+a check that grepped for addresses would call the quote you accepted
+uncovered, and a scenario that merely mentioned an address covered. Running
+one feature file skips the check, because a run told to drive one feature has
+not failed to drive the others.
+
+**Every scenario ends in evidence, and the suite fails if one does not.** A
+scenario that passes and leaves nothing behind cannot be checked by a reader
+afterwards, which is half of what this suite is for.
 
 **Each scenario was checked by breaking the thing it exists to catch.** Disable
 the app's per-request refresh and the cross-surface scenario fails; tell a
@@ -142,11 +157,24 @@ It seeds the book, starts `gemdb web/app.py`, drives it, stops it, and **fails t
 run if the port is still open afterwards** — a leaked app is a leaked GemStone
 session, and the stone allows ten.
 
-Screenshots land in `artifacts/`, which is gitignored. They are evidence of a
-run, not documentation: the app renders today's date, so identical passing
-runs differ tomorrow. **The feature files are the documentation** — they are
-committed, readable, and written in the language of insurance rather than of
-clicking.
+Evidence lands in `artifacts/`, which is gitignored, one directory per
+feature and one inside that per scenario, numbered in the order they ran:
+
+```
+artifacts/the-same-policies-over-curl/
+  1-a-script-reads-the-questions--answers-them--and-is-quoted/
+    01-the-questions-a-script-is-given.json
+    02-the-quote-that-came-back.json
+    03-a-refusal-a-script-can-read.json
+```
+
+Screenshots for the pages, payloads for the JSON surface, which has nothing to
+photograph and where the exact bytes are what a reader wants anyway.
+
+It is evidence of a run, not documentation: the app renders today's date, so
+identical passing runs differ tomorrow. **The feature files are the
+documentation** — they are committed, readable, and written in the language of
+insurance rather than of clicking.
 
 Setting it up once, because it carries a browser:
 
@@ -165,7 +193,7 @@ gemdb tools/run_notebook_check.py         # every notebook cell, in order
 ```
 
 ```console
-Ran 280 tests in 1.057s
+Ran 283 tests in 1.094s
 OK (skipped=57)
 
 Ran 230 tests
