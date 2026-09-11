@@ -10,7 +10,7 @@ the old book after another gem committed" needs two gems, so the test that
 would catch it directly is not a test this suite can run.
 
 What is left is still worth pinning, because it is the whole of the defect
-(issue #47) and every part of it is a mistake someone will make again:
+and every part of it is a mistake someone will make again:
 
 * the app must take a new view at all -- without it a running server serves
   whatever was committed when it started, for as long as it runs;
@@ -70,7 +70,7 @@ def called_names(node):
 
 
 class TheAppTakesANewView(unittest.TestCase):
-    """Issue #47: a session sees the repository as of its last transaction
+    """A session sees the repository as of its last transaction
     boundary, so an app that never refreshes cannot see the notebook's or the
     shell's writes -- the one surface of three that is blind to the others."""
 

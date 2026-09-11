@@ -179,7 +179,7 @@ def make_policyholders(n):
         "annual_premium_usd": annual_premiums,
         # Derived the way `Policyholder.monthly_premium` derives it, so the
         # file and the object cannot disagree -- they did on 23 of 900 rows,
-        # because this said np.round and the model said round (issue #68).
+        # because this said np.round and the model said round.
         "monthly_premium_usd": [float(round_cents(Decimal(str(a)) / 12))
                                 for a in annual_premiums],
         "policy_start_date": start_dates,

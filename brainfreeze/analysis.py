@@ -145,8 +145,8 @@ def denial_rules(book):
     Same shape as `denial_reasons` -- (identifier, count), commonest first,
     ties alphabetical -- so anything already reading one reads the other.
 
-    A claim filed since #49 carries its identifier; the 2,172 committed before
-    it stored only prose and are mapped back through `rule_for_reason`. Read
+    A claim filed since rules got identifiers carries one; the 2,172 committed
+    before that stored only prose and are mapped back through `rule_for_reason`. Read
     through `getattr`, because a claim already in the database predates the
     attribute entirely and does not merely default it.
     """

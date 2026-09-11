@@ -21,7 +21,7 @@ WHY THIS ASSEMBLES ITS OWN PAYLOAD
 
 It does not use `GemDB_Code/scripts/bundle-mcp.sh`. That script copies a
 hardcoded list of shell scripts which omits `session-lifetime.sh`, so the
-payload it produces cannot start its own server (issue #65). This copies every
+payload it produces cannot start its own server. This copies every
 `.sh` the upstream tree has, which is the fix that bug wants.
 
 WHAT IT WILL NOT DO
@@ -136,7 +136,7 @@ def published_preamble(markdown):
     """The `python` block above the first `##` heading, or None.
 
     Read back rather than restated. The document says "each snippet assumes
-    this preamble", and #66 was that the generator ran a different one -- so
+    this preamble", and the generator used to run a different one -- so
     the published preamble could not run the questions printed beneath it and
     nothing caught it. Lifting it from the document is what makes verification
     exercise the reader's path instead of a private one.
@@ -247,7 +247,7 @@ def install(ref=None):
 
 
 def unreferenced_scripts():
-    """Scripts the staged payload calls but does not contain -- issue #65."""
+    """Scripts the staged payload calls but does not contain."""
     wanted = set()
     for name in os.listdir(MCP_DIR):
         if not name.endswith(".sh"):
@@ -399,7 +399,7 @@ def preamble():
     """The document's own preamble, plus the path it does not have to mention.
 
     The imports are LIFTED from docs/mcp-questions.md rather than written out
-    here. A private copy is how #66 survived: the document published a
+    here. A private copy is how that bug survived: the document published a
     preamble that could not run its own question 6, and every check passed
     because nothing checked ran what the document said.
 

@@ -94,7 +94,7 @@ class PromiseTests(unittest.TestCase):
 class PublishedPreambleTests(unittest.TestCase):
     """The verifier must run what the document publishes, not its own copy.
 
-    #66: the generator used to execute a preamble it did not print, so the
+    The generator used to execute a preamble it did not print, so the
     published one could not run the questions beneath it and nothing noticed.
     Reading it back from the document is what makes that impossible.
     """

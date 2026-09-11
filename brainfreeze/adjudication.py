@@ -47,7 +47,7 @@ REASON_PER_INCIDENT_LIMIT = "Per-incident limit leaves nothing above the deducti
 #: An agent asked "why was CLM-000123 turned down?" checks the identifier and
 #: quotes the prose, instead of parsing the prose and guessing at the rule --
 #: which is not hypothetical: a lapse and an out-of-term event were told apart
-#: by hand until #46 gave them separate wordings.
+#: by hand until they were given separate wordings.
 #:
 #: Kebab-case, naming the constraint that bound rather than the sentence it
 #: produced, and matching the parallel implementation's spelling exactly so

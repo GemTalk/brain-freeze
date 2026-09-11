@@ -82,7 +82,7 @@ class Aggregates(unittest.TestCase):
 
 
 class DenialRules(unittest.TestCase):
-    """#49: the same refusals, grouped by identifier instead of by English.
+    """The same refusals, grouped by identifier instead of by English.
 
     `denial_reasons` stays exactly as it was -- its output is published in
     docs/mcp-questions.md and an agent may already be reading it. This is a

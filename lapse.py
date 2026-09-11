@@ -17,7 +17,7 @@ WHY IT WORKS, AND WHY IT DID NOT
 
 A GemStone session sees the repository as of its last transaction boundary, so
 for most of this demo's life the app would NOT have noticed: it read the book
-once at startup and served that view until it was restarted. Issue #47 gave it
+once at startup and served that view until it was restarted. The app now has
 a `before_request` hook that commits and then refreshes, and this script is the
 payoff for that fix rather than a feature of its own.
 
@@ -102,7 +102,7 @@ def lapse():
     print("after    %s" % describe(policy, today))
     print()
     print("  Committed. The running app sees this on its NEXT request -- it")
-    print("  takes a new view per request (#47), so no restart is needed.")
+    print("  takes a new view per request, so no restart is needed.")
     print("    the policy page   /policies/%s" % policy_id)
     print("    filing a claim    %s"
           % ("allowed again" if reinstate else "now refused, and told why"))

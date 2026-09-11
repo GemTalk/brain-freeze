@@ -76,7 +76,7 @@ class RoundingTests(unittest.TestCase):
         self.assertEqual(format_usd(Decimal("-14.175")), "-$14.18")
 
     def test_the_twenty_three_disagreements_all_resolve_the_same_way(self):
-        """The premiums #68 found. Half-up settles each one."""
+        """The premiums that disagreed. Half-up settles each one."""
         for annual, monthly in (("170.10", "14.18"),
                                 ("45.54", "3.80"),
                                 ("167.94", "14.00")):
@@ -125,7 +125,7 @@ class FormattingTests(unittest.TestCase):
 
 
 class WireFormatTests(unittest.TestCase):
-    """What money looks like leaving the building (issue #50).
+    """What money looks like leaving the building.
 
     `json.dumps` cannot serialise a Decimal, so the JSON API had to choose a
     wire format. It is an exact decimal string. A float would have put back

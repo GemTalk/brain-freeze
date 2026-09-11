@@ -138,7 +138,7 @@ see which your Grail does.
 
 ## 5. A patched module stays dirty, and commit will not clear it
 
-Found by a test that could not work. Issue #47 made the web app `commit()`
+Found by a test that could not work. The web app was made to `commit()`
 then `refresh()` before each request, and the obvious test wraps both to
 record the order:
 

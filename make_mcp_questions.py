@@ -30,7 +30,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 #: What every snippet below assumes, and the ONLY thing this script executes
 #: to set them up. Those must be the same object: it used to publish this and
 #: then quietly inject `brainfreeze` on top, so the preamble a reader was told
-#: to paste could not run question 6 (#66). If a question needs a name, it goes
+#: to paste could not run question 6. If a question needs a name, it goes
 #: here where the reader can see it.
 PREAMBLE = """import gemdb
 import brainfreeze

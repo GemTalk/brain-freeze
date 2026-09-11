@@ -8,7 +8,7 @@ and ten dimes do not add to a dollar. That is not pedantry here -- this repo
 shipped `data/policyholders.csv` with 23 monthly premiums that disagree by a
 cent with the same figure derived from the annual one, because the generator
 rounded with numpy and the model rounded with Python and the two disagree on
-halves (issue #68). Neither was wrong. Both were floats.
+halves. Neither was wrong. Both were floats.
 
 WHY THE STANDARD LIBRARY AND NOT INTEGER CENTS
 
@@ -125,9 +125,9 @@ def round_cents(value):
 
     Half-up rather than banker's, deliberately: it is what a person expects of
     money and what a schedule of premiums prints. It is also the rule that
-    settles #68 -- 36 of the 900 monthly premiums are exact half-cents, and
-    both the generator and the model had been rounding them down while
-    disagreeing with each other on 23 of them.
+    settles that disagreement -- 36 of the 900 monthly premiums are exact
+    half-cents, and both the generator and the model had been rounding them
+    down while disagreeing with each other on 23 of them.
 
     Grail has no `Decimal.quantize`, so this is not a wrapper around the
     library's own rounding; see `round_half_up`, which is where the arithmetic
@@ -147,8 +147,9 @@ def wire_usd(value):
 
     `json.dumps` cannot serialise a Decimal at all, so a JSON API has to
     choose a wire format, and the choice is the interesting part rather than a
-    detail (issue #50). A float is not one of the options: it would put back
-    the two answers this module exists to remove, and #68 is what that costs.
+    detail. A float is not one of the options: it would put back the two
+    answers this module exists to remove, and 23 wrong premiums in a shipped
+    CSV is what that costs.
 
     That leaves an exact string or integer cents. Both are exact; the string
     wins on one argument, which is that it is *the same text `usd()` already

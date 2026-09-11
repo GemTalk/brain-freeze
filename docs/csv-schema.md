@@ -154,7 +154,7 @@ reaching them.
 **Order matters and the loader is what enforces it.** `policyholder.events`
 is oldest first because `attach_events` sorts by `event_date` and then by
 `event_id`, not because the rows happen to arrive that way — they do, but that
-is now a coincidence rather than the guarantee (issue #69). The tiebreak is
+is now a coincidence rather than the guarantee. The tiebreak is
 load-bearing: 37 policies record two treats on the same day, and a date-only
 sort would hand those pairs back in file order, which is the same bug wearing a
 sort. So a hand-edited, re-sorted or regenerated `claims.csv` loads into the

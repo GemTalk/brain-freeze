@@ -12,7 +12,7 @@ nothing to `gemdb.root`.
 
 WHY THIS MATTERS
 
-It cost a real test. Issue #47 fixed the web app to `commit()` then
+It cost a real test. The web app was fixed to `commit()` then
 `refresh()` before each request, and the natural test wraps both calls to
 record the order:
 
