@@ -81,19 +81,17 @@ WEB = os.path.join(REPO_ROOT, "web")
 ROUTE_MODULES = ("routes_html.py", "routes_api.py")
 
 
-def read(filename):
+def read_web(filename):
     with open(os.path.join(WEB, filename)) as handle:
         return handle.read()
 
 
-#: Every key in the payloads below that carries money. Each one is an exact
-#: decimal string or None -- never a float, and never a Decimal, which would
-#: not have survived `json.dumps` in the first place.
-MONEY_KEYS = frozenset([
-    "annual_premium", "monthly_premium", "coverage_limit", "deductible",
-    "total_paid", "requested", "approved", "premium", "paid", "annual",
-    "monthly", "limit",
-])
+#: Which keys carry money, taken from the serialiser rather than restated.
+#: Each one is an exact decimal string or None -- never a float, and never a
+#: Decimal, which would not have survived `json.dumps` in the first place.
+#: `TheMoneyKeysAreTheOnesWireActuallyEmits` below is what keeps the list
+#: honest.
+MONEY_KEYS = wire.MONEY_KEYS
 
 #: The policy the mockups are drawn from: active, four approved claims,
 #: $179.97 paid, lapses 2027-03-10.
@@ -387,10 +385,10 @@ class TheRouteContract(unittest.TestCase):
     def setUp(self):
         # app.py for the two facts that are about the file itself; the route
         # modules for everything that is about a handler.
-        self.source = read("app.py")
+        self.source = read_web("app.py")
         self.tree = ast.parse(self.source, filename="app.py")
         self.routes_tree = ast.parse(
-            "\n".join(read(name) for name in ROUTE_MODULES))
+            "\n".join(read_web(name) for name in ROUTE_MODULES))
 
     def handlers(self):
         """Every function defined in a route module."""
@@ -478,6 +476,49 @@ class TheRouteContract(unittest.TestCase):
         # Grail renders each template in a forked green thread and the
         # threaded dev server's ContextVar cannot span them.
         self.assertIn("threaded=False", self.source)
+
+
+@READS_THE_SOURCE
+class TheMoneyKeysAreTheOnesWireActuallyEmits(unittest.TestCase):
+    """`wire.MONEY_KEYS` is a hand-written list, and two things depend on it:
+    this suite, and the acceptance suite's check that nothing on the wire is
+    a number. Both walk a DECODED payload, where a key is the only thing left
+    to recognise money by -- so a money field missing from the list is not
+    checked by either, and neither says so.
+
+    This is what says so. It reads `wire.py` and requires the list and the
+    calls to agree, in both directions.
+    """
+
+    def setUp(self):
+        self.tree = ast.parse(read_web("wire.py"), filename="wire.py")
+
+    def emitted(self):
+        """Every key whose value is built by calling `money(...)`."""
+        found = set()
+        for node in ast.walk(self.tree):
+            if not isinstance(node, ast.Dict):
+                continue
+            for key, value in zip(node.keys, node.values):
+                if (isinstance(key, ast.Constant)
+                        and isinstance(value, ast.Call)
+                        and getattr(value.func, "id", "") == "money"):
+                    found.add(key.value)
+        return found
+
+    def test_every_money_field_is_listed(self):
+        missing = sorted(self.emitted() - set(wire.MONEY_KEYS))
+        self.assertEqual(missing, [],
+                         "wire.py serialises these as money and MONEY_KEYS "
+                         "does not name them, so nothing checks their format")
+
+    def test_nothing_is_listed_that_is_not_money(self):
+        stale = sorted(set(wire.MONEY_KEYS) - self.emitted())
+        self.assertEqual(stale, [],
+                         "MONEY_KEYS names fields wire.py no longer emits")
+
+    def test_the_walk_is_not_vacuous(self):
+        self.assertGreater(len(self.emitted()), 8)
 
 
 if __name__ == "__main__":

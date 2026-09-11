@@ -57,6 +57,22 @@ def _date(value):
     return str(value)
 
 
+#: Every key in every payload here whose value is money. Named rather than
+#: inferred, because the two checkers that enforce the wire format -- the unit
+#: tests and the acceptance suite -- have to walk a decoded payload, where the
+#: only thing left to recognise a figure by is its key.
+#:
+#: It cannot drift: `tests/test_api.py` reads this module's syntax tree and
+#: fails if a key is handed to `money()` and is not listed here. Adding a
+#: money field means adding it here, and that is the one thing that makes both
+#: checks cover it automatically.
+MONEY_KEYS = frozenset([
+    "annual", "annual_premium", "approved", "coverage_limit", "deductible",
+    "limit", "monthly", "monthly_premium", "paid", "premium", "requested",
+    "total_paid",
+])
+
+
 def claim(a_claim):
     """One claim: both figures, the outcome, and why."""
     return {

@@ -4,18 +4,28 @@ An HTTP client rather than a browser, on purpose. This surface answers `curl`;
 putting a browser in front of it would test Chromium's JSON viewer and would
 make "the same objects, no second model" harder to see rather than easier.
 
-The money rule is checked by walking every payload rather than by naming the
-fields that carry money. Naming them means a field added later is unchecked by
-default, which is the wrong default for the one property this surface exists
-to get right.
+The money rule is checked by walking every payload, and which keys carry money
+is taken from `wire.MONEY_KEYS` rather than restated here. A decoded payload
+has nothing left to recognise a figure by except its key, so a list copied
+into this file would quietly stop covering the next money field somebody adds.
+`tests/test_api.py` fails if that list and the serialiser disagree.
 """
 
 import json
+import os
 import re
+import sys
 
 from behave import then, when
 
-from environment import fetch_json, keep
+from environment import REPO, fetch_json, keep
+
+# The serialiser, for the one piece of knowledge this file must not restate.
+# `web/` is a plain directory rather than a package, so it goes on the path.
+if os.path.join(REPO, "web") not in sys.path:
+    sys.path.insert(0, os.path.join(REPO, "web"))
+
+import wire                                  # noqa: E402  (needs the path first)
 
 #: The policy the mockups are drawn from: active, a full history, and a lapse
 #: date far enough out that it is still in force.
@@ -32,13 +42,9 @@ THE_FIVE = ["age", "migraine_history", "tension_type_headache_history",
 #: Exactly two decimal places, no symbol, no grouping, optionally negative.
 EXACT_MONEY = re.compile(r"^-?\d+\.\d\d$")
 
-#: Every key that carries money, anywhere in any payload here. A key that
-#: means money in one payload means it in all of them.
-MONEY_KEYS = frozenset([
-    "annual_premium", "monthly_premium", "coverage_limit", "deductible",
-    "total_paid", "requested", "approved", "premium", "paid", "annual",
-    "monthly", "limit",
-])
+#: Every key that carries money, anywhere in any payload here -- from the
+#: module that decides which those are.
+MONEY_KEYS = wire.MONEY_KEYS
 
 
 def walk(value, path="payload"):

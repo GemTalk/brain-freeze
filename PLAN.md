@@ -78,10 +78,10 @@ Both measured.
 | `tools/redeploy.py` | makes the database run the source on disk | done |
 | `tools/verify_book.py` | reads the committed book back, from a session of its own | done |
 | `tools/lapse.py` | changes a policy from a session of its own, under a running app | done |
-| `tools/run_db_tests.py` | runs the suite inside the database — 230 tests | done |
+| `tools/run_db_tests.py` | runs the suite inside the database — 233 tests | done |
 | `tools/run_notebook_check.py` | runs the notebook's cells inside the database | done |
 | `tools/refresh_mcp.py` | keeps the MCP server current, and re-checks the promises | done |
-| `tests/` | 283 tests under CPython, 57 of them skipping without a database | done |
+| `tests/` | 286 tests under CPython, 57 of them skipping without a database | done |
 | `features/` | seven features, thirteen scenarios, in a real browser | done |
 | `mockups/` | nine screens + insurer sketch, and `build_c.py` | done, **redrawn for BF-100539** |
 | `findings/` | nine scripts that reproduce the Grail findings | done |
@@ -99,8 +99,8 @@ which is worse than not having them. They are still in git history at
 ### The two commands that must keep working
 
 ```sh
-python3 -m unittest discover        # 283 tests, 57 skipping without a database
-gemdb tools/run_db_tests.py         # 230 of them, inside the database
+python3 -m unittest discover        # 286 tests, 57 skipping without a database
+gemdb tools/run_db_tests.py         # 233 of them, inside the database
 gemdb web/app.py                    # serve on :5000
 .venv-acceptance/bin/behave         # 13 scenarios, in a real browser
 python3 -m datagen                  # rewrites both CSVs

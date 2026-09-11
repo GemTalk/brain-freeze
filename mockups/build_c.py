@@ -1,6 +1,5 @@
 # Direction C applied to all nine screens: rounded, bright, oversized.
 # Single-form quote (not one-question-per-screen).
-import io
 
 BG='#d8ecf7'; INK='#10243a'; MUTED='#3f5f7a'; AC='#0e6ba8'; ACD='#084d7a'
 SOFT='#eaf6fd'; LINE='#c3dced'; SH='0 3px 0 #b9d9ec'
@@ -94,7 +93,7 @@ def page(name, body, maxw=680, active=''):
     return len(doc)
 
 def h1(text, sub=None, size=48):
-    s = f'      <div style="display: flex; flex-direction: column; gap: 10px">\n'
+    s = '      <div style="display: flex; flex-direction: column; gap: 10px">\n'
     s += f'        <h1 class="rnd" style="margin: 0; font-size: {size}px; line-height: 1.04; font-weight: 800; letter-spacing: -0.02em; text-wrap: pretty">{text}</h1>\n'
     if sub:
         s += f'        <p class="hint" style="margin: 0; font-size: 17px; max-width: 30em">{sub}</p>\n'
@@ -183,7 +182,7 @@ body += field("How fast do they get through something cold?",
 body += field("What do they reach for most?",
               opts(["Ice cream", "Slushie", "Popsicle", "Iced soda", "Smoothie", "Cold plunge"], 2, 1))
 body += '      </div>\n'
-body += f"""      <div style="display: flex; align-items: center; gap: 20px">
+body += """      <div style="display: flex; align-items: center; gap: 20px">
         <div class="btn">See the plans</div>
         <span class="hint" style="max-width: 20em">No account, no card, nothing saved until you say yes.</span>
       </div>
@@ -335,7 +334,7 @@ def claim_form(v2=False):
         b += field("Anything on top?", opts(["Sprinkles", "Hot fudge", "Whipped cream", "Nuts", "Cherry", "Nothing"], 2, [0, 1]),
                    "Pick as many as apply. Stored as a list on the claim.", badge=True)
     b += '      </div>\n'
-    b += f"""      <div style="display: flex; align-items: center; gap: 20px">
+    b += """      <div style="display: flex; align-items: center; gap: 20px">
         <div class="btn">Send the claim</div>
         <span class="hint" style="max-width: 20em">You get the answer straight away.</span>
       </div>

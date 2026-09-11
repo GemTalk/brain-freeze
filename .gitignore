@@ -19,9 +19,11 @@ docs/two-demos-compared.md
 # files are the documentation.
 .venv-acceptance/
 artifacts/
-.acceptance-pages/
 
-# Coverage measurement, run on demand rather than committed.
+# Coverage measurement, run on demand rather than committed. `coverage.py`
+# cannot see the app at all -- it runs inside GemStone, in another process --
+# so this is only ever the CPython half. tests/test_route_coverage.py and the
+# acceptance suite are what actually answer "is there a route nobody drives?"
 .coverage
 htmlcov/
 

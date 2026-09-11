@@ -391,10 +391,10 @@ gemdb tools/run_notebook_check.py     # every notebook cell, in order
 .venv-acceptance/bin/behave           # the acceptance suite, in a real browser
 ```
 
-The first reports `Ran 283 tests ... OK (skipped=57)`. The 57 skips are the
+The first reports `Ran 286 tests ... OK (skipped=57)`. The 57 skips are the
 tests that need a database: they skip themselves under CPython so the run
 stays green, and the second command is where they actually run, reporting
-`Ran 230 tests ... OK`.
+`Ran 233 tests ... OK`.
 
 **Running the same suite twice is not belt-and-braces.** It is the demo's central
 claim reduced to a check: one set of rules, two runtimes, identical answers. It
