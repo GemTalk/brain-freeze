@@ -567,7 +567,7 @@ this page:
 - **Its entry point is `run_db_tests()`, not `main()`** (§3 above).
 
 Tests that need a database skip themselves under CPython, so
-`unittest discover` stays green — 57 of the 286 here.
+`unittest discover` stays green — 57 of the 290 here.
 
 ---
 

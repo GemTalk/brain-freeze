@@ -92,7 +92,11 @@ def redeploy():
         print("  Add them in dependency order, leaves first, and re-run.")
         return 2
 
-    import brainfreeze                                   # noqa: F401  deploy it
+    # The package itself, so that what the database serves is what is on
+    # disk. Imported by name rather than by statement: the module object is
+    # not wanted here, and a bare `import brainfreeze` reads to every linter
+    # as a name nobody uses.
+    importlib.import_module("brainfreeze")
 
     failed = []
     for name in ORDER:

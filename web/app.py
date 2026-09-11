@@ -245,8 +245,28 @@ def create_app():
 
 
 def serve(host="127.0.0.1", port=5000):
-    create_app().run(host=host, port=port, threaded=False,
-                     request_handler=CloseAfterResponseHandler)
+    """Build the app, take a transaction boundary, then open the socket.
+
+    The commit before `run` is not tidiness. Building the app compiles every
+    template and handler into the database, and until something commits, all
+    of that is this session's uncommitted work. If another session commits in
+    the meantime -- the notebook's last cell does exactly that, and so does
+    `tools/redeploy.py` -- the app's first `take_new_view()` meets a
+    write-write conflict on it.
+
+    That is not a bad request; it is a dead server. The uncommitted work
+    stays uncommitted, so the conflict repeats on every request after it, and
+    Flask's logging stub turns each one into a closed connection with nothing
+    written anywhere (findings/07_logging_stub.py). Measured: run the
+    notebook before touching the app and the app never answers again.
+
+    Committing here makes the window a request wide instead of a startup
+    wide. `take_new_view` closes the rest of it.
+    """
+    app = create_app()
+    gemdb.commit()
+    app.run(host=host, port=port, threaded=False,
+            request_handler=CloseAfterResponseHandler)
 
 
 if __name__ == "__main__":

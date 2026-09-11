@@ -112,16 +112,25 @@ app in a real browser and leave screenshots behind as evidence.
 ```
 
 ```console
-7 features passed, 0 failed, 0 skipped
-13 scenarios passed, 0 failed, 0 skipped
-163 steps passed, 0 failed, 0 skipped
-Took 1min 13.863s
+8 features passed, 0 failed, 0 skipped
+15 scenarios passed, 0 failed, 0 skipped
+180 steps passed, 0 failed, 0 skipped
+Took 1min 30.067s
 ```
 
-Seven journeys: the app is up; finding one customer among nine hundred; quote
+Eight journeys: the app is up; finding one customer among nine hundred; quote
 to policy; filing a claim to a decision; the four refusals; the same policies
-over `curl`; and a policy changed from a shell while the browser watches.
-Twenty-five screenshots and seven payloads.
+over `curl`; a policy changed from a shell while the browser watches; and
+every surface answering with the same book. Twenty-six screenshots, seven
+payloads and three transcripts.
+
+**The last of those is the one that found a real defect.** Running the
+notebook while the app was serving, before the app had answered anything,
+left the app dead: its whole startup was uncommitted work, the notebook's
+commit collided with it, and the collision repeated on every request after.
+Nothing reached the browser, because Flask's logging stub cannot report an
+exception here. `serve()` now takes a transaction boundary before it opens
+the socket, and `tests/test_refresh.py` will not let that go away.
 
 **The feature files are the record.** They describe the demo and cite nothing
 outside it — no issue numbers, no tracker references. A tracker is private and
@@ -193,7 +202,7 @@ gemdb tools/run_notebook_check.py         # every notebook cell, in order
 ```
 
 ```console
-Ran 286 tests in 1.092s
+Ran 290 tests in 1.182s
 OK (skipped=57)
 
 Ran 233 tests

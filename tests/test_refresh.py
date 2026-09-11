@@ -104,6 +104,40 @@ class TheAppTakesANewView(unittest.TestCase):
             "gemdb.abort() takes a new view and discards this session's "
             "compiled code -- the app's own handlers with it")
 
+    def test_it_commits_before_it_opens_the_socket(self):
+        """Building the app compiles every template and handler into the
+        database, and until something commits that is all this session's
+        uncommitted work. Another session committing in the meantime -- the
+        notebook's last cell, or a redeploy -- collides with it, and the
+        collision does not clear: the work stays uncommitted, so the conflict
+        repeats on every request after it and the app never answers again.
+
+        Measured. Run the notebook before touching the app, and the app is
+        dead with nothing on the wire to say so."""
+        serve = [f for f in functions(self.tree) if f.name == "serve"]
+        self.assertTrue(serve, "app.py has no serve()")
+        calls = [child for child in ast.walk(serve[0])
+                 if isinstance(child, ast.Call)]
+
+        def position(predicate):
+            for index, call in enumerate(calls):
+                if predicate(call):
+                    return index
+            return None
+
+        commit = position(
+            lambda c: isinstance(c.func, ast.Attribute)
+            and c.func.attr == "commit"
+            and getattr(c.func.value, "id", "") == "gemdb")
+        run = position(lambda c: isinstance(c.func, ast.Attribute)
+                       and c.func.attr == "run")
+        self.assertIsNotNone(commit, "serve() does not commit, so the app "
+                                     "carries its whole startup into its "
+                                     "first request")
+        self.assertIsNotNone(run, "serve() does not call run()")
+        self.assertLess(commit, run,
+                        "serve() opens the socket before it commits")
+
     def test_the_new_view_is_taken_before_every_request(self):
         hooks = decorated_with(self.tree, "before_request")
         self.assertTrue(hooks, "nothing is registered with @app.before_request, "

@@ -89,6 +89,10 @@ def page(name, body, maxw=680, active=''):
 </body>
 </html>
 """
+    # A conditional that renders to nothing still leaves its indentation
+    # behind, so trim every line on the way out rather than tracking down
+    # each place a badge is absent.
+    doc = "\n".join(line.rstrip() for line in doc.split("\n"))
     open(name, 'w').write(doc)
     return len(doc)
 

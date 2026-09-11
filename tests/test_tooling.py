@@ -16,6 +16,7 @@ CPython is whether their bookkeeping still matches the repo.
 
 import ast
 import os
+import subprocess
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -172,6 +173,67 @@ class ThePublishedQuestionsAreExecutable(unittest.TestCase):
             unbound, [],
             "the published preamble does not bind %s, so a reader who pastes "
             "it cannot run the questions beneath it" % ", ".join(unbound))
+
+
+class TheTextFilesAreTidy(unittest.TestCase):
+    """No trailing whitespace, and no tabs in Python.
+
+    WHY THIS IS NOT JUST FUSSINESS ABOUT SPACES
+
+    Trailing whitespace is invisible, so it is only ever noticed by whoever
+    next runs a linter, and then it is noticed everywhere at once and buried
+    in a diff with real changes in it. Two of these came from a generator
+    emitting the indentation of a badge that was not there; the generator was
+    fixed, and this is what would have said so.
+
+    Markdown is the exception, and it is a real one: a line ending in exactly
+    two spaces is a HARD LINE BREAK. `docs/PRD.md` opens with four of them,
+    one per line of metadata, and stripping them would run the status, the
+    owner and the reviewers together into a paragraph. So two spaces are
+    allowed in a `.md` and anything else is not -- which also catches the
+    three-space near-miss that does nothing at all.
+    """
+
+    #: Everything tracked that is text. The PRD is also tracked as a `.docx`,
+    #: which is a zip file and would be read as mojibake.
+    TEXT = (".py", ".md", ".feature", ".ini", ".json", ".csv", ".html",
+            ".ipynb", ".txt", ".js")
+
+    def files(self):
+        listed = subprocess.run(["git", "ls-files"], cwd=REPO,
+                                capture_output=True, text=True)
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        return [name for name in listed.stdout.splitlines()
+                if name.endswith(self.TEXT)]
+
+    def lines(self, name):
+        with open(os.path.join(REPO, name), encoding="utf-8") as handle:
+            return handle.read().splitlines()
+
+    def test_the_check_sees_the_repository(self):
+        self.assertGreater(len(self.files()), 50,
+                           "git ls-files found almost nothing, so everything "
+                           "below passes for the wrong reason")
+
+    def test_no_line_ends_in_stray_whitespace(self):
+        offences = []
+        for name in self.files():
+            markdown = name.endswith(".md")
+            for number, line in enumerate(self.lines(name), 1):
+                if not line.endswith((" ", "\t")):
+                    continue
+                if markdown and line.endswith("  ") and not line.endswith("   "):
+                    continue            # a hard line break, and deliberate
+                offences.append("%s:%d" % (name, number))
+        self.assertEqual(offences, [], "trailing whitespace: %s"
+                         % ", ".join(offences))
+
+    def test_no_python_file_uses_a_tab(self):
+        offences = ["%s:%d" % (name, number)
+                    for name in self.files() if name.endswith(".py")
+                    for number, line in enumerate(self.lines(name), 1)
+                    if "\t" in line]
+        self.assertEqual(offences, [], "tabs: %s" % ", ".join(offences))
 
 
 if __name__ == "__main__":

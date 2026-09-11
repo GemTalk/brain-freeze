@@ -24,6 +24,7 @@ the backstop rather than the only line of defence.
     python3 -m pip install pyflakes
 """
 
+import importlib.util
 import os
 import subprocess
 import sys
@@ -32,10 +33,13 @@ import unittest
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 #: Everything that only ever runs inside the database: the web app, and the
-#: commands. `verify_book.py` and `lapse.py` import a module purely to put
-#: the repository on `sys.path` and are the one place a "not used" complaint
-#: is the right answer, so a `# noqa` on the line excuses it -- pyflakes does
-#: not read those itself.
+#: commands. Read off the directories rather than listed, so a module added
+#: to either is checked without anyone remembering to add it here.
+#:
+#: Nothing is excused. There was an excuse mechanism -- skip a complaint whose
+#: line carries a `# noqa` -- and it existed for two side-effect imports. Both
+#: were rewritten to say what they mean instead, which left the mechanism with
+#: nothing to forgive and a standing offer to hide the next real complaint.
 SURFACE = sorted(
     os.path.join(directory, name)
     for directory in ("web", "tools")
@@ -44,11 +48,9 @@ SURFACE = sorted(
 
 
 def pyflakes_is_available():
-    try:
-        import pyflakes  # noqa: F401  presence is the whole check
-    except ImportError:
-        return False
-    return True
+    """Asked without importing it, so the answer is not itself a complaint
+    pyflakes would make about this file."""
+    return importlib.util.find_spec("pyflakes") is not None
 
 
 @unittest.skipUnless(pyflakes_is_available(),
@@ -59,20 +61,7 @@ class TheModulesTheDatabaseRunsAreClean(unittest.TestCase):
         finished = subprocess.run(
             [sys.executable, "-m", "pyflakes"] + list(paths),
             cwd=REPO, capture_output=True, text=True)
-        return [line for line in finished.stdout.splitlines()
-                if line.strip() and not self.excused(line)]
-
-    def excused(self, complaint):
-        """True when the line complained about carries a `# noqa`."""
-        head = complaint.split(":")
-        if len(head) < 2 or not head[1].isdigit():
-            return False
-        try:
-            with open(os.path.join(REPO, head[0])) as handle:
-                line = handle.read().splitlines()[int(head[1]) - 1]
-        except (OSError, IndexError):
-            return False
-        return "# noqa" in line
+        return [line for line in finished.stdout.splitlines() if line.strip()]
 
     def test_the_surface_modules_have_no_complaints_at_all(self):
         complaints = self.flakes(*SURFACE)

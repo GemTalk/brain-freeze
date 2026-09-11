@@ -27,6 +27,10 @@ artifacts/
 .coverage
 htmlcov/
 
+# What the acceptance suite writes at the root to run a published snippet
+# the way the document says to run it. Removed by the step that wrote it.
+_published_snippet.py
+
 # What finding 9 leaves between its two runs, if a cycle is interrupted.
 findings/.finding09_ran
 findings/_finding09_helper_*.py
