@@ -44,8 +44,8 @@ def quotes(the_book):
         return the_book.quotes
     except AttributeError:
         abort(500, "This book was committed before quotes had a class of "
-                   "their own. Run `gemdb redeploy.py` to give the database "
-                   "the current brainfreeze package, then `gemdb seed.py` to "
+                   "their own. Run `gemdb tools/redeploy.py` to give the database "
+                   "the current brainfreeze package, then `gemdb tools/seed.py` to "
                    "rebuild the book under it.")
 
 

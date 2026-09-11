@@ -1,6 +1,6 @@
 """Generate brain-freeze.ipynb.
 
-    python3 make_notebook.py
+    python3 tools/make_notebook.py
 
 The notebook is generated rather than hand-edited for the same reason
 `mockups/build_c.py` generates the screens: a .ipynb is JSON with the source
@@ -15,6 +15,12 @@ of it.
 import io
 import json
 import os
+
+#: This one writes a file and imports nothing of ours, so it needs the
+#: repository's location but not its place on `sys.path`.
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+NOTEBOOK = os.path.join(REPO, "brain-freeze.ipynb")
+
 
 MD = "markdown"
 PY = "code"
@@ -222,8 +228,7 @@ notebook = {
     "nbformat_minor": 5,
 }
 
-path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                    "brain-freeze.ipynb")
+path = NOTEBOOK
 with io.open(path, "w", encoding="utf-8") as handle:
     json.dump(notebook, handle, indent=1, ensure_ascii=False)
     handle.write("\n")

@@ -88,8 +88,8 @@ which is worse than not having them. They are still in git history at
 
 ```sh
 python3 -m unittest discover                       # 39 tests (18 skip)
-gemdb run_db_tests.py                              # the same 133, in the DB
-gemdb app.py                                       # serve on :5000
+gemdb tools/run_db_tests.py                              # the same 133, in the DB
+gemdb web/app.py                                       # serve on :5000
 python3 -m datagen                                 # rewrites both CSVs
 ```
 
@@ -124,7 +124,7 @@ Jinja2 and requests in its standard library, and Grail's own
 `grail_rest_demo/` is a working Flask app with an HTML UI and a JSON API over
 one store. So the app is not a server that talks to GemDB; it is Flask
 executing as GemStone Smalltalk, with the domain objects being the database's
-objects. `gemdb app.py` starts it. Routes read and write `gemdb.root` and
+objects. `gemdb web/app.py` starts it. Routes read and write `gemdb.root` and
 commit.
 
 **Rejected, with reasons:**
@@ -280,7 +280,7 @@ described.
 ```sh
 export PATH="$HOME/GemDB/bin:$PATH"   # gemdb is installed but not on PATH
                                       # outside VS Code terminals
-gemdb seed.py
+gemdb tools/seed.py
 # quit, start a new session
 gemdb -c 'import gemdb; print(gemdb.root["brainfreeze"]["BF-100539"].total_paid)'
 # 179.97
@@ -328,7 +328,7 @@ their own. Work item 5's premise is confirmed before it is built.
 
 ### Re-running is the reset
 
-`gemdb seed.py` twice in a row leaves **one** book: `root` keys are
+`gemdb tools/seed.py` twice in a row leaves **one** book: `root` keys are
 `['greeting', 'brainfreeze']`, one `brainfreeze` entry, 900 policies, 5,017
 events, 2,239 claims, `total_paid` 62461.02. The second run prints `Replaced`
 rather than `Wrote`. FR-8.3 needs no separate command. A full seed takes about
@@ -359,7 +359,7 @@ is not the tell, and there is no warning.
 
 The variable that mattered was **where the script lives**, because that is
 `sys.path[0]`. A script in `/tmp` cannot see `brainfreeze/`, so its import
-resolves out of the database and silently gets the old class. `gemdb seed.py`,
+resolves out of the database and silently gets the old class. `gemdb tools/seed.py`,
 run from the project directory, found the source, recompiled, and committed —
 after which every session saw the new class.
 
@@ -371,7 +371,7 @@ keep it. Seeding hides that by replacing the whole book.
 So the rule is:
 
 > After editing anything in `brainfreeze/`, run something from the project
-> directory that imports it and commits — `gemdb seed.py` does — before
+> directory that imports it and commits — `gemdb tools/seed.py` does — before
 > trusting what any other session reports.
 
 Two consequences worth carrying forward:
@@ -554,13 +554,13 @@ These need a human. Do not guess them.
 Both halves pass; the findings are written up under "The class-identity check"
 above. A fresh session reads `BF-100539.total_paid` as `179.97`, importing the
 package binds to the same class as the committed instances, and a second
-`gemdb seed.py` replaces rather than doubles.
+`gemdb tools/seed.py` replaces rather than doubles.
 
 Nothing here blocks work item 2 any more.
 
 ### 2. The Flask app — **DONE (2026-09-08)**
 
-`gemdb app.py` serves seven routes on :5000. A quote is taken end to end, a
+`gemdb web/app.py` serves seven routes on :5000. A quote is taken end to end, a
 policy created, a claim filed and adjudicated, and both persist. Verified over
 real HTTP, not just the test client:
 
@@ -574,12 +574,12 @@ same, lapsed     -> warned first, then "Not this time / Policy lapsed"
 
 Every figure is `brainfreeze`'s: `assess_amount(8, 300)` is 73.00, and
 `adjudicate` does the rest. `tests/test_app.py` has 18 tests through Flask's
-test client, run by `gemdb run_db_tests.py`; under CPython the module skips
+test client, run by `gemdb tools/run_db_tests.py`; under CPython the module skips
 itself so `python3 -m unittest discover` stays green.
 
 **Five things worth knowing before touching it.**
 
-*The `__main__` guard has to be the last thing in the file.* `gemdb app.py`
+*The `__main__` guard has to be the last thing in the file.* `gemdb web/app.py`
 executes top to bottom, so a guard next to `main()` starts the server before
 the template constants exist and every route raises `NameError`. Importing the
 module hides this completely -- an import finishes the file before any route
@@ -624,7 +624,7 @@ cannot demonstrate a live lapse refusal.
 hand-edited, for the reason `mockups/build_c.py` exists: a .ipynb is JSON with
 source split into per-line strings, and editing that by hand invites the drift
 this repo keeps testing for. It ships with **no saved outputs** — a notebook
-carrying its own output is a screenshot. `gemdb run_notebook_check.py` executes
+carrying its own output is a screenshot. `gemdb tools/run_notebook_check.py` executes
 every code cell in order against a live book; nothing in `unittest discover`
 can see a broken notebook, because the .ipynb is data.
 

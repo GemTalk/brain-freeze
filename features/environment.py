@@ -12,7 +12,7 @@ WHAT A RUN DOES
 
 1. Re-seeds the book, so scenarios start from the figures everything else
    pins. Nine seconds, once, not per scenario.
-2. Starts `gemdb app.py` and waits for the port.
+2. Starts `gemdb web/app.py` and waits for the port.
 3. Runs the scenarios, each with a fresh browser page.
 4. Stops the app, and **fails the run if the port is still open**.
 
@@ -90,7 +90,7 @@ def before_all(context):
     os.makedirs(ARTIFACTS)
 
     print("  seeding the book ...", flush=True)
-    run_gemdb("seed.py")
+    run_gemdb("tools/seed.py")
 
     print("  starting the app ...", flush=True)
     context.app_log = open(os.path.join(ARTIFACTS, "app.log"), "w")
@@ -102,7 +102,7 @@ def before_all(context):
     # had outlived its own launcher. Its own group means the whole tree can
     # be signalled.
     context.app = subprocess.Popen(
-        ["gemdb", "app.py"], cwd=REPO, env=gemdb_env(),
+        ["gemdb", "web/app.py"], cwd=REPO, env=gemdb_env(),
         stdout=context.app_log, stderr=subprocess.STDOUT,
         start_new_session=True)
 

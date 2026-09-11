@@ -588,7 +588,7 @@ confidently.
   which would leave no way to answer anything here. Call `tools/list` rather
   than assuming.
 - **Anything about a book that is not freshly seeded.** Every figure in §7 is
-  the state after `gemdb seed.py`. The app writes to the same book, so a
+  the state after `gemdb tools/seed.py`. The app writes to the same book, so a
   database someone has been demonstrating on will have more policies and more
   claims. Run `analysis.book_summary(book)` first and compare; if it does not
   match, the figures here are history and the ones you computed are the truth.

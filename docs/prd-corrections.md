@@ -230,7 +230,7 @@ configuration to document.
 > **FR-2.4** Import errors (malformed CSV, GemDB not running, schema mismatch)
 > produce actionable error messages.
 
-All four are met by `gemdb seed.py`: one command, nine seconds, replaces
+All four are met by `gemdb tools/seed.py`: one command, nine seconds, replaces
 `gemdb.root["brainfreeze"]` wholesale (so a re-run is a clean reset, which also
 satisfies FR-8.3), and prints its own smoke test.
 
@@ -247,7 +247,7 @@ because there is no schema to mismatch.
 > **FR-7.6** "Redeploy" is defined precisely for this environment and
 > documented as a single repeatable step.
 
-**Still open, and it is not just "restart the app".** Restarting `gemdb app.py`
+**Still open, and it is not just "restart the app".** Restarting `gemdb web/app.py`
 picks up an edited `app.py`. It does **not** reliably give existing objects a
 changed *class* — see correction 5. And a module already compiled into the
 database can be served in preference to an edited file on disk: editing

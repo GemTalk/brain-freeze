@@ -7,7 +7,7 @@ Read-only apart from what running any script writes anyway.
 
 WHY THIS MATTERS
 
-`gemdb app.py` started failing with `name 'PREAMBLE' is not defined` -- a
+`gemdb web/app.py` started failing with `name 'PREAMBLE' is not defined` -- a
 global belonging to a completely different script in the same directory.
 
 Two facts combine to produce that:
@@ -58,7 +58,7 @@ def main_namespace():
     if not inherited:
         print("  This __main__ carries no globals from other scripts.")
         print("  Either this is a fresh database, or nothing else has run in")
-        print("  it. Run `gemdb seed.py` and then this script again.")
+        print("  it. Run `gemdb tools/seed.py` and then this script again.")
     else:
         print("  %d names are here before this script defines anything:" %
               len(inherited))

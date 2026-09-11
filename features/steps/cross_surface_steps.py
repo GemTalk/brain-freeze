@@ -32,12 +32,12 @@ POLICY = "BF-100184"
 
 
 def run_lapse(*args):
-    """Run `gemdb lapse.py` to completion, in a session of its own."""
+    """Run `gemdb tools/lapse.py` to completion, in a session of its own."""
     finished = subprocess.run(
-        ["gemdb", "lapse.py"] + list(args),
+        ["gemdb", "tools/lapse.py"] + list(args),
         cwd=REPO, env=gemdb_env(), capture_output=True, text=True)
     assert finished.returncode == 0, (
-        "gemdb lapse.py %s failed:\n%s\n%s"
+        "gemdb tools/lapse.py %s failed:\n%s\n%s"
         % (" ".join(args), finished.stdout[-1500:], finished.stderr[-1500:]))
     return finished.stdout
 

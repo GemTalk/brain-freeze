@@ -37,7 +37,7 @@ ROUTE_MODULES = ("routes_html.py", "routes_api.py")
 
 
 def read(filename):
-    with open(os.path.join(REPO_ROOT, filename)) as handle:
+    with open(os.path.join(REPO_ROOT, "web", filename)) as handle:
         return handle.read()
 
 

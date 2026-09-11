@@ -427,7 +427,7 @@ class Book:
         made under (findings/03_class_identity.py, docs/prd-corrections.md
         correction 5). So this raises AttributeError on an old book rather
         than pretending, and the fix is the documented pair -- `gemdb
-        redeploy.py` to give the database the new code, then `gemdb seed.py`
+        redeploy.py` to give the database the new code, then `gemdb tools/seed.py`
         to rebuild the book under it.
         """
         self.quotes[a_quote.quote_id] = a_quote

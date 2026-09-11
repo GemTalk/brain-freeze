@@ -1,7 +1,7 @@
 """Read the whole book back out of the database, from a session of its own.
 
-    gemdb verify_book.py                 # the whole book
-    gemdb verify_book.py BF-100539       # ...and one policy in full
+    gemdb tools/verify_book.py                 # the whole book
+    gemdb tools/verify_book.py BF-100539       # ...and one policy in full
 
 This loads nothing. It opens `gemdb.root["brainfreeze"]` and reports what is
 there, which is the demo's central claim reduced to one command: **the objects
@@ -29,10 +29,17 @@ The figures `tests/test_seed.py` pins, listed in EXPECTED below. A freshly
 seeded book matches all of them. A book the app has been driven against will
 not -- filing a claim adds a policy or an event on purpose -- so a mismatch is
 reported as drift rather than failure, with the exit code saying which. Re-run
-`gemdb seed.py` to get back to the baseline.
+`gemdb tools/seed.py` to get back to the baseline.
 """
 
+import os
 import sys
+
+#: The repository, for the same reason and in the same way as every other
+#: script in here -- see `seed.py`.
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if REPO not in sys.path:
+    sys.path.insert(0, REPO)
 
 from brainfreeze import analysis
 from brainfreeze.money import format_usd, usd
@@ -116,7 +123,7 @@ def verify_book():
 
     book = gemdb.root.get("brainfreeze")
     if book is None:
-        print("  NOTHING IS COMMITTED. Run `gemdb seed.py` first.")
+        print("  NOTHING IS COMMITTED. Run `gemdb tools/seed.py` first.")
         return 2
 
     print("  %-22s %s" % ("the root holds", type(book).__name__))
@@ -130,7 +137,7 @@ def verify_book():
         print("  Every figure matches a freshly seeded book.")
         return 0
     print("  DRIFT from the seeded baseline -- expected if the app has been")
-    print("  driven since the last `gemdb seed.py`:")
+    print("  driven since the last `gemdb tools/seed.py`:")
     for name, want, got in drift:
         print("    %-12s expected %-12s got %s" % (name, want, got))
     return 1

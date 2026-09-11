@@ -1,8 +1,8 @@
 """Load the Brain Freeze Insurance dataset into GemDB as objects.
 
-    gemdb seed.py                 # load, commit, report
-    gemdb seed.py --dry-run       # build the objects, report, commit nothing
-    python3 seed.py --dry-run     # same, under CPython, for checking the parse
+    gemdb tools/seed.py                 # load, commit, report
+    gemdb tools/seed.py --dry-run       # build the objects, report, commit nothing
+    python3 tools/seed.py --dry-run     # same, under CPython, for checking the parse
 
 There is no import tool here and no schema to declare. This reads two CSVs,
 makes ordinary Python objects, puts one of them in `gemdb.root`, and commits.
@@ -39,14 +39,24 @@ import os
 import sys
 from datetime import date
 
+#: `gemdb tools/seed.py` puts *this* directory on `sys.path`, not the
+#: repository, so the model has to be pointed at. Every script in here repeats
+#: these three lines rather than importing a helper that does it once: a
+#: helper works until something commits, and then adjusts a `sys.path` the
+#: caller cannot see. Measured -- `findings/09_imported_module_sys.py`.
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if REPO not in sys.path:
+    sys.path.insert(0, REPO)
+
+#: `data/` at the repository root, not beside the working directory: the
+#: seeder and the tests both have to find these whatever directory they
+#: started from.
+POLICYHOLDERS_CSV = os.path.join(REPO, "data", "policyholders.csv")
+CLAIMS_CSV = os.path.join(REPO, "data", "claims.csv")
+
 from brainfreeze.model import Book, Claim, Event, Policyholder, event_order
 from brainfreeze.money import format_usd, usd
 
-#: `data/` beside this file, not beside the working directory. `gemdb seed.py`
-#: and the tests both need to find these whatever directory they start from.
-_DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-POLICYHOLDERS_CSV = os.path.join(_DATA, "policyholders.csv")
-CLAIMS_CSV = os.path.join(_DATA, "claims.csv")
 ROOT_KEY = "brainfreeze"
 
 

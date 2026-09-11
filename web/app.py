@@ -1,23 +1,25 @@
 """Brain Freeze Insurance, as a web app running inside the database.
 
-    gemdb app.py            # serves on http://127.0.0.1:5000/
+    gemdb web/app.py            # serves on http://127.0.0.1:5000/
 
-Start it from the project directory. `sys.path[0]` is the script's directory,
-and an import that cannot find `brainfreeze/` on disk resolves out of the
-database to whatever class was last compiled there -- silently. See "Editing a
-class does not update the database" in PLAN.md.
+Start it from the project directory. `sys.path[0]` is the script's directory
+-- `web/` -- so the repository is put on the path below, before anything of
+ours is imported. An import that cannot find `brainfreeze/` on disk resolves
+out of the database to whatever class was last compiled there, silently.
 
 HOW THIS IS LAID OUT
 
-This file is the factory and the entry point, and nothing else. The
-pages are in `routes_html.py`, the payloads in `routes_api.py`, the
-markup in `templates.py`, the questionnaire in `forms.py`, and finding
-an object in `lookups.py`. Every one of them is a TOP-LEVEL module,
-deliberately: Grail keeps a committed package module compiled in the
-database and serves that copy forever after, while a top-level module is
-recompiled from disk each run. Measured. It is why editing a template
-here does not need a `redeploy.py` first, and it is the reason this is a
-handful of siblings rather than an `app/` package.
+This file is the factory and the entry point, and nothing else. The pages are
+in `routes_html.py`, the payloads in `routes_api.py`, the markup in
+`templates.py`, the questionnaire in `forms.py`, and finding an object in
+`lookups.py`.
+
+None of them is a package, deliberately. Grail keeps a committed PACKAGE
+module compiled in the database and serves that copy forever after, while a
+module in a plain directory on `sys.path` is recompiled from disk each run --
+measured, both ways. It is why editing a template here does not need a
+`redeploy.py` first, and it is why `web/` has no `__init__.py`. Do not add
+one.
 
 WHAT IS AND IS NOT HERE
 
@@ -98,6 +100,17 @@ started an hour ago would still be serving the book as it was an hour ago.
 Read its docstring before changing it: the order matters and `abort()` is not
 a substitute.
 """
+
+import os
+import sys
+
+#: The repository, so that `brainfreeze` can be found at all. It has to
+#: happen here rather than in a module this imports: a helper that adjusts
+#: the path works until something commits, and then adjusts a `sys.path` the
+#: caller cannot see. Measured -- `findings/09_imported_module_sys.py`.
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if REPO not in sys.path:
+    sys.path.insert(0, REPO)
 
 from flask import Flask, render_template_string
 from werkzeug.serving import WSGIRequestHandler

@@ -48,7 +48,7 @@ def declared_routes():
     """(rule, handler name) for every @app.route across the route modules."""
     found = []
     for filename in ROUTE_MODULES:
-        with open(os.path.join(REPO, filename)) as handle:
+        with open(os.path.join(REPO, "web", filename)) as handle:
             found.extend(_routes_in(ast.parse(handle.read())))
     return found
 

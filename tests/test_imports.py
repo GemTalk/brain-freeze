@@ -33,9 +33,11 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SURFACE = ("app.py", "routes_html.py", "routes_api.py", "templates.py",
            "forms.py", "lookups.py", "wire.py")
 
+WEB = os.path.join(REPO, "web")
+
 
 def tree_of(filename):
-    with open(os.path.join(REPO, filename)) as handle:
+    with open(os.path.join(WEB, filename)) as handle:
         return ast.parse(handle.read(), filename=filename)
 
 

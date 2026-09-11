@@ -1,6 +1,6 @@
 """Make the database run the `brainfreeze` source that is on disk right now.
 
-    gemdb redeploy.py
+    gemdb tools/redeploy.py
 
 WHY THIS EXISTS
 
@@ -41,7 +41,12 @@ the data those rules made.
 import os
 import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+#: The repository, for the same reason and in the same way as every other
+#: script in here -- see `seed.py`.
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if REPO not in sys.path:
+    sys.path.insert(0, REPO)
+
 
 #: Leaves first. `money` has no siblings above it; `analysis` reads everything
 #: and is read by nothing; the package `__init__` re-exports and so goes last.
@@ -68,9 +73,9 @@ def unlisted_modules():
     So the ORDER is checked rather than trusted. Two lists that must agree is
     the bug; one list and a check is not.
     """
-    here = os.path.join(os.path.dirname(os.path.abspath(__file__)), "brainfreeze")
+    package = os.path.join(REPO, "brainfreeze")
     on_disk = set()
-    for name in os.listdir(here):
+    for name in os.listdir(package):
         if name.endswith(".py") and name != "__init__.py":
             on_disk.add("brainfreeze.%s" % name[:-3])
     return sorted(on_disk - set(ORDER))
@@ -86,9 +91,6 @@ def redeploy():
         print("  ORDER does not list: %s" % ", ".join(missing))
         print("  Add them in dependency order, leaves first, and re-run.")
         return 2
-
-    if HERE not in sys.path:
-        sys.path.insert(0, HERE)
 
     import brainfreeze                                   # noqa: F401  deploy it
 
@@ -123,7 +125,7 @@ def redeploy():
     if not exact:
         print("  The database is still running older code.")
         return 1
-    print("\n  Committed. Re-run `gemdb seed.py` to rebuild the book under it.")
+    print("\n  Committed. Re-run `gemdb tools/seed.py` to rebuild the book under it.")
     return 0
 
 

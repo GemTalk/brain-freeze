@@ -1,6 +1,6 @@
 """Run brain-freeze.ipynb's code cells inside the database.
 
-    gemdb run_notebook_check.py
+    gemdb tools/run_notebook_check.py
 
 A notebook that errors on cell 4 in front of an evaluator is worse than no
 notebook, and nothing else in the suite touches it -- the .ipynb is data, so
@@ -18,10 +18,14 @@ import os
 import sys
 import traceback
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, HERE)
+#: The repository, for the same reason and in the same way as every other
+#: script in here -- see `seed.py`.
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if REPO not in sys.path:
+    sys.path.insert(0, REPO)
 
-NOTEBOOK = os.path.join(HERE, "brain-freeze.ipynb")
+NOTEBOOK = os.path.join(REPO, "brain-freeze.ipynb")
+
 
 with io.open(NOTEBOOK, encoding="utf-8") as handle:
     notebook = json.load(handle)

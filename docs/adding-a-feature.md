@@ -75,18 +75,18 @@ class Claim:
 ```
 
 So the work was a form, a template, a handler and four tests. And because
-`app.py` is a top-level script rather than a module inside a package, restarting
-`gemdb app.py` was the whole of the deployment:
+nothing in `web/` is inside a package, restarting `gemdb web/app.py` was the
+whole of the deployment:
 
 ```sh
 # stop the running app, then
-gemdb app.py
+gemdb web/app.py
 python3 -m unittest discover
-gemdb run_db_tests.py
+gemdb tools/run_db_tests.py
 ```
 
-Note what did *not* have to happen: no `gemdb redeploy.py`, because no package
-module changed, and no `gemdb seed.py`, because every existing claim reads the
+Note what did *not* have to happen: no `gemdb tools/redeploy.py`, because no package
+module changed, and no `gemdb tools/seed.py`, because every existing claim reads the
 default through the class it was made under.
 
 That is the honest version of the demo line. It is not "edit the model and the
@@ -116,13 +116,13 @@ quote had nowhere in the book to live. Giving it somewhere took three commits
 This one paid both costs, and they are separate costs with separate fixes.
 
 **Cost one: `model.py` is inside a package, so the database was still serving
-the old compiled copy.** `gemdb redeploy.py` is the fix — §4.
+the old compiled copy.** `gemdb tools/redeploy.py` is the fix — §4.
 
 **Cost two: `Book.quotes` is a new field on an object that was already
 committed.** The book in `gemdb.root["brainfreeze"]` was built before `quotes`
 existed. A class-level default declared now does not reach it: editing a class
 compiles a *different* class, and instances keep the one they were made under
-(§3). So the fix is `gemdb seed.py`, which rebuilds every object from the new
+(§3). So the fix is `gemdb tools/seed.py`, which rebuilds every object from the new
 code.
 
 The order matters and the app says so out loud. From `app.py`:
@@ -133,9 +133,9 @@ The order matters and the app says so out loud. From `app.py`:
             return the_book.quotes
         except AttributeError:
             abort(500, "This book was committed before quotes had a class of "
-                       "their own. Run `gemdb redeploy.py` to give the "
+                       "their own. Run `gemdb tools/redeploy.py` to give the "
                        "database the current brainfreeze package, then "
-                       "`gemdb seed.py` to rebuild the book under it.")
+                       "`gemdb tools/seed.py` to rebuild the book under it.")
 ```
 
 Two things about that handler are worth copying rather than admiring. It lets
@@ -181,22 +181,23 @@ deliberately and say which one you chose.
 Everything above collapses into these.
 
 **Is the file you edited inside `brainfreeze/`?** Then the database is serving a
-compiled copy of it and your edit is not live. Run `gemdb redeploy.py`.
-Top-level modules — `app.py` and the five it is split across, plus `seed.py`,
-`run_db_tests.py`, `lapse.py`, `verify_book.py` — are read from disk each time
-`gemdb` runs them, so restarting is enough for those. That is why the web app
-is a handful of siblings rather than an `app/` package: the same measurement
-that says `brainfreeze/` needs a redeploy says these do not. `findings/08_script_imports.py` measures the difference and
-is blunt about where it comes from: writing an `__init__.py` beside a module is
-the whole of it.
+compiled copy of it and your edit is not live. Run `gemdb tools/redeploy.py`.
+
+Everything in `web/` and `tools/` is read from disk each time `gemdb` runs it,
+so restarting is enough for those — and that is precisely why neither
+directory has an `__init__.py`. `findings/08_script_imports.py` measures the
+difference and is blunt about where it comes from: writing an `__init__.py`
+beside a module is the whole of it. The same measurement that says
+`brainfreeze/` needs a redeploy says the web app does not, which is why
+editing a template takes effect on the next restart.
 
 **Does the change add or alter a field on a class whose instances are already
 committed?** Then a class-level default will not reach those instances. Either
-`gemdb seed.py` to rebuild them, or read the field through
+`gemdb tools/seed.py` to rebuild them, or read the field through
 `getattr(record, "field", default)` everywhere, forever. There is no third
 option that this repository has measured.
 
-`gemdb seed.py` replaces `gemdb.root["brainfreeze"]` wholesale. It throws away
+`gemdb tools/seed.py` replaces `gemdb.root["brainfreeze"]` wholesale. It throws away
 every policy bought and every claim filed since the last seed. That is fine
 before a demo and rude in the middle of one.
 
@@ -306,7 +307,7 @@ stabilising your classes.
 The escape:
 
 ```sh
-gemdb redeploy.py
+gemdb tools/redeploy.py
 ```
 
 It is `importlib.reload` in dependency order, then a commit. Two details are
@@ -331,7 +332,7 @@ says otherwise, the database is still running older code.
 
 **What redeploy does not do is migrate anything.** Objects already committed keep
 the class they were made with. That is why the pair is two commands and not one:
-`gemdb redeploy.py` changes the rules, `gemdb seed.py` rebuilds the data those
+`gemdb tools/redeploy.py` changes the rules, `gemdb tools/seed.py` rebuilds the data those
 rules made.
 
 **What is still open** is whether there is a recipe that re-binds
@@ -353,7 +354,7 @@ script this database has ever run — across sessions and across processes
 Combined with the second half: **Grail dispatches by argument count, and default
 values do not disambiguate.** A function declared `main(host="...", port=5000)`
 and called as `main()` is a zero-argument call, and can resolve to a *different*
-script's zero-argument `main`. That is not hypothetical — `gemdb app.py` once
+script's zero-argument `main`. That is not hypothetical — `gemdb web/app.py` once
 failed with `name 'PREAMBLE' is not defined`, a global belonging to
 `make_mcp_questions.py`, because `app.py`'s `main()` reached the question
 generator's `main` and died inside it.
@@ -374,7 +375,7 @@ Two qualifications, both real:
   extent is rebuilt. The namespace is repository state, not process state.
 
 While you are near the bottom of a script: **the `if __name__ == "__main__":`
-guard goes at the very end of the file.** `gemdb app.py` executes top to bottom,
+guard goes at the very end of the file.** `gemdb web/app.py` executes top to bottom,
 so a guard sitting next to `serve()` starts the server before the templates
 below it exist and every route raises `NameError` — and importing the module for
 a test hides it completely.
@@ -385,8 +386,8 @@ a test hides it completely.
 
 ```sh
 python3 -m unittest discover        # under CPython
-gemdb run_db_tests.py               # the same files, inside the database
-gemdb run_notebook_check.py         # every notebook cell, in order
+gemdb tools/run_db_tests.py               # the same files, inside the database
+gemdb tools/run_notebook_check.py         # every notebook cell, in order
 .venv-acceptance/bin/behave         # the acceptance suite, in a real browser
 ```
 
@@ -406,7 +407,7 @@ ships on; a suite that only runs in the database cannot tell you the two agree.
 namespace rather than importing it, because of §4: the database serves a stale
 compiled copy of an imported module, and `tests/` is a package. A runner that
 silently tests the previous version of the tests is worse than no runner.
-`gemdb run_db_tests.py money seed` runs a subset.
+`gemdb tools/run_db_tests.py money seed` runs a subset.
 
 **The acceptance suite** (`features/`) drives the real app in a real browser and
 leaves screenshots in `artifacts/`. It needs its own virtualenv because it
@@ -418,7 +419,7 @@ python3 -m venv .venv-acceptance
 .venv-acceptance/bin/playwright install chromium
 ```
 
-It owns its whole environment: it reseeds the book, starts `gemdb app.py`, runs
+It owns its whole environment: it reseeds the book, starts `gemdb web/app.py`, runs
 the scenarios, stops the app, and **fails the run if port 5000 is still open
 afterwards**. Three things follow for anyone adding a feature.
 
@@ -448,8 +449,8 @@ than in a test.
 | the web app | `routes_html.py` renders `templates.py`; `app.py` wires it up | `tests/test_app.py`, `features/*.feature` |
 | the JSON API | `wire.py` serialises; `routes_api.py` routes it | `tests/test_api.py` |
 | the questionnaire | `forms.py` — asked by both surfaces, read by one function | `tests/test_api.py`, `tests/test_app.py` |
-| the notebook | generated by `make_notebook.py` — **never edit `brain-freeze.ipynb` by hand** | `gemdb run_notebook_check.py` |
-| the MCP answers | `docs/mcp-questions.md`, generated by `gemdb make_mcp_questions.py` | `python3 refresh_mcp.py --verify` replays it over the transport |
+| the notebook | generated by `make_notebook.py` — **never edit `brain-freeze.ipynb` by hand** | `gemdb tools/run_notebook_check.py` |
+| the MCP answers | `docs/mcp-questions.md`, generated by `gemdb tools/make_mcp_questions.py` | `python3 tools/refresh_mcp.py --verify` replays it over the transport |
 | the dataset description | `docs/dataset-for-agents.md`, `docs/csv-schema.md` | by hand — nothing checks these |
 | the seeded figures | `data/*.csv` | `tests/test_seed.py`, `tests/test_analysis.py`, `EXPECTED` in `verify_book.py`, and the answers printed in `docs/mcp-questions.md` |
 | the package boundary | `brainfreeze/` imports nothing Grail lacks | `tests/test_packaging.py` |
@@ -464,7 +465,7 @@ because it reads the committed graph from a session that has never seen a CSV.
 
 Two cautions about regenerating:
 
-- **`gemdb make_mcp_questions.py` re-seeds first, deliberately.** The answers
+- **`gemdb tools/make_mcp_questions.py` re-seeds first, deliberately.** The answers
   have to describe a freshly seeded database rather than whatever the last demo
   left behind. It is not a step to run casually.
 - `docs/mcp-questions.md` publishes `analysis.denial_reasons`' exact output,
@@ -510,7 +511,7 @@ Said plainly, because a confident wrong answer here is expensive.
 | [`findings/08_script_imports.py`](../findings/08_script_imports.py) | the database keeps a compiled module and serves it forever; the commit is the mechanism |
 | [`findings/02_main_namespace.py`](../findings/02_main_namespace.py) | `__main__` is shared by every script; dispatch is by arity |
 | [`findings/class-identity/`](../findings/class-identity/README.md) | committing after imports is what keeps class identity |
-| [`redeploy.py`](../redeploy.py) | the escape, with its reasoning in the module docstring |
+| [`redeploy.py`](../tools/redeploy.py) | the escape, with its reasoning in the module docstring |
 | [`docs/prd-corrections.md`](prd-corrections.md) | correction 5 on FR-7.2, correction 10 on what "redeploy" means |
 
 And the two companions, again, because most of what an agent needs is in one of

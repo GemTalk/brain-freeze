@@ -94,7 +94,7 @@ indication that this session's view is behind.
 
 **2.2 `__main__` is one namespace shared by every script the database has run.**
 Dispatch is by argument count, so a call can land in a different file's
-function of the same name. `gemdb app.py` here failed with a `NameError` for a
+function of the same name. `gemdb web/app.py` here failed with a `NameError` for a
 global belonging to an unrelated script. Either scope `__main__` per script or
 say plainly that script entry points must not be named `main`.
 See `findings/02_main_namespace.py`.

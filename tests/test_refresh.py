@@ -30,7 +30,7 @@ import os
 import unittest
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-APP = os.path.join(REPO_ROOT, "app.py")
+APP = os.path.join(REPO_ROOT, "web", "app.py")
 
 
 def tree():

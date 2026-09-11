@@ -1,8 +1,8 @@
 """Lapse or reinstate one policy, from a session of its own, while the app serves.
 
-    gemdb lapse.py BF-100184                 # lapse it, as of yesterday
-    gemdb lapse.py BF-100184 --reinstate     # put it back
-    gemdb lapse.py BF-100184 --on 2027-01-31 # lapse it on a chosen date
+    gemdb tools/lapse.py BF-100184                 # lapse it, as of yesterday
+    gemdb tools/lapse.py BF-100184 --reinstate     # put it back
+    gemdb tools/lapse.py BF-100184 --on 2027-01-31 # lapse it on a chosen date
 
 This is the demo's central claim made watchable. Leave the web app running,
 open the policy in a browser, run this in a terminal, and reload. The page
@@ -33,8 +33,15 @@ the change can be shown back and forth in front of an audience without
 re-seeding between takes.
 """
 
+import os
 import sys
 from datetime import date, timedelta
+
+#: The repository, for the same reason and in the same way as every other
+#: script in here -- see `seed.py`.
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if REPO not in sys.path:
+    sys.path.insert(0, REPO)
 
 from brainfreeze.money import format_usd
 
@@ -79,7 +86,7 @@ def lapse():
 
     book = gemdb.root.get("brainfreeze")
     if book is None:
-        print("Nothing is committed. Run `gemdb seed.py` first.")
+        print("Nothing is committed. Run `gemdb tools/seed.py` first.")
         return 2
 
     policy = book.policies.get(policy_id)

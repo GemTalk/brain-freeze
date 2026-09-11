@@ -31,15 +31,21 @@ import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-#: Everything the running application is made of. Ordinary scripts are left
-#: out: they are run by hand, so a name they got wrong announces itself.
-SURFACE = ["app.py", "routes_html.py", "routes_api.py", "templates.py",
-           "forms.py", "lookups.py", "wire.py"]
+#: Everything that only ever runs inside the database: the web app, and the
+#: commands. `verify_book.py` and `lapse.py` import a module purely to put
+#: the repository on `sys.path` and are the one place a "not used" complaint
+#: is the right answer, so a `# noqa` on the line excuses it -- pyflakes does
+#: not read those itself.
+SURFACE = sorted(
+    os.path.join(directory, name)
+    for directory in ("web", "tools")
+    for name in os.listdir(os.path.join(REPO, directory))
+    if name.endswith(".py"))
 
 
 def pyflakes_is_available():
     try:
-        import pyflakes             # noqa: F401
+        import pyflakes  # noqa: F401  presence is the whole check
     except ImportError:
         return False
     return True
@@ -53,7 +59,20 @@ class TheModulesTheDatabaseRunsAreClean(unittest.TestCase):
         finished = subprocess.run(
             [sys.executable, "-m", "pyflakes"] + list(paths),
             cwd=REPO, capture_output=True, text=True)
-        return [line for line in finished.stdout.splitlines() if line.strip()]
+        return [line for line in finished.stdout.splitlines()
+                if line.strip() and not self.excused(line)]
+
+    def excused(self, complaint):
+        """True when the line complained about carries a `# noqa`."""
+        head = complaint.split(":")
+        if len(head) < 2 or not head[1].isdigit():
+            return False
+        try:
+            with open(os.path.join(REPO, head[0])) as handle:
+                line = handle.read().splitlines()[int(head[1]) - 1]
+        except (OSError, IndexError):
+            return False
+        return "# noqa" in line
 
     def test_the_surface_modules_have_no_complaints_at_all(self):
         complaints = self.flakes(*SURFACE)

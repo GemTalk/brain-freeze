@@ -1,11 +1,11 @@
 # Findings, as scripts you can run
 
-Eight things about running Python inside GemDB that cost real time while
+Nine things about running Python inside GemDB that cost real time while
 building this demo, each reduced to a script that reproduces it on your own
 database rather than asking you to believe a transcript.
 
 [`docs/writing-python-for-gemdb.md`](../docs/writing-python-for-gemdb.md) is
-these eight turned into advice, with the rest of what this repo learned folded
+these nine turned into advice, with the rest of what this repo learned folded
 in. Read that if you are about to write code; read this if you want to see it
 happen on your own database.
 
@@ -18,15 +18,17 @@ gemdb findings/04_dirty_session.py
 gemdb findings/05_module_monkeypatch.py
 gemdb findings/06_decimal_money.py
 gemdb findings/07_logging_stub.py
-gemdb findings/08_script_imports.py   # run this one twice
+gemdb findings/08_script_imports.py     # run this one twice
+gemdb findings/09_imported_module_sys.py  # run this one twice
 ```
 
 `class-identity/` is a fourth-and-a-half: four scripts in two arms, inherited from the demo being retired. See
 [`class-identity/README.md`](class-identity/README.md).
 
-All eight are safe. Only 03 writes to `gemdb.root`, and it removes what it
-wrote; 05 patches the `gemdb` module and puts it back; 08 writes a throwaway
-module under `findings/` and removes it.
+All nine are safe. Only 03 writes to `gemdb.root`, and it removes what it
+wrote; 05 patches the `gemdb` module and puts it back; 08 and 09 write a
+throwaway module under `findings/` and remove it. 09 commits, which is the
+whole point of it, and so leaves one small compiled module in the database.
 
 Measured on 2026-09-08 against GemStone/S 3.7.5 with Grail `c875e56`. **Two of
 them disagree with the same findings reached independently in
@@ -72,7 +74,7 @@ and kept. A new script starts with the accumulated globals of every script this
 database has ever run. Combined with dispatch by argument count — defaults do
 not disambiguate — a call to `main()` can land in a different file's `main`.
 
-That is not hypothetical: `gemdb app.py` failed with `name 'PREAMBLE' is not
+That is not hypothetical: `gemdb web/app.py` failed with `name 'PREAMBLE' is not
 defined`, a global belonging to `make_mcp_questions.py`. **Do not name a
 script's entry point `main`.** Name it something the file owns, so that no two
 of them are the same zero-argument selector. Every script here does:
@@ -194,7 +196,7 @@ because nothing fails until two surfaces disagree in front of an audience:
 float that is not equal to it; and `str()` drops trailing zeros, so `$170.10`
 prints as `170.1`.
 
-`brainfreeze/money.py` is the answer to all of it, and `gemdb run_db_tests.py`
+`brainfreeze/money.py` is the answer to all of it, and `gemdb tools/run_db_tests.py`
 running the same suite in both runtimes is what keeps it honest.
 
 ## 7. Reporting a view's exception is what fails
@@ -240,6 +242,31 @@ At package scale it cost an afternoon: the database went on running a float
 whole suite passing against rules that were no longer on disk. Nothing reports
 the divergence. `redeploy.py` is the answer, and it is only obvious once you
 know the failure exists.
+
+## 9. A path helper works until something commits
+
+`gemdb tools/seed.py` puts the **script's** directory on `sys.path`, not the
+repository, so every entry point in a subdirectory has to say where the model
+is before it can import it. Nine scripts, three lines each — and the obvious
+tidy-up is one module beside them, imported for the side effect.
+
+It works. The seeder ran, the redeploy ran, and the redeploy *committed*.
+Every run after that failed with `No module named 'brainfreeze'`, from scripts
+whose first statement was the thing meant to prevent exactly that.
+
+The helper still runs afterwards and its constants are still right. What
+changes is that the `sys` it inserts into stops being the caller's `sys`.
+Nothing raises; the insert lands somewhere nobody is looking.
+
+This is finding 8 with a sharper edge. There, a committed module is served
+stale. Here it is not stale at all — fresh source, correct values — and still
+is not the module you wrote. The asymmetry is worth keeping: a path inserted
+by the *running script* is visible to everything it imports, before and after
+a commit alike, which is why a test runner can put a directory on the path and
+then execute tests that import from it.
+
+**Put the path lines in each entry point.** Duplication is cheaper than a
+helper that silently does not help.
 
 ---
 

@@ -87,7 +87,7 @@ def quote_questions():
 
     A function rather than a module constant to keep import time doing
     nothing but binding names; this file is executed top to bottom by
-    `gemdb app.py`.
+    `gemdb web/app.py`.
 
     Sex is absent for the reason it is absent from the form: FR-5.2 asks for
     it, the risk model gives it no weight, and a question that changes

@@ -1,9 +1,9 @@
 """Keep this demo on the current GemStone MCP server, and prove it still works.
 
-    python3 refresh_mcp.py                 # what is upstream, staged, installed
-    python3 refresh_mcp.py --install       # fetch the latest and file it in
-    python3 refresh_mcp.py --verify        # run the promises over MCP
-    python3 refresh_mcp.py --install --verify --ref v0.7.0
+    python3 tools/refresh_mcp.py                 # what is upstream, staged, installed
+    python3 tools/refresh_mcp.py --install       # fetch the latest and file it in
+    python3 tools/refresh_mcp.py --verify        # run the promises over MCP
+    python3 tools/refresh_mcp.py --install --verify --ref v0.7.0
 
 The MCP server is a moving target -- it lives in its own repository, ships on
 its own schedule, and the copy GemDB bundles is pinned to whenever GemDB was
@@ -43,12 +43,17 @@ import tempfile
 import socket
 import urllib.request
 
+#: The repository, for the same reason and in the same way as every other
+#: script in here -- see `seed.py`.
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if REPO not in sys.path:
+    sys.path.insert(0, REPO)
+
 UPSTREAM = "https://github.com/GemTalk/mcp_server.git"
 GEMDB_ROOT = os.path.expanduser("~/GemDB")
 MCP_DIR = os.path.join(GEMDB_ROOT, "mcp")
 STAMP = os.path.join(MCP_DIR, "MCP_VERSION")
-HERE = os.path.dirname(os.path.abspath(__file__))
-DOC = os.path.join(HERE, "docs", "mcp-questions.md")
+DOC = os.path.join(REPO, "docs", "mcp-questions.md")
 PORT = 50390
 
 #: Not `main` -- `__main__` is one namespace shared by every script this
@@ -412,7 +417,7 @@ def preamble():
         published = published_preamble(handle.read())
     if published is None:
         raise SystemExit("%s publishes no preamble to run" % DOC)
-    return "import sys\nsys.path.insert(0, %r)\n%s\n" % (HERE, published)
+    return "import sys\nsys.path.insert(0, %r)\n%s\n" % (REPO, published)
 
 
 # ------------------------------------------------------------------ main ---

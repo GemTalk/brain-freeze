@@ -72,12 +72,17 @@ from brainfreeze.money import format_usd, usd, wire_usd
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-#: app.py keeps the wiring; the routes it registers live in these.
+#: The web app's modules. A plain directory on `sys.path`, not a package:
+#: a committed package module is served from the database forever, while
+#: these are recompiled from disk each run.
+WEB = os.path.join(REPO_ROOT, "web")
+
+#: `app.py` keeps the wiring; the routes it registers live in these.
 ROUTE_MODULES = ("routes_html.py", "routes_api.py")
 
 
 def read(filename):
-    with open(os.path.join(REPO_ROOT, filename)) as handle:
+    with open(os.path.join(WEB, filename)) as handle:
         return handle.read()
 
 
@@ -462,7 +467,7 @@ class TheRouteContract(unittest.TestCase):
                                      "%s formats money itself" % node.name)
 
     def test_the_main_guard_is_still_the_last_statement(self):
-        # Constraint from app.py's docstring: `gemdb app.py` runs the file top
+        # Constraint from app.py's docstring: `gemdb web/app.py` runs the file top
         # to bottom, so a guard above the templates would serve routes that
         # raise NameError -- and importing the module hides it completely.
         last = self.tree.body[-1]

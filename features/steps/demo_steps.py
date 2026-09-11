@@ -9,7 +9,7 @@ from behave import given, then, when
 
 from environment import shoot
 
-#: What `gemdb seed.py` makes, pinned by tests/test_seed.py. Scenarios that
+#: What `gemdb tools/seed.py` makes, pinned by tests/test_seed.py. Scenarios that
 #: buy a policy push the live count above it.
 SEEDED_POLICIES = 900
 

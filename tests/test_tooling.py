@@ -16,12 +16,14 @@ CPython is whether their bookkeeping still matches the repo.
 
 import ast
 import os
-import sys
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
-sys.path.insert(0, REPO)
+
+#: The scripts live together in `tools/`, so that the repository root holds
+#: directories rather than a drift of entry points.
+TOOLS = os.path.join(REPO, "tools")
 
 
 def module_constant(filename, name):
@@ -30,7 +32,7 @@ def module_constant(filename, name):
     These scripts import `gemdb` at call time but some touch it at module
     scope, and none of them can be imported under plain CPython.
     """
-    with open(os.path.join(REPO, filename)) as handle:
+    with open(os.path.join(TOOLS, filename)) as handle:
         tree = ast.parse(handle.read())
     for node in ast.walk(tree):
         if isinstance(node, ast.Assign):

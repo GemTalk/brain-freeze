@@ -1,6 +1,6 @@
 """Generate docs/mcp-questions.md by running every answer.
 
-    gemdb make_mcp_questions.py
+    gemdb tools/make_mcp_questions.py
 
 The point of generating it: a document that lists what an agent can ask, with
 answers typed in by hand, is a promise nobody checked. This one runs each
@@ -25,7 +25,14 @@ import os
 import sys
 import traceback
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+#: The repository, for the same reason and in the same way as every other
+#: script in here -- see `seed.py`.
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if REPO not in sys.path:
+    sys.path.insert(0, REPO)
+
+DOC = os.path.join(REPO, "docs", "mcp-questions.md")
+
 
 #: What every snippet below assumes, and the ONLY thing this script executes
 #: to set them up. Those must be the same object: it used to publish this and
@@ -145,7 +152,7 @@ def generate():
         "Every answer below was produced by running the snippet beside it, "
         "not typed in, against a **freshly seeded** database -- the state "
         "CUJ-0 starts from and the figures `tests/test_seed.py` pins. "
-        "Regenerate with `gemdb make_mcp_questions.py` after any change to "
+        "Regenerate with `gemdb tools/make_mcp_questions.py` after any change to "
         "the data or the rules; if an answer moves, either the change was "
         "wrong or this file is the record of what the demo now promises.")
         + "\n\n")
@@ -164,9 +171,7 @@ def generate():
         out.write("```\n" + answer + "\n```\n")
         print("  %d. %s" % (number, "ok" if "FAILED" not in answer else "FAILED"))
 
-    here = os.path.dirname(os.path.abspath(__file__))
-    path = os.path.join(here, "docs", "mcp-questions.md")
-    with io.open(path, "w", encoding="utf-8") as handle:
+    with io.open(DOC, "w", encoding="utf-8") as handle:
         handle.write(out.getvalue())
 
     print("\nWrote docs/mcp-questions.md (%d questions, %d failed)"

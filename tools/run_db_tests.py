@@ -1,7 +1,7 @@
 """Run the test suite INSIDE the database, so both surfaces can be compared.
 
-    gemdb run_db_tests.py              # every module
-    gemdb run_db_tests.py money seed   # just these
+    gemdb tools/run_db_tests.py              # every module
+    gemdb tools/run_db_tests.py money seed   # just these
 
 `python3 -m unittest discover` runs the same files under CPython. Running them
 here as well is the demo's central claim reduced to a check: one set of rules,
@@ -21,8 +21,20 @@ import sys
 import types
 import unittest
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, HERE)
+#: The repository, for the same reason and in the same way as every other
+#: script in here -- see `seed.py`.
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if REPO not in sys.path:
+    sys.path.insert(0, REPO)
+
+#: The web app's modules, so a test can `import app` or `import wire`. A
+#: plain directory rather than a package, deliberately: a committed package
+#: module is served from the database forever, while these are recompiled
+#: from disk each run.
+WEB = os.path.join(REPO, "web")
+if WEB not in sys.path:
+    sys.path.insert(0, WEB)
+
 
 #: In dependency order, cheapest first, so a broken foundation fails fast.
 MODULES = ["test_money", "test_brainfreeze", "test_seed", "test_analysis",
@@ -43,7 +55,7 @@ def run_db_tests():
               for a in sys.argv[1:]] or MODULES
     suite = unittest.TestSuite()
     for name in wanted:
-        path = os.path.join(HERE, "tests", "%s.py" % name)
+        path = os.path.join(REPO, "tests", "%s.py" % name)
         if not os.path.exists(path):
             print("no such test module: %s" % path)
             return 2

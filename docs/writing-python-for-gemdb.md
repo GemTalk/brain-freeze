@@ -257,7 +257,7 @@ running server's own handlers. There is no rollback to reach for here; "abort on
 exception" is wrong, and dangerously so.
 
 The web app runs `commit()` then `refresh()` at the start of every request —
-`take_new_view()` in [`app.py`](../app.py), whose docstring explains why the
+`take_new_view()` in [`app.py`](../web/app.py), whose docstring explains why the
 commit is unconditional rather than guarded by `needs_commit()`. The notebook
 deliberately does *not*, because an analysis that shifted under you mid-cell
 would be worse than one that waits to be told.
@@ -287,9 +287,20 @@ This cost the whole of the money work: the database went on returning
 `31.499999999999996` from a float `annual_premium` for an hour after the file on
 disk returned exact `Decimal`, with every test passing against rules that were no
 longer anywhere on disk. At smaller scale it ate an afternoon on
-`tests/test_app.py`, which was edited over and over with no effect while edits to
-top-level `app.py` in the same tree took effect immediately
+`tests/test_app.py`, which was edited over and over with no effect while edits
+to `app.py` in the same tree took effect immediately
 ([finding 8](../findings/08_script_imports.py)).
+
+There is a second face of this that is harder to see, because nothing about it
+looks stale. A module whose only job was to put the repository on `sys.path`
+for the scripts beside it worked — until a redeploy committed, after which
+every script that leaned on it failed with `No module named 'brainfreeze'`.
+The helper still ran, and its constants were still right; what changed is that
+the `sys` it inserted into stopped being the caller's. **A module cannot fix
+its importer's `sys.path` once it has been committed.** Put those lines in each
+entry point ([finding 9](../findings/09_imported_module_sys.py)). A path
+inserted by the *running script* is not affected and reaches everything it
+goes on to import.
 
 **The commit is the mechanism.** The first draft of finding 8 had no `commit()`
 in run 1 and concluded there was no problem. Compiling a module is a repository
@@ -302,10 +313,10 @@ that you **must** commit after your imports, or instances you write are stranded
 on a class the next session will not recognise. That rule is right. This is its
 price: the same commit that stabilises your classes freezes your code.
 
-**The escape is [`redeploy.py`](../redeploy.py)**, and it is not obvious:
+**The escape is [`redeploy.py`](../tools/redeploy.py)**, and it is not obvious:
 
 ```sh
-gemdb redeploy.py
+gemdb tools/redeploy.py
 ```
 
 It is `importlib.reload` in dependency order, then a commit, and both details are
@@ -369,7 +380,7 @@ values do not disambiguate.** A function declared `main(host="...", port=5000)`
 and called as `main()` is a zero-argument call, and can resolve to a *different*
 script's zero-argument `main`.
 
-That is not hypothetical. `gemdb app.py` failed with
+That is not hypothetical. `gemdb web/app.py` failed with
 `name 'PREAMBLE' is not defined` — a global belonging to
 `make_mcp_questions.py` — because `app.py`'s `main()` reached the question
 generator's `main` and died inside it.
@@ -434,7 +445,7 @@ off the path. Finding 8 prints yours and whether it is absolute.
 The consequence is a rule with teeth: **start scripts from the project
 directory.** An import that cannot find `brainfreeze/` on disk does not fail. It
 resolves out of the database to whatever class was last compiled there, silently
-— which is items 1 and 2 above arriving together. `gemdb app.py` run from `/tmp`
+— which is items 1 and 2 above arriving together. `gemdb web/app.py` run from `/tmp`
 runs against last week's model and says nothing.
 
 Over MCP the same problem has a different shape, because a worker gem's working
@@ -477,7 +488,7 @@ it.
    — and that looks like a caching bug rather than a transaction one.
 5. **The `if __name__ == "__main__":` guard goes at the very end of the file.**
    This one is not Grail's fault — it is ordinary Python — but it is load-bearing
-   here and the failure is confusing: `gemdb app.py` executes top to bottom, so a
+   here and the failure is confusing: `gemdb web/app.py` executes top to bottom, so a
    guard sitting next to `serve()` starts the server before the templates below
    it exist, and every route raises `NameError`. Importing the module for a test
    hides it completely, because an import finishes the file before any route
@@ -536,7 +547,7 @@ unmerged, and `LoggerAdapter.error` in the same file already takes `**kwargs`.
 
 ```sh
 python3 -m unittest discover        # under CPython
-gemdb run_db_tests.py               # the same files, inside the database
+gemdb tools/run_db_tests.py               # the same files, inside the database
 ```
 
 **This is not belt-and-braces. It is the only way to catch the class of bug this
@@ -546,7 +557,7 @@ set of rules to give two answers on two surfaces of the same application. A suit
 that only runs under CPython proves nothing about the runtime the application
 ships on; a suite that only runs in the database cannot tell you the two agree.
 
-Two details in [`run_db_tests.py`](../run_db_tests.py) are there for reasons from
+Two details in [`run_db_tests.py`](../tools/run_db_tests.py) are there for reasons from
 this page:
 
 - **It reads each test module from disk and `exec`s it into a fresh namespace
