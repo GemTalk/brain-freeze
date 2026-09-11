@@ -165,10 +165,10 @@ gemdb run_notebook_check.py         # every notebook cell, in order
 ```
 
 ```console
-Ran 271 tests in 1.014s
+Ran 280 tests in 1.057s
 OK (skipped=57)
 
-Ran 226 tests
+Ran 230 tests
 OK
 
 All 10 code cells ran.
@@ -275,19 +275,19 @@ $ curl -s localhost:5000/api/stats
 `Decimal` at all, so the wire format had to be decided rather than inherited,
 and `"92081.22"` is the decision — two places always, no symbol, no grouping,
 `null` where no money was recorded. Not a float, which would put back the two
-answers the move to `Decimal` removed (issue #68); not integer
-cents, which would be exact but would make every reader divide by a hundred.
+answers the move to `Decimal` removed; not integer cents, which would be exact
+but would make every reader divide by a hundred.
 A string is the same text `money.usd()` already reads, so a figure goes back
 into the model unchanged. `money.wire_usd` is the only function that turns
-money into text for a payload, and `brainfreeze/wire.py` is the only place
-that builds one.
+money into text for a payload, and `wire.py` is the only place that builds
+one.
 
 ```console
 $ curl -s localhost:5000/api/quote -H 'Content-Type: application/json' \
        -d '{"age": 11, "typical_consumption_speed": "fast",
             "favourite_trigger": "slushie"}'
 {"answers": {...},
- "quote": {"score": 75.0, "tier": "High", "breakdown": [...],
+ "quote": {"score": 75.0, "risk_tier": "High", "breakdown": [...],
            "plans": {"Basic":    {"annual": "85.50",  "monthly": "7.13", ...},
                      "Standard": {"annual": "171.00", "monthly": "14.25", ...},
                      "Premium":  {"annual": "342.00", "monthly": "28.50", ...}}}}
@@ -653,7 +653,14 @@ docs/          the PRD, the questions the demo promises to answer, the
                dictionary for the two CSVs
 features/      the acceptance suite -- .venv-acceptance/bin/behave
 findings/      the eight things that cost time, as scripts you can run
-app.py         the web app -- the HTML screens and the JSON API
+app.py         the web app: the factory, the transaction beat, the server
+routes_html.py the nine pages a person clicks through
+routes_api.py  the six JSON endpoints
+templates.py   the six Jinja templates and the one stylesheet
+forms.py       the questionnaire, and the one reader both surfaces use
+lookups.py     finding the object a request is about, and the 404 when it
+               is not there
+wire.py        model objects -> JSON-ready dicts, money as exact strings
 seed.py        data/ -> gemdb.root
 redeploy.py    make the database run the brainfreeze/ that is on disk now
 PLAN.md        the working notes, including what is still open

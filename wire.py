@@ -1,10 +1,10 @@
 """The objects, as JSON-ready data. One place, so money has one rule.
 
-    from brainfreeze import wire
+    import wire
     wire.policy(book["BF-100539"], date.today())
 
-`app.py` renders these same objects as HTML; issue #50 asks for them over
-`curl` as well. What that needs is not an ORM or a schema -- the objects are
+`routes_html.py` renders these same objects as HTML; the JSON surface offers
+them over `curl` as well. What that needs is not an ORM or a schema -- the objects are
 already in the database and nothing maps them -- but an answer to one
 question: what does money look like on the wire?
 
@@ -31,20 +31,20 @@ deliberately absent: it is an unrounded division, and two surfaces could
 disagree in its last digit. The two counts it divides are both here.
 
 Standard library only, like the rest of the package, and it imports nothing
-from `app` -- so the payloads can be driven under CPython from a seeded book,
+from the routes -- so the payloads can be driven under CPython from a seeded book,
 which `tests/test_api.py` does.
 """
 
 from datetime import date
 
-from .analysis import (
+from brainfreeze.analysis import (
     book_summary,
     claim_approval_rate,
     denial_reasons,
     loss_ratio_by_plan,
     loss_ratio_by_tier,
 )
-from .money import wire_usd
+from brainfreeze.money import wire_usd
 
 #: Money, for a JSON body. The single door every Decimal leaves by.
 money = wire_usd
@@ -193,7 +193,7 @@ def quote(offer):
         }
     return {
         "score": offer.score,
-        "tier": offer.tier,
+        "risk_tier": offer.risk_tier,
         "breakdown": [{"label": label, "points": points}
                       for label, points in offer.breakdown],
         "plans": plans,

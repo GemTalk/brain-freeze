@@ -55,7 +55,7 @@ class TheLoad(unittest.TestCase):
 
 
 class MoneyIsExact(unittest.TestCase):
-    """Issue #68: the file and the model disagreed on 23 of 900 monthly
+    """The file and the model once disagreed on 23 of 900 monthly
     premiums, because the generator rounded with numpy and the model with
     Python's `round`, and the two disagree on decimal halves.
 
@@ -148,7 +148,7 @@ class TheUnderwritingBase(unittest.TestCase):
                 base=policyholder.underwriting_base)
             self.assertEqual(offer.score, policyholder.underwriting_risk_score,
                              policyholder.policy_id)
-            self.assertEqual(offer.tier, policyholder.risk_tier,
+            self.assertEqual(offer.risk_tier, policyholder.risk_tier,
                              policyholder.policy_id)
 
 
@@ -396,7 +396,7 @@ def scrambled(rows):
 
 
 class EventOrderIsTheLoadersJob(unittest.TestCase):
-    """Issue #69: oldest-first has to be something the loader does.
+    """Oldest-first has to be something the loader does.
 
     `Policyholder.events` is documented as oldest first, and it was -- but
     only because `data/claims.csv` arrives grouped by policy and ascending by

@@ -14,8 +14,6 @@ import re
 
 from behave import then, when
 
-from environment import shoot
-
 MONEY = re.compile(r"\$[\d,]+\.\d{2}")
 
 
@@ -28,12 +26,13 @@ def _text(context):
 def answer_the_questions(context, age, migraine, tth, speed, trigger):
     page = context.page
     page.fill('input[name="age"]', str(age))
-    page.check('input[name="migraine"][value="%s"]'
+    page.check('input[name="migraine_history"][value="%s"]'
                % ("yes" if migraine == "a" else "no"))
-    page.check('input[name="tth"][value="%s"]'
+    page.check('input[name="tension_type_headache_history"][value="%s"]'
                % ("yes" if tth == "" else "no"))
-    page.check('input[name="speed"][value="%s"]' % speed)
-    page.check('input[name="trigger"][value="%s"]' % trigger.rstrip("s"))
+    page.check('input[name="typical_consumption_speed"][value="%s"]' % speed)
+    page.check('input[name="favourite_trigger"][value="%s"]'
+               % trigger.rstrip("s"))
     page.click('button[type="submit"]')
     page.wait_for_load_state("load")
 

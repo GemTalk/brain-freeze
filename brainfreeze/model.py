@@ -15,7 +15,7 @@ Standard library only, like the rest of the package, because these classes are
 instantiated inside the database where numpy and pandas do not exist.
 """
 
-from datetime import date, timedelta
+from datetime import timedelta
 
 from .adjudication import (
     ANNUAL_CLAIM_LIMIT,
@@ -37,7 +37,7 @@ class Claim:
     flavour = None
     toppings = ()
 
-    #: #49: which rule refused this claim, as a stable identifier, alongside
+    #: Which rule refused this claim, as a stable identifier, alongside
     #: the sentence in `reason`. Same class-attribute default and the same
     #: reason for it -- but note what docs/prd-corrections.md measured: a
     #: default declared *after* records are committed is not visible to those
@@ -269,8 +269,8 @@ class Policyholder:
         Appending was enough while events only arrived from the CSV, which is
         already sorted. It is not enough once the app files a claim: that adds
         an event dated TODAY to a policy whose seeded events run into 2027, so
-        an appended event belongs in the middle of the history and is shown
-        last (#71).
+        an appended event belongs in the middle of the history and would
+        otherwise be shown last.
 
         Sorting at load time and appending afterwards means the guarantee
         holds until the moment someone uses the demo, which is the worst
@@ -332,7 +332,7 @@ class SavedQuote:
 
     def __init__(self, quote_id, quoted_on, age, migraine_history,
                  tension_type_headache_history, typical_consumption_speed,
-                 favourite_trigger, score, tier, breakdown, plans,
+                 favourite_trigger, score, risk_tier, breakdown, plans,
                  policy_id=None):
         self.quote_id = quote_id
         self.quoted_on = quoted_on
@@ -348,7 +348,7 @@ class SavedQuote:
         #: A score is not money and is honestly a float; so are the points in
         #: the breakdown. Only the plans below go through `usd`.
         self.score = score
-        self.tier = tier
+        self.risk_tier = risk_tier
         self.breakdown = [(label, points) for label, points in breakdown]
 
         priced = {}
@@ -390,7 +390,7 @@ class SavedQuote:
         # less -- and `format_usd(None)` is already "--".
         standard = self.plans.get("Standard")
         return "<SavedQuote %s %s %s%s>" % (
-            self.quote_id, self.tier,
+            self.quote_id, self.risk_tier,
             format_usd(standard["annual"] if standard else None),
             " -> %s" % self.policy_id if self.policy_id else "")
 

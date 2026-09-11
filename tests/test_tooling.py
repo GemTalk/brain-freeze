@@ -50,7 +50,7 @@ class RedeployKnowsEveryModule(unittest.TestCase):
     """`redeploy.py` reloads the package in dependency ORDER, which has to be
     hand-written because no directory listing knows what depends on what.
 
-    A hand-written list drifts. `brainfreeze.wire` arrived with the JSON API
+    A hand-written list drifts. A module arrived with the JSON API
     and sat unlisted, so anyone editing it and redeploying would have kept
     running the old compiled copy with nothing to say so -- which is the exact
     failure that script exists to prevent, reintroduced one module at a time.
@@ -102,8 +102,10 @@ class TheDatabaseRunnerRunsEverything(unittest.TestCase):
         cpython_only = {
             "test_refresh",         # reads app.py's syntax tree
             "test_refresh_mcp",     # parses markdown and shas
-            "test_quote_flow",      # reads app.py's syntax tree
-            "test_route_coverage",  # reads app.py's syntax tree
+            "test_quote_flow",      # reads the route modules' syntax trees
+            "test_route_coverage",  # reads the route modules' syntax trees
+            "test_imports",         # resolves imports without running them
+            "test_lint",            # shells out to pyflakes under CPython
             "test_datagen",         # numpy does not exist in the database
             "test_tooling",         # this file
         }

@@ -8,12 +8,12 @@ and skips everywhere else, so pinning the JSON API only there would leave the
 one genuinely interesting decision in this work -- what money looks like in a
 JSON body -- untested on the machine most likely to change it.
 
-* `brainfreeze.wire` turns model objects into JSON-ready dicts. It imports
+* `wire` turns model objects into JSON-ready dicts. It imports
   nothing from `app`, so it can be driven from the real seeded book.
 * The routes themselves are read out of `app.py` as a syntax tree, the same
   trick `tests/test_refresh.py` uses, because `app.py` imports `gemdb` and
   `flask` and neither exists out here. What that pins is the contract from
-  issue #50 -- six paths, and which verbs they answer.
+  the JSON contract -- six paths, and which verbs they answer.
 
 MONEY ON THE WIRE
 
@@ -65,43 +65,20 @@ READS_THE_SOURCE = unittest.skipUnless(
 from decimal import Decimal
 
 import brainfreeze
+import forms
 import seed
-from brainfreeze import wire
+import wire
 from brainfreeze.money import format_usd, usd, wire_usd
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-APP = os.path.join(REPO_ROOT, "app.py")
+
+#: app.py keeps the wiring; the routes it registers live in these.
+ROUTE_MODULES = ("routes_html.py", "routes_api.py")
 
 
-def app_namespace(*names):
-    """Run just these top-level definitions out of `app.py`.
-
-    `import app` cannot happen here -- it needs `gemdb` and `flask` -- but the
-    questionnaire and the answer-checking beneath `/api/quote` are plain
-    Python that touches neither, and they are worth more than a syntax tree
-    can say about them. So the file is parsed, the named statements are
-    lifted out, and those alone are executed.
-
-    Narrow on purpose: it will raise rather than quietly return an empty
-    namespace if a name is not found at the top level.
-    """
-    with open(APP) as handle:
-        tree = ast.parse(handle.read(), filename=APP)
-    wanted, body = set(names), []
-    for node in tree.body:
-        if isinstance(node, ast.FunctionDef) and node.name in wanted:
-            body.append(node)
-            wanted.discard(node.name)
-        elif isinstance(node, ast.Assign):
-            bound = [t.id for t in node.targets if isinstance(t, ast.Name)]
-            if set(bound) & wanted:
-                body.append(node)
-                wanted.difference_update(bound)
-    if wanted:
-        raise AssertionError("app.py has no top-level %s" % ", ".join(sorted(wanted)))
-    namespace = {"brainfreeze": brainfreeze}
-    exec(compile(ast.Module(body=body, type_ignores=[]), APP, "exec"), namespace)
-    return namespace
+def read(filename):
+    with open(os.path.join(REPO_ROOT, filename)) as handle:
+        return handle.read()
 
 
 #: Every key in the payloads below that carries money. Each one is an exact
@@ -257,7 +234,7 @@ class Payloads(unittest.TestCase):
         payload = wire.quote(price(11, False, False, "fast", "slushie"))
         self.assert_wire_safe(payload)
         self.assertEqual(payload["score"], 75.0)
-        self.assertEqual(payload["tier"], "High")
+        self.assertEqual(payload["risk_tier"], "High")
         self.assertEqual(payload["plans"]["Standard"]["annual"], "171.00")
         self.assertEqual(payload["plans"]["Standard"]["monthly"], "14.25")
         self.assertEqual(payload["plans"]["Premium"]["deductible"], "0.00")
@@ -299,26 +276,20 @@ class Payloads(unittest.TestCase):
                 self.assertNotIsInstance(value, Decimal, path)
 
 
-@READS_THE_SOURCE
 class TheQuestionnaire(unittest.TestCase):
     """What `/api/questions` publishes, and what `/api/quote` will accept.
 
     These two have to be one thing: a caller reads the questions, fills them
     in and posts them back, so a default the questionnaire offers that the
-    parser then refuses is a broken round trip. Both halves are plain Python
-    inside `app.py`, so they can be run out here -- see `app_namespace`.
+    parser then refuses is a broken round trip. Both halves live in `forms`,
+    which imports nothing from GemStone and so runs here unchanged.
     """
 
-    @classmethod
-    def setUpClass(cls):
-        cls.app = app_namespace("SPEED_BANDS", "TRIGGERS", "quote_questions",
-                                "_flag", "_json_answers")
-
     def questions(self):
-        return self.app["quote_questions"]()
+        return forms.quote_questions()
 
     def answers(self, **overrides):
-        return self.app["_json_answers"](overrides)
+        return forms.answers_from(overrides)
 
     def test_the_questionnaire_is_json(self):
         json.dumps(self.questions())
@@ -346,10 +317,11 @@ class TheQuestionnaire(unittest.TestCase):
         # The round trip. Every default it publishes goes back in unchanged,
         # and what comes out is what the model can be called with.
         defaults = {q["name"]: q["default"] for q in self.questions()}
-        answers = self.app["_json_answers"](defaults)
+        answers = forms.answers_from(defaults)
         self.assertEqual(answers, defaults)
         offer = brainfreeze.quote(**answers)
-        self.assertEqual(offer.tier, brainfreeze.risk_tier(offer.score))
+        self.assertEqual(offer.risk_tier,
+                         brainfreeze.risk_tier(offer.score))
 
     def test_an_empty_body_prices_the_defaults(self):
         self.assertEqual(self.answers(), {q["name"]: q["default"]
@@ -393,9 +365,9 @@ class TheQuestionnaire(unittest.TestCase):
 
 @READS_THE_SOURCE
 class TheRouteContract(unittest.TestCase):
-    """Issue #50 names six endpoints. `app.py` imports gemdb and flask, so
-    this reads them out of the source rather than driving them --
-    `tests/test_app.py` does the driving, inside the database."""
+    """The JSON surface owes six endpoints. The route modules import gemdb
+    and flask, so this reads them out of the source rather than driving them
+    -- `tests/test_app.py` does the driving, inside the database."""
 
     #: path -> the verbs it must answer.
     WANTED = {
@@ -408,14 +380,22 @@ class TheRouteContract(unittest.TestCase):
     }
 
     def setUp(self):
-        with open(APP) as handle:
-            self.source = handle.read()
-        self.tree = ast.parse(self.source, filename=APP)
+        # app.py for the two facts that are about the file itself; the route
+        # modules for everything that is about a handler.
+        self.source = read("app.py")
+        self.tree = ast.parse(self.source, filename="app.py")
+        self.routes_tree = ast.parse(
+            "\n".join(read(name) for name in ROUTE_MODULES))
+
+    def handlers(self):
+        """Every function defined in a route module."""
+        return [node for node in ast.walk(self.routes_tree)
+                if isinstance(node, ast.FunctionDef)]
 
     def routes(self):
-        """path -> methods, for every `@app.route(...)` in app.py."""
+        """path -> methods, for every `@app.route(...)` the app registers."""
         found = {}
-        for node in ast.walk(self.tree):
+        for node in ast.walk(self.routes_tree):
             for decorator in getattr(node, "decorator_list", []):
                 if not (isinstance(decorator, ast.Call)
                         and isinstance(decorator.func, ast.Attribute)
@@ -432,15 +412,16 @@ class TheRouteContract(unittest.TestCase):
     def test_all_six_endpoints_are_registered(self):
         found = self.routes()
         for path, methods in self.WANTED.items():
-            self.assertIn(path, found, "issue #50 asks for %s" % path)
+            self.assertIn(path, found, "the JSON surface owes %s" % path)
             self.assertEqual(found[path] & methods, methods,
                              "%s does not answer %s" % (path, sorted(methods)))
 
     def test_the_html_routes_are_untouched(self):
-        # Additive, per the card: the JSON surface goes beside the HTML one.
+        # Additive: the JSON surface goes beside the HTML one, it does not
+        # replace it.
         #
-        # `POST /policies` was on this list until #53. It is the one HTML
-        # route that has moved since, and it moved because it was the wrong
+        # `POST /policies` was on this list once. It is the one HTML route
+        # that has moved since, and it moved because it was the wrong
         # address: it took the five answers back off the form and priced them
         # a second time. Selling a quote now happens at the quote's own
         # address, and the two that replaced it are listed here so this test
@@ -454,12 +435,10 @@ class TheRouteContract(unittest.TestCase):
             self.assertIn(path, found)
 
     def test_the_json_surface_writes_nothing(self):
-        # The card asks whether the API should be writable by script. It is
-        # not: /api/quote is a POST because it carries a body, but pricing
-        # answers commits nothing. Nothing under /api reaches gemdb.commit().
-        for node in ast.walk(self.tree):
-            if not isinstance(node, ast.FunctionDef):
-                continue
+        # The API is not writable by script. `/api/quote` is a POST because
+        # it carries a body, but pricing answers commits nothing, and nothing
+        # under /api reaches gemdb.commit().
+        for node in self.handlers():
             if not node.name.startswith("api_"):
                 continue
             for child in ast.walk(node):
@@ -474,9 +453,8 @@ class TheRouteContract(unittest.TestCase):
         # One home for the money rule. `format_usd` is the display spelling
         # and belongs to the templates; a handler reaching for it, or for
         # `str()` on a premium, is the second answer starting.
-        for node in ast.walk(self.tree):
-            if not (isinstance(node, ast.FunctionDef)
-                    and node.name.startswith("api_")):
+        for node in self.handlers():
+            if not node.name.startswith("api_"):
                 continue
             for child in ast.walk(node):
                 if isinstance(child, ast.Call) and isinstance(child.func, ast.Name):

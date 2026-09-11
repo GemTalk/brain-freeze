@@ -16,6 +16,8 @@ import json
 import unittest
 from datetime import date
 
+import brainfreeze
+
 try:
     import gemdb
 except ImportError:  # plain CPython -- nothing to test against
@@ -23,6 +25,8 @@ except ImportError:  # plain CPython -- nothing to test against
 
 if gemdb is not None:
     import app as bf_app
+    import forms
+    import routes_html
     import seed
     from brainfreeze.money import usd
 
@@ -37,7 +41,7 @@ CUJ4 = "BF-100186"            # written by: the flavour/toppings claim
 
 #: Active, six events running to 2027-01-16, and written by exactly one test:
 #: the one that checks a filed claim lands in date order rather than at the
-#: end (#71). It needs seeded events BOTH sides of today.
+#: end. It needs seeded events BOTH sides of today.
 ORDERING = "BF-100000"
 
 #: Already past its lapse date, and its annual cap is NOT spent, so a claim
@@ -71,8 +75,8 @@ class TheApp(unittest.TestCase):
     def newest_claim(self, policy):
         """The claim just filed, found by claim id rather than by position.
 
-        `policy.events[-1]` was the obvious way and stopped being true in #71:
-        events are kept in date order now, and the app files a claim dated
+        `policy.events[-1]` was the obvious way and stopped being true once
+        events were kept in date order: and the app files a claim dated
         TODAY against policies whose seeded events run into 2027, so a new
         event usually lands in the MIDDLE. Position was never the thing that
         made it the new one.
@@ -101,7 +105,7 @@ class TheApp(unittest.TestCase):
     def test_the_picker_pages_rather_than_rendering_900_rows(self):
         body = self.client.get("/").data.decode()
         shown = body.count('href="/policies/BF-')
-        self.assertEqual(shown, bf_app.PAGE)
+        self.assertEqual(shown, routes_html.PAGE)
         later = self.client.get("/?from=25").data.decode()
         self.assertIn("BF-100025", later)
         self.assertNotIn('href="/policies/BF-100000"', later)
@@ -111,7 +115,7 @@ class TheApp(unittest.TestCase):
         self.assertEqual(r.status_code, 302)
         self.assertIn(LAPSES_LATER, r.headers["Location"])
 
-    # -- taking a new view (issue #47) -----------------------------------
+    # -- taking a new view ----------------------------------------------
     # Instrumenting `gemdb` is not available to us. Rebinding an attribute on
     # the module -- the ordinary way to spy on `commit`/`refresh` -- puts the
     # session into a dirty state that `commit()` does NOT clear, so the very
@@ -152,7 +156,7 @@ class TheApp(unittest.TestCase):
             self.client.get("/policies/%s" % ACTIVE_READONLY).status_code, 200)
 
     def test_a_filed_claim_lands_in_date_order_not_at_the_end(self):
-        # #71. The app dates a claim TODAY, and ACTIVE's seeded events run
+        # The app dates a claim TODAY, and ACTIVE's seeded events run
         # into 2027, so an appended event would show up last in a history it
         # belongs in the middle of -- on the screen CUJ-3 drives.
         policy = self.book()[ORDERING]
@@ -184,16 +188,23 @@ class TheApp(unittest.TestCase):
     #: The five answers the mockups are drawn from: age 11, eats fast,
     #: favourite is a slushie, no headache history. Scores 75.0, High tier,
     #: $171.00 a year on Standard -- all three pinned in test_brainfreeze.
-    MOCKUP_ANSWERS = {"age": "11", "migraine": "no", "tth": "no",
-                      "speed": "fast", "trigger": "slushie"}
+    #:
+    #: Spelled the way the risk model spells them, which is also how the form
+    #: names its fields and how the JSON body names its keys. One vocabulary
+    #: end to end: a field named something else here would quietly fall back
+    #: to a default and price a different applicant.
+    MOCKUP_ANSWERS = {"age": "11",
+                      "migraine_history": "no",
+                      "tension_type_headache_history": "no",
+                      "typical_consumption_speed": "fast",
+                      "favourite_trigger": "slushie"}
 
     def a_quote(self, answers=None):
         """Ask for a quote and return (its id, the page it redirects to).
 
         `POST /quote` is a write now -- it puts a SavedQuote in the book --
         so it answers 303/302 and the screen is a GET of the quote's own
-        address. Issue #53: the answers used to come back as hidden fields
-        instead, which is the one place this app kept state in the browser.
+        address. The answers used to come back as hidden fields instead, which is the one place this app kept state in the browser.
         """
         posted = self.client.post("/quote", data=answers or self.MOCKUP_ANSWERS)
         self.assertEqual(posted.status_code, 302)    # POST/redirect/GET
@@ -205,9 +216,9 @@ class TheApp(unittest.TestCase):
         quote_id, r = self.a_quote()
         self.assertEqual(r.status_code, 200)
         body = r.data.decode()
-        offer = bf_app.brainfreeze.quote(11, False, False, "fast", "slushie")
+        offer = brainfreeze.quote(11, False, False, "fast", "slushie")
         self.assertEqual(offer.score, 75.0)      # pinned in test_brainfreeze
-        self.assertEqual(offer.tier, "High")
+        self.assertEqual(offer.risk_tier, "High")
         self.assertIn("75", body)
         self.assertIn("High", body)
         for plan in ("Basic", "Standard", "Premium"):
@@ -219,7 +230,7 @@ class TheApp(unittest.TestCase):
         # CUJ-2 needs the breakdown visible, not just the total.
         self.assertIn("Everyone starts here", self.a_quote()[1].data.decode())
 
-    # -- a quote is an object (issue #53) --------------------------------
+    # -- a quote is an object ---------------------------------------------
 
     def test_a_quote_is_an_object_in_the_book(self):
         before = len(self.book().quotes)
@@ -233,7 +244,7 @@ class TheApp(unittest.TestCase):
             age=11, migraine_history=False,
             tension_type_headache_history=False,
             typical_consumption_speed="fast", favourite_trigger="slushie"))
-        self.assertEqual(saved.tier, "High")
+        self.assertEqual(saved.risk_tier, "High")
         self.assertEqual(saved.plans["Standard"]["annual"], usd("171.00"))
         self.assertEqual(saved.quoted_on, date.today())
         self.assertIsNone(saved.policy_id)
@@ -399,7 +410,7 @@ class TheApp(unittest.TestCase):
         self.assertEqual(claim.status, "Denied")
         self.assertEqual(claim.approved, usd("0.00"))
         self.assertEqual(claim.reason, "Event outside policy term")
-        # #49: and the identifier a checking agent reads, which is what tells
+        # And the identifier a checking agent reads, which is what tells
         # this apart from a lapse without parsing the sentence.
         self.assertEqual(claim.rule, "event-outside-term")
 
@@ -453,7 +464,7 @@ class TheApp(unittest.TestCase):
         self._file(ACTIVE_RULES)
 
         claim = self.newest_claim(self.book()[ACTIVE_RULES])
-        expected = bf_app.brainfreeze.adjudicate(
+        expected = brainfreeze.adjudicate(
             claim.requested, limit, deductible, used)
         self.assertEqual(claim.status, expected.status)
         self.assertEqual(claim.approved, expected.amount)
@@ -522,7 +533,7 @@ class TheApp(unittest.TestCase):
 
 @unittest.skipIf(gemdb is None, "needs the database -- run under gemdb")
 class TheJsonApi(unittest.TestCase):
-    """Issue #50: the same objects, over `curl`.
+    """The same objects, over `curl`.
 
     The shapes are pinned in `tests/test_api.py`, which runs under CPython
     against a seeded book. What is left for here is what only a live database
@@ -583,7 +594,7 @@ class TheJsonApi(unittest.TestCase):
         speeds = [o["value"] for o in by_name["typical_consumption_speed"]["options"]]
         self.assertEqual(speeds, ["slow", "moderate", "fast"])
         triggers = [o["value"] for o in by_name["favourite_trigger"]["options"]]
-        self.assertEqual(triggers, bf_app.TRIGGERS)
+        self.assertEqual(triggers, forms.TRIGGERS)
 
     def test_the_answers_it_describes_are_the_answers_it_prices(self):
         # The pair is the point: GET the questions, POST them back.
@@ -601,16 +612,16 @@ class TheJsonApi(unittest.TestCase):
             "tension_type_headache_history": False,
             "typical_consumption_speed": "fast",
             "favourite_trigger": "slushie"})
-        offer = bf_app.brainfreeze.quote(11, False, False, "fast", "slushie")
+        offer = brainfreeze.quote(11, False, False, "fast", "slushie")
         self.assertEqual(body["quote"]["score"], offer.score)
-        self.assertEqual(body["quote"]["tier"], "High")
+        self.assertEqual(body["quote"]["risk_tier"], "High")
         self.assertEqual(body["quote"]["plans"]["Standard"]["annual"], "171.00")
 
     def test_money_in_a_body_is_a_string_and_not_a_number(self):
         # The decision this card turns on. `str()` on a Decimal inside the
         # database drops the trailing zero, so this would read "171.0" if the
         # serialiser were not doing the two places itself -- and a float would
-        # put back the disagreement #68 removed.
+        # put back the disagreement exact money removed.
         plan = self.post("/api/quote", {
             "age": 11, "typical_consumption_speed": "fast",
             "favourite_trigger": "slushie"})["quote"]["plans"]["Standard"]
@@ -714,7 +725,7 @@ class TheJsonApi(unittest.TestCase):
     def test_the_stats_are_the_analysis_helpers(self):
         body = self.get("/api/stats")
         self.assertEqual(body["loss_ratio_by_tier"],
-                         bf_app.brainfreeze.loss_ratio_by_tier(self.book()))
+                         brainfreeze.loss_ratio_by_tier(self.book()))
         self.assertIn("reason", body["denial_reasons"][0])
 
     # -- and the HTML surface is untouched --------------------------------

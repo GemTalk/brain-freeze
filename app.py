@@ -7,6 +7,18 @@ and an import that cannot find `brainfreeze/` on disk resolves out of the
 database to whatever class was last compiled there -- silently. See "Editing a
 class does not update the database" in PLAN.md.
 
+HOW THIS IS LAID OUT
+
+This file is the factory and the entry point, and nothing else. The
+pages are in `routes_html.py`, the payloads in `routes_api.py`, the
+markup in `templates.py`, the questionnaire in `forms.py`, and finding
+an object in `lookups.py`. Every one of them is a TOP-LEVEL module,
+deliberately: Grail keeps a committed package module compiled in the
+database and serves that copy forever after, while a top-level module is
+recompiled from disk each run. Measured. It is why editing a template
+here does not need a `redeploy.py` first, and it is the reason this is a
+handful of siblings rather than an `app/` package.
+
 WHAT IS AND IS NOT HERE
 
 There is no ORM, no schema, no migration and no serializer, because there is
@@ -54,16 +66,16 @@ pin, and a quote must not move it.
 
 THE JSON API IS THE SAME OBJECTS, NOT A SECOND MODEL
 
-`/api/...` answers the six endpoints issue #50 asks for, beside the HTML
-routes rather than instead of them. Every one of them serialises through
-`brainfreeze.wire` and none of them builds a dict of its own, because six
+`/api/...` answers six endpoints beside the HTML routes rather than instead
+of them. Every one of them serialises through
+`wire.py` and none of them builds a dict of its own, because six
 handlers is six places to get the money rule wrong once.
 
 MONEY ON THE WIRE IS AN EXACT DECIMAL STRING: `"171.00"`.
 
 `json.dumps` cannot serialise a Decimal at all, so this had to be decided
 rather than inherited. A float is not one of the options -- it would put back
-the two answers `brainfreeze.money` exists to remove (issue #68). Integer
+the two answers `brainfreeze.money` exists to remove. Integer
 cents would be exact and would make every reader divide by a hundred; a
 string is exact and goes straight back into `money.usd()`. And it can never
 be `str(value)`: inside the database a Decimal does not keep its trailing
@@ -87,27 +99,14 @@ Read its docstring before changing it: the order matters and `abort()` is not
 a substitute.
 """
 
-from datetime import date
-
-from flask import (
-    Flask,
-    abort,
-    jsonify,
-    redirect,
-    render_template_string,
-    request,
-    url_for,
-)
+from flask import Flask, render_template_string
 from werkzeug.serving import WSGIRequestHandler
 
-import gemdb
-
 import brainfreeze
-import brainfreeze.wire
-from brainfreeze.model import Claim, Event, Policyholder, SavedQuote
-from brainfreeze.money import ZERO, format_usd
-
-ROOT_KEY = "brainfreeze"
+import gemdb
+import routes_api
+import routes_html
+from brainfreeze.money import format_usd
 
 
 class CloseAfterResponseHandler(WSGIRequestHandler):
@@ -126,144 +125,6 @@ class CloseAfterResponseHandler(WSGIRequestHandler):
             return
         self.close_connection = True
         self.run_wsgi()
-
-
-# -- turning what a person can answer into what the model needs -------------
-# The claimant describes an episode in words; the model wants numbers. These
-# are the translation, and they live here rather than in `brainfreeze` because
-# they are the vocabulary of the form, not a rule. Nobody owns a thermometer
-# for this, so a band is the honest question.
-
-COLD_BANDS = [
-    ("Straight from the freezer", -12.0),
-    ("Iced", -4.0),
-    ("Fridge-cold", 2.0),
-    ("Cool", 8.0),
-]
-PORTION_BANDS = [
-    ("A few sips", 40.0),
-    ("Small", 100.0),
-    ("Regular", 180.0),
-    ("A lot", 320.0),
-]
-SPEED_BANDS = [
-    ("Slowly", "slow"),
-    ("About normal", "moderate"),
-    ("All at once", "fast"),
-]
-DURATION_BANDS = [
-    ("Under 30 seconds", 20.0),
-    ("Half a minute to two", 70.0),
-    ("Two to ten minutes", 300.0),
-    ("Longer than ten", 700.0),
-]
-PAIN_LOCATIONS = ["Forehead", "Temple", "Back of the head", "All over"]
-PAIN_QUALITIES = ["Stabbing", "Pulling", "Dull and pressing"]
-
-#: CUJ-4. Added after 900 policies and 4,993 episodes were already committed.
-#: Nothing was migrated and nothing was rewritten: `Claim.flavour` and
-#: `Claim.toppings` are class attributes with defaults, so the 2,172 claims
-#: filed before these questions existed have no slot of their own and read
-#: None and () through the class. That is the entire migration.
-FLAVOURS = ["Vanilla", "Chocolate", "Strawberry", "Mint choc chip",
-            "Cookie dough", "Something else"]
-TOPPINGS = ["Sprinkles", "Hot fudge", "Whipped cream", "Nuts", "Cherry"]
-
-TRIGGERS = brainfreeze.TRIGGER_TYPES
-
-#: Policyholders per page on the picker.
-PAGE = 25
-
-
-def _band(bands, label, default=None):
-    """The value for a band's label, or the default when it is not one of ours."""
-    for name, value in bands:
-        if name == label:
-            return value
-    if default is not None:
-        return default
-    return bands[0][1]
-
-
-def quote_questions():
-    """The five quote questions as data, for `/api/questions`.
-
-    Built from the same constants the HTML form loops over, so the two
-    surfaces cannot drift into asking different things -- and so the answers
-    a caller reads out of here are exactly the ones `/api/quote` accepts.
-
-    A function rather than a module constant to keep import time doing
-    nothing but binding names; this file is executed top to bottom by
-    `gemdb app.py`.
-
-    Sex is absent for the reason it is absent from the form: FR-5.2 asks for
-    it, the risk model gives it no weight, and a question that changes
-    nothing is worse than one not asked.
-    """
-    return [
-        {"name": "age", "prompt": "How old are they?",
-         "type": "integer", "minimum": 5, "maximum": 19, "default": 11},
-        {"name": "migraine_history", "prompt": "Diagnosed with migraine?",
-         "type": "boolean", "default": False},
-        {"name": "tension_type_headache_history",
-         "prompt": "Diagnosed with tension headaches?",
-         "type": "boolean", "default": False},
-        {"name": "typical_consumption_speed",
-         "prompt": "How fast do they usually eat something cold?",
-         "type": "choice", "default": "moderate",
-         "options": [{"label": label, "value": value}
-                     for label, value in SPEED_BANDS]},
-        {"name": "favourite_trigger", "prompt": "Favourite cold treat",
-         "type": "choice", "default": TRIGGERS[0],
-         "options": [{"label": name, "value": name} for name in TRIGGERS]},
-    ]
-
-
-def _flag(value):
-    """A JSON true/false, or the "yes"/"no" the HTML form would have sent."""
-    if isinstance(value, str):
-        return value.strip().lower() in ("yes", "true", "1")
-    return bool(value)
-
-
-def _json_answers(data):
-    """The five answers out of a JSON body, or a ValueError naming the bad one.
-
-    Checked here rather than handed to `quote()`, which would meet an unknown
-    trigger as a KeyError deep inside the risk model -- and a JSON endpoint
-    that answers a typo with an HTML traceback is not one you can script
-    against.
-    """
-    try:
-        age = int(data.get("age", 11))
-    except (TypeError, ValueError):
-        raise ValueError(
-            "age must be a whole number, not %r" % (data.get("age"),))
-
-    speeds = [value for _, value in SPEED_BANDS]
-    speed = data.get("typical_consumption_speed", "moderate")
-    if speed not in speeds:
-        raise ValueError("typical_consumption_speed must be one of %s"
-                         % ", ".join(speeds))
-
-    trigger = data.get("favourite_trigger", TRIGGERS[0])
-    if trigger not in TRIGGERS:
-        raise ValueError("favourite_trigger must be one of %s"
-                         % ", ".join(TRIGGERS))
-
-    return dict(
-        age=age,
-        migraine_history=_flag(data.get("migraine_history", False)),
-        tension_type_headache_history=_flag(
-            data.get("tension_type_headache_history", False)),
-        typical_consumption_speed=speed,
-        favourite_trigger=trigger,
-    )
-
-
-def book():
-    return gemdb.root[ROOT_KEY]
-
 
 def render(template, **context):
     """Render, with `usd` available to every template to format money.
@@ -290,7 +151,6 @@ def render(template, **context):
     the end of an empty array. Reporting the error was what ended the session.
     """
     return render_template_string(template, usd=format_usd, **context)
-
 
 def take_new_view():
     """Commit this session's compiled code, then take the latest view.
@@ -322,7 +182,6 @@ def take_new_view():
     gemdb.commit()
     gemdb.refresh()
 
-
 def cover_state(policy, today):
     """How to describe this policy's cover, as of a date.
 
@@ -347,18 +206,13 @@ def cover_state(policy, today):
     return ("Term ended %s" % policy.policy_end_date, "no")
 
 
-def _next_id(existing, prefix, width, start):
-    """The next free identifier in a series, given the ones already used."""
-    highest = start - 1
-    for identifier in existing:
-        try:
-            highest = max(highest, int(identifier.split("-")[1]))
-        except (IndexError, ValueError):
-            continue
-    return "%s-%0*d" % (prefix, width, highest + 1)
-
-
 def create_app():
+    """Build the app and hand each surface what it needs.
+
+    Both `register` calls take `app`; the HTML one also takes `render` and
+    `cover_state`, which live here because they are about how THIS app talks
+    to Grail rather than about any one page.
+    """
     app = Flask(__name__)
 
     @app.before_request
@@ -372,340 +226,8 @@ def create_app():
         """
         take_new_view()
 
-    # -- the picker: stands in for the sign-in this demo does not have ----
-
-    @app.route("/")
-    def index():
-        # A page at a time. Rendering all 900 takes the best part of a minute
-        # -- Grail runs each Jinja template in a forked green thread, and 900
-        # rows of it is not what that is for. The count is the point, not the
-        # scroll, so the total is stated and the table is a window onto it.
-        today = date.today()
-        everyone = sorted(book(), key=lambda p: p.policy_id)
-
-        wanted = (request.args.get("policy") or "").strip().upper()
-        if wanted:
-            match = [p for p in everyone if wanted in p.policy_id]
-            if len(match) == 1:
-                return redirect(url_for("history",
-                                        policy_id=match[0].policy_id))
-            everyone, start = match, 0
-        else:
-            try:
-                start = max(0, int(request.args.get("from", 0)))
-            except ValueError:
-                start = 0
-
-        window = everyone[start:start + PAGE]
-        rows = [(p,) + cover_state(p, today) for p in window]
-        return render(
-            PICKER, rows=rows, total=len(book()), shown=len(everyone),
-            start=start, page=PAGE, wanted=wanted)
-
-    # -- the quote flow ---------------------------------------------------
-
-    @app.route("/quote")
-    def quote_form():
-        return render(
-            QUOTE_FORM, triggers=TRIGGERS, speeds=SPEED_BANDS)
-
-    def _answers():
-        """The five questions. Note what is absent: FR-5.2 asks for sex, and
-        it carries no weight in the risk model, so the form would pose a
-        question that changes nothing."""
-        return dict(
-            age=int(request.form.get("age", 11)),
-            migraine_history=request.form.get("migraine") == "yes",
-            tension_type_headache_history=request.form.get("tth") == "yes",
-            typical_consumption_speed=request.form.get("speed", "moderate"),
-            favourite_trigger=request.form.get("trigger", "ice cream"),
-        )
-
-    def _quotes(the_book):
-        """The book's quotes, or a 500 that says what to do about it.
-
-        `Book.quotes` did not exist when the sample book was committed, and a
-        class-level default declared now would not reach it: editing a class
-        compiles a DIFFERENT class and instances keep the one they were made
-        under (findings/03_class_identity.py, docs/prd-corrections.md
-        correction 5). So an old book raises AttributeError here rather than
-        quietly starting a second store on the side, and the message names the
-        two commands that fix it -- because the reader who meets this will
-        otherwise reasonably conclude the code is broken.
-
-        `abort` here is Flask's. `gemdb.abort()` must never appear in this
-        file; see `take_new_view`.
-        """
-        try:
-            return the_book.quotes
-        except AttributeError:
-            abort(500, "This book was committed before quotes had a class of "
-                       "their own. Run `gemdb redeploy.py` to give the "
-                       "database the current brainfreeze package, then "
-                       "`gemdb seed.py` to rebuild the book under it.")
-
-    def _quote_or_404(quote_id):
-        try:
-            return _quotes(book())[quote_id]
-        except KeyError:
-            abort(404)
-
-    @app.route("/quote", methods=["POST"])
-    def quote_result():
-        """Price a quote, keep it, and send the browser to its address.
-
-        A write like any other here, so it commits and redirects: refreshing
-        the result re-opens the quote instead of minting a second one, and the
-        quote's id is in the address bar where a person can copy it.
-        """
-        answers = _answers()
-        offer = brainfreeze.quote(**answers)
-        the_book = book()
-        saved = the_book.add_quote(SavedQuote(
-            quote_id=_next_id(_quotes(the_book), "QTE", 6, 1),
-            quoted_on=date.today(),
-            score=offer.score,
-            tier=offer.tier,
-            breakdown=offer.breakdown,
-            plans=offer.plans,
-            **answers))
-        gemdb.commit()
-        return redirect(url_for("saved_quote", quote_id=saved.quote_id))
-
-    @app.route("/quote/<quote_id>")
-    def saved_quote(quote_id):
-        return render(PLANS, q=_quote_or_404(quote_id))
-
-    @app.route("/quote/<quote_id>/accept", methods=["POST"])
-    def accept_quote(quote_id):
-        """Turn a quote into a policy, at the price the quote quoted.
-
-        Note what is NOT here: a second call to `brainfreeze.quote`. The
-        answers and the three prices were stored when the quote was given, and
-        a customer is sold what they were shown. Re-pricing at this point
-        would be the old round-trip with the hidden fields taken out.
-        """
-        saved = _quote_or_404(quote_id)
-        plan_name = request.form.get("plan", "Standard")
-        if plan_name not in saved.plans:
-            abort(404)
-
-        the_book = book()
-        policy = Policyholder(
-            policy_id=_next_id([p.policy_id for p in the_book], "BF", 6, 100000),
-            sex=None,
-            underwriting_base=brainfreeze.BASE_RISK,
-            plan_name=plan_name,
-            annual_premium=saved.plans[plan_name]["annual"],
-            policy_start_date=date.today(),
-            **saved.answers)
-        the_book.add(policy)
-        # The quote remembers what it became, so re-opening it says so rather
-        # than offering to sell the same cover a second time.
-        saved.policy_id = policy.policy_id
-        gemdb.commit()
-        return redirect(url_for("history", policy_id=policy.policy_id))
-
-    # -- one policy's history ---------------------------------------------
-
-    def _policy_or_404(policy_id):
-        try:
-            return book()[policy_id]
-        except KeyError:
-            abort(404)
-
-    @app.route("/policies/<policy_id>")
-    def history(policy_id):
-        policy = _policy_or_404(policy_id)
-        today = date.today()
-        label, css = cover_state(policy, today)
-        return render(
-            HISTORY, p=policy, cover=label, cover_css=css,
-            limit=brainfreeze.ANNUAL_CLAIM_LIMIT)
-
-    # -- filing a claim ----------------------------------------------------
-
-    def _warnings(policy, today):
-        """What the form should say before anyone fills it in.
-
-        Both of these would otherwise only be discovered by filing and being
-        refused, and the lapse is the more confusing one to receive silently.
-
-        Which absence of cover it is comes from the model, so the warning on
-        the form and the reason on the refusal cannot disagree -- and so a
-        policy that has not started yet is not told it lapsed on None.
-        """
-        notes = []
-        no_cover = policy.no_cover_reason_on(today)
-        if no_cover == brainfreeze.REASON_POLICY_LAPSED:
-            notes.append(
-                "Cover on this policy ended on %s. Anything filed now is "
-                "refused." % policy.policy_lapse_date)
-        elif no_cover is not None:
-            if today < policy.policy_start_date:
-                notes.append(
-                    "Cover on this policy does not start until %s. Anything "
-                    "filed now is refused." % policy.policy_start_date)
-            else:
-                notes.append(
-                    "The term on this policy ended on %s. Anything filed now "
-                    "is refused." % policy.policy_end_date)
-        elif policy.claims_remaining_this_year == 0:
-            notes.append(
-                "This policy has used all %d approvals for the year. A new "
-                "claim is refused until it renews."
-                % brainfreeze.ANNUAL_CLAIM_LIMIT)
-        return notes
-
-    @app.route("/policies/<policy_id>/claims/new")
-    def claim_form(policy_id):
-        policy = _policy_or_404(policy_id)
-        return render(
-            CLAIM_FORM, p=policy, triggers=TRIGGERS, colds=COLD_BANDS,
-            portions=PORTION_BANDS, speeds=SPEED_BANDS,
-            durations=DURATION_BANDS, locations=PAIN_LOCATIONS,
-            qualities=PAIN_QUALITIES, flavours=FLAVOURS, toppings=TOPPINGS,
-            warnings=_warnings(policy, date.today()))
-
-    @app.route("/policies/<policy_id>/claims", methods=["POST"])
-    def file_claim(policy_id):
-        policy = _policy_or_404(policy_id)
-        today = date.today()
-
-        pain = float(request.form.get("pain", 5))
-        duration = _band(DURATION_BANDS, request.form.get("duration"))
-
-        # The claimant never enters a figure. This derives it, so two people
-        # who describe the same episode get the same number.
-        requested = brainfreeze.assess_amount(pain, duration)
-
-        decision = brainfreeze.adjudicate(
-            requested,
-            policy.coverage_limit,
-            policy.deductible,
-            len(policy.approved_claims),
-            policy_in_force=policy.is_in_force_on(today),
-            no_cover_reason=policy.no_cover_reason_on(today))
-
-        the_book = book()
-        claim = Claim(
-            claim_id=_next_id([c.claim_id for c in the_book.claims],
-                              "CLM", 6, 1),
-            requested=requested,
-            approved=decision.amount,
-            status=decision.status,
-            reason=decision.reason,
-            rule=decision.rule,
-            flavour=request.form.get("flavour") or None,
-            toppings=request.form.getlist("toppings") or None)
-        policy.add_event(Event(
-            event_id=_next_id([e.event_id for e in the_book.events],
-                              "EVT", 6, 1),
-            event_date=today,
-            trigger=request.form.get("trigger", "ice cream"),
-            temperature_c=_band(COLD_BANDS, request.form.get("cold")),
-            portion_ml=_band(PORTION_BANDS, request.form.get("portion")),
-            consumption_speed=_band(SPEED_BANDS, request.form.get("speed"),
-                                    default="moderate"),
-            brain_freeze=True,
-            duration_sec=duration,
-            pain_intensity=pain,
-            pain_location=request.form.get("location"),
-            pain_quality=request.form.get("quality"),
-            claim=claim))
-        gemdb.commit()
-
-        return redirect(url_for("decision", policy_id=policy.policy_id,
-                                claim_id=claim.claim_id))
-
-    @app.route("/policies/<policy_id>/claims/<claim_id>")
-    def decision(policy_id, claim_id):
-        policy = _policy_or_404(policy_id)
-        for event in policy.events:
-            if event.claim is not None and event.claim.claim_id == claim_id:
-                claim = event.claim
-                # Worked out here rather than in the template. Handlers do the
-                # sums; templates print them. A conditional expression over
-                # Decimals inside `{{ }}` is more Grail-compiled Jinja than
-                # this needs to be.
-                trimmed = claim.requested - claim.approved - policy.deductible
-                return render(DECISION, p=policy, e=event, c=claim,
-                              trimmed=max(ZERO, trimmed))
-        abort(404)
-
-    # -- the same objects, as JSON (issue #50) -----------------------------
-    # Additive. These read what the HTML routes read and hand it to
-    # `brainfreeze.wire`, which is the only thing that turns a Decimal into
-    # text. No handler below builds a payload of its own.
-
-    def _api_error(status, message):
-        """A JSON error, from the handler rather than from an errorhandler.
-
-        A global `@app.errorhandler(404)` would be shorter and would also
-        turn the HTML routes' 404s into JSON, which is the wrong answer to
-        give a browser. Two surfaces, two shapes of failure.
-        """
-        return jsonify(error=message), status
-
-    @app.route("/api/questions")
-    def api_questions():
-        return jsonify(questions=quote_questions())
-
-    @app.route("/api/quote", methods=["POST"])
-    def api_quote():
-        data = request.get_json(silent=True)
-        if not isinstance(data, dict):
-            return _api_error(400, "send a JSON object of answers -- "
-                                   "GET /api/questions says which")
-        try:
-            answers = _json_answers(data)
-        except ValueError as bad:
-            return _api_error(400, str(bad))
-        # The answers go back out with the price. A saved request body and
-        # the reply together are a fixture: replay it and get this screen.
-        return jsonify(answers=answers,
-                       quote=brainfreeze.wire.quote(brainfreeze.quote(**answers)))
-
-    @app.route("/api/policies")
-    def api_policies():
-        # The whole book, where the picker shows 25 at a time. That page size
-        # is not a JSON problem: it is there because Grail renders each Jinja
-        # row in a forked green thread and 900 of those take the best part of
-        # a minute. Serialising 900 dicts does not, and a script wants the
-        # book rather than a window onto it.
-        today = date.today()
-        everyone = sorted(book(), key=lambda p: p.policy_id)
-        return jsonify(count=len(everyone),
-                       policies=[brainfreeze.wire.policy(p, today)
-                                 for p in everyone])
-
-    @app.route("/api/policy/<policy_id>")
-    def api_policy(policy_id):
-        try:
-            policy = book()[policy_id]
-        except KeyError:
-            return _api_error(404, "no policy %s" % policy_id)
-        return jsonify(brainfreeze.wire.policy_detail(policy, date.today()))
-
-    @app.route("/api/claim/<claim_id>")
-    def api_claim(claim_id):
-        # A claim id is enough here where the HTML route needs the policy id
-        # as well, and that is most of what makes this one useful from a
-        # shell. The scan is linear over the book because nothing indexes
-        # claims by id -- an index would be a second copy of `Book.claims`,
-        # and the demo's whole argument is that there is only ever one.
-        for policyholder in book():
-            for an_event in policyholder.events:
-                if (an_event.claim is not None
-                        and an_event.claim.claim_id == claim_id):
-                    return jsonify(brainfreeze.wire.claim_detail(
-                        policyholder, an_event))
-        return _api_error(404, "no claim %s" % claim_id)
-
-    @app.route("/api/stats")
-    def api_stats():
-        return jsonify(brainfreeze.wire.stats(book()))
-
+    routes_html.register(app, render, cover_state)
+    routes_api.register(app)
     return app
 
 
@@ -714,312 +236,5 @@ def serve(host="127.0.0.1", port=5000):
                      request_handler=CloseAfterResponseHandler)
 
 
-
-# -- templates, as module constants (constraint 3) --------------------------
-
-_STYLE = """
-<style>
-  body { font-family: -apple-system, system-ui, "Segoe UI", sans-serif;
-         max-width: 46rem; margin: 2.5rem auto; padding: 0 1.2rem;
-         color: #16202a; background: #f7f8fa; line-height: 1.5; }
-  a { color: #1a6ee0; }
-  h1 { font-size: 1.5rem; margin-bottom: .2rem; }
-  .sub { color: #667; margin-top: 0; }
-  .card { background: #fff; border-radius: 14px; padding: 1.1rem 1.3rem;
-          margin: .8rem 0; box-shadow: 0 1px 2px rgba(0,0,0,.07); }
-  .row { display: flex; justify-content: space-between; gap: 1rem;
-         align-items: baseline; }
-  .tag { font-size: .78rem; font-weight: 700; padding: .15rem .5rem;
-         border-radius: 999px; background: #eef2f6; color: #667; }
-  .ok { background: #e3f5ea; color: #17683a; }
-  .no { background: #fdeceb; color: #97231b; }
-  .warn { background: #fff6e5; border-left: 4px solid #e0a021;
-          padding: .8rem 1rem; border-radius: 8px; margin: .6rem 0; }
-  .num { font-variant-numeric: tabular-nums; }
-  .big { font-size: 1.9rem; font-weight: 800; }
-  .muted { color: #7a8798; font-size: .85rem; }
-  fieldset { border: 0; padding: 0; margin: 0 0 1.1rem; }
-  legend { font-weight: 700; padding: 0; margin-bottom: .35rem; }
-  label.opt { display: inline-block; margin: .15rem .3rem .15rem 0; }
-  button { font: inherit; font-weight: 700; padding: .55rem 1.1rem;
-           border: 0; border-radius: 9px; background: #1a6ee0; color: #fff;
-           cursor: pointer; }
-  table { border-collapse: collapse; width: 100%; }
-  td, th { text-align: left; padding: .4rem .3rem;
-           border-bottom: 1px solid #eef1f4; }
-  th { font-size: .78rem; text-transform: uppercase; color: #7a8798; }
-</style>
-"""
-
-PICKER = _STYLE + """
-<h1>Brain Freeze Insurance</h1>
-<p class="sub">{{ total }} policyholders, live in the database.
-   <a href="{{ url_for('quote_form') }}">Get a quote</a></p>
-<form method="get" action="{{ url_for('index') }}" class="card">
-  <label>Go to a policy
-    <input type="text" name="policy" value="{{ wanted }}"
-           placeholder="BF-100539" size="12"></label>
-  <button type="submit">Find</button>
-  {% if wanted %}<a href="{{ url_for('index') }}">clear</a>{% endif %}
-</form>
-<div class="card">
-<table>
-  <tr><th>Policy</th><th>Plan</th><th>Band</th><th>Status</th>
-      <th>Claims</th><th>Paid</th></tr>
-  {% for p, label, css in rows %}
-  <tr>
-    <td><a href="{{ url_for('history', policy_id=p.policy_id) }}"
-           class="num">{{ p.policy_id }}</a></td>
-    <td>{{ p.plan_name }}</td>
-    <td class="num">{{ p.risk_tier }}, {{ p.underwriting_risk_score }}</td>
-    <td><span class="tag {{ css }}">{{ label }}</span></td>
-    <td class="num">{{ p.approved_claims|length }}/{{ p.claims|length }}</td>
-    <td class="num">{{ usd(p.total_paid) }}</td>
-  </tr>
-  {% endfor %}
-</table>
-{% if not wanted %}
-<p class="muted">
-  {% if start > 0 %}
-  <a href="{{ url_for('index', **{'from': start - page}) }}">&larr; previous</a>
-  {% endif %}
-  Showing {{ start + 1 }}&ndash;{{ [start + page, shown]|min }} of {{ shown }}.
-  {% if start + page < shown %}
-  <a href="{{ url_for('index', **{'from': start + page}) }}">next &rarr;</a>
-  {% endif %}
-</p>
-{% elif not rows %}
-<p class="muted">Nothing matches &ldquo;{{ wanted }}&rdquo;.</p>
-{% endif %}
-</div>
-"""
-
-QUOTE_FORM = _STYLE + """
-<h1>What would cover cost?</h1>
-<p class="sub">Five questions. We work the price out from the answers.</p>
-<form method="post" action="{{ url_for('quote_result') }}" class="card">
-  <fieldset><legend>How old are they?</legend>
-    <input type="number" name="age" value="11" min="5" max="19"></fieldset>
-  <fieldset><legend>Diagnosed with migraine?</legend>
-    <label class="opt"><input type="radio" name="migraine" value="no" checked> No</label>
-    <label class="opt"><input type="radio" name="migraine" value="yes"> Yes</label></fieldset>
-  <fieldset><legend>Diagnosed with tension headaches?</legend>
-    <label class="opt"><input type="radio" name="tth" value="no" checked> No</label>
-    <label class="opt"><input type="radio" name="tth" value="yes"> Yes</label></fieldset>
-  <fieldset><legend>How fast do they usually eat something cold?</legend>
-    {% for label, value in speeds %}
-    <label class="opt"><input type="radio" name="speed" value="{{ value }}"
-      {% if value == 'moderate' %}checked{% endif %}> {{ label }}</label>
-    {% endfor %}</fieldset>
-  <fieldset><legend>Favourite cold treat</legend>
-    {% for t in triggers %}
-    <label class="opt"><input type="radio" name="trigger" value="{{ t }}"
-      {% if loop.first %}checked{% endif %}> {{ t }}</label>
-    {% endfor %}</fieldset>
-  <button type="submit">See the price</button>
-</form>
-"""
-
-# The five answers used to be posted back through this screen as hidden
-# fields, because a quote had nowhere to live. It has one now, so the only
-# thing this form carries is which plan was picked -- and that rides on the
-# button rather than on a hidden input, which is what a button's `value` is
-# for. There is no hidden field anywhere in this file, and
-# tests/test_quote_flow.py pins that.
-PLANS = _STYLE + """
-<h1>Three ways to cover it</h1>
-<p class="sub">Risk band <strong>{{ q.tier }}</strong>,
-   scored <span class="num">{{ q.score }}</span>.</p>
-<p class="muted"><span class="num">{{ q.quote_id }}</span>,
-   quoted {{ q.quoted_on }}. This quote is saved &mdash; come back to it at
-   <a href="{{ url_for('saved_quote', quote_id=q.quote_id) }}"
-      class="num">/quote/{{ q.quote_id }}</a>.</p>
-
-{% if q.policy_id %}
-<div class="warn">This quote was taken up as
-  <a href="{{ url_for('history', policy_id=q.policy_id) }}"
-     class="num">{{ q.policy_id }}</a>.</div>
-{% endif %}
-
-<div class="card">
-  <strong>How that score was reached</strong>
-  <table>
-    {% for label, points in q.breakdown %}
-    <tr><td>{{ label }}</td>
-        <td class="num" style="text-align:right">{{ '%+.1f'|format(points) }}</td></tr>
-    {% endfor %}
-  </table>
-</div>
-
-{% for name, plan in q.plans.items() %}
-<form method="post"
-      action="{{ url_for('accept_quote', quote_id=q.quote_id) }}" class="card">
-  <div class="row">
-    <div>
-      <strong>{{ name }}</strong>
-      <div class="muted">{{ usd(plan.limit) }} an episode,
-        {{ usd(plan.deductible) }} deductible</div>
-    </div>
-    <div style="text-align:right">
-      <div class="big num">{{ usd(plan.annual) }}</div>
-      <div class="muted">a year &middot; {{ usd(plan.monthly) }} a month</div>
-    </div>
-  </div>
-  <button type="submit" name="plan" value="{{ name }}">Take out {{ name }}</button>
-</form>
-{% endfor %}
-"""
-
-HISTORY = _STYLE + """
-<h1 class="num">{{ p.policy_id }}</h1>
-<p class="sub">{{ p.plan_name }} &middot; {{ p.risk_tier }} band,
-  <span class="num">{{ p.underwriting_risk_score }}</span> &middot;
-  {{ usd(p.annual_premium) }} a year &middot;
-  {{ usd(p.coverage_limit) }} an episode,
-  {{ usd(p.deductible) }} deductible &middot;
-  <span class="tag {{ cover_css }}">{{ cover }}</span>
-</p>
-
-<div class="card row">
-  <div><div class="big num">{{ p.events|length }}</div><div class="muted">cold treats</div></div>
-  <div><div class="big num">{{ p.brain_freeze_events|length }}</div><div class="muted">gave a headache</div></div>
-  <div><div class="big num">{{ p.claims|length }}</div><div class="muted">claims sent</div></div>
-  <div><div class="big num">{{ usd(p.total_paid) }}</div><div class="muted">paid out</div></div>
-  <div><div class="big num">{{ p.approved_claims|length }}/{{ limit }}</div><div class="muted">claims used</div></div>
-</div>
-
-<p><a href="{{ url_for('claim_form', policy_id=p.policy_id) }}">File a claim</a>
-   &middot; <a href="{{ url_for('index') }}">All policyholders</a></p>
-
-<div class="card">
-  <strong>Every cold treat on record</strong>
-  {% if not p.events %}
-  <p class="muted">Nothing yet. When something cold causes trouble, file it
-     and it will appear here.</p>
-  {% else %}
-  <table>
-    <tr><th>Date</th><th>Treat</th><th>Claim</th><th>Outcome</th></tr>
-    {% for e in p.events %}
-    <tr>
-      <td class="num">{{ e.event_date }}</td>
-      <td>{{ e.trigger }}{% if not e.brain_freeze %}
-          <span class="muted">&middot; no headache</span>{% endif %}</td>
-      <td class="num">{{ e.claim.claim_id if e.claim else '' }}</td>
-      <td>{% if not e.claim %}<span class="muted">not claimed</span>
-          {% elif e.claim.is_approved %}
-            <span class="num">{{ usd(e.claim.approved) }}</span>
-          {% else %}<span class="tag no">{{ e.claim.reason }}</span>{% endif %}</td>
-    </tr>
-    {% endfor %}
-  </table>
-  {% endif %}
-</div>
-<p class="muted">The treats that caused no headache are here too. They are the
-  denominator &mdash; without them, how often a slushie causes brain freeze is
-  not a question the data can answer.</p>
-"""
-
-CLAIM_FORM = _STYLE + """
-<h1>What happened?</h1>
-<p class="sub">Tell us about the episode. We work the money out from your
-  answers &mdash; there is no figure to type in.</p>
-
-{% for note in warnings %}<div class="warn">{{ note }}</div>{% endfor %}
-
-<form method="post" action="{{ url_for('file_claim', policy_id=p.policy_id) }}"
-      class="card">
-  <fieldset><legend>What did they have?</legend>
-    {% for t in triggers %}
-    <label class="opt"><input type="radio" name="trigger" value="{{ t }}"
-      {% if loop.first %}checked{% endif %}> {{ t }}</label>{% endfor %}</fieldset>
-  <fieldset><legend>How cold was it?</legend>
-    {% for label, value in colds %}
-    <label class="opt"><input type="radio" name="cold" value="{{ label }}"
-      {% if loop.first %}checked{% endif %}> {{ label }}</label>{% endfor %}
-    <div class="muted">A band, not a reading &mdash; nobody owns a thermometer
-      for this.</div></fieldset>
-  <fieldset><legend>How much of it?</legend>
-    {% for label, value in portions %}
-    <label class="opt"><input type="radio" name="portion" value="{{ label }}"
-      {% if loop.index0 == 2 %}checked{% endif %}> {{ label }}</label>{% endfor %}</fieldset>
-  <fieldset><legend>How fast?</legend>
-    {% for label, value in speeds %}
-    <label class="opt"><input type="radio" name="speed" value="{{ label }}"
-      {% if loop.index0 == 1 %}checked{% endif %}> {{ label }}</label>{% endfor %}</fieldset>
-  <fieldset><legend>How bad was it? (0&ndash;10)</legend>
-    <input type="number" name="pain" value="5" min="0" max="10"></fieldset>
-  <fieldset><legend>How long did it last?</legend>
-    {% for label, value in durations %}
-    <label class="opt"><input type="radio" name="duration" value="{{ label }}"
-      {% if loop.index0 == 2 %}checked{% endif %}> {{ label }}</label>{% endfor %}</fieldset>
-  <fieldset><legend>Where did it hurt?</legend>
-    {% for l in locations %}
-    <label class="opt"><input type="radio" name="location" value="{{ l }}"
-      {% if loop.first %}checked{% endif %}> {{ l }}</label>{% endfor %}</fieldset>
-  <fieldset><legend>What did it feel like?</legend>
-    {% for q in qualities %}
-    <label class="opt"><input type="radio" name="quality" value="{{ q }}"
-      {% if loop.first %}checked{% endif %}> {{ q }}</label>{% endfor %}</fieldset>
-  <fieldset><legend>Which flavour? <span class="tag">new</span></legend>
-    {% for f in flavours %}
-    <label class="opt"><input type="radio" name="flavour" value="{{ f }}"
-      {% if loop.first %}checked{% endif %}> {{ f }}</label>{% endfor %}</fieldset>
-  <fieldset><legend>Anything on top? <span class="tag">new</span></legend>
-    {% for top in toppings %}
-    <label class="opt"><input type="checkbox" name="toppings"
-      value="{{ top }}"> {{ top }}</label>{% endfor %}
-    <div class="muted">These two questions went in after 900 policies and
-      4,993 episodes were already committed. No migration, nothing rewritten
-      &mdash; older claims simply have no flavour.</div></fieldset>
-  <button type="submit">Send the claim</button>
-</form>
-"""
-
-DECISION = _STYLE + """
-{% if c.is_approved %}
-<h1>{{ usd(c.approved) }} is yours</h1>
-{% else %}
-<h1>Not this time</h1>
-{% endif %}
-<p class="sub num">{{ c.claim_id }} &middot; {{ e.trigger }}
-  {%- if c.flavour %} ({{ c.flavour }}{% if c.toppings %},
-    {{ c.toppings|join(', ')|lower }}{% endif %}){% endif %}
-  &middot; {{ e.event_date }}</p>
-
-<div class="card">
-  <table>
-    <tr><td>What we worked it out at</td>
-        <td class="num" style="text-align:right">{{ usd(c.requested) }}</td></tr>
-    {% if c.is_approved %}
-    <tr><td>Trimmed to your {{ usd(p.coverage_limit) }} episode cap</td>
-        <td class="num" style="text-align:right">&minus;{{ usd(trimmed) }}</td></tr>
-    <tr><td>Your deductible</td>
-        <td class="num" style="text-align:right">&minus;{{ usd(p.deductible) }}</td></tr>
-    {% else %}
-    <tr><td colspan="2"><span class="tag no">{{ c.reason }}</span></td></tr>
-    {% endif %}
-    <tr><td><strong>Paid to you</strong></td>
-        <td class="num" style="text-align:right">
-          <strong>{{ usd(c.approved) }}</strong></td></tr>
-  </table>
-</div>
-
-<p class="muted">It goes on the record either way &mdash;
-  <a href="{{ url_for('history', policy_id=p.policy_id) }}">see the policy</a>.</p>
-"""
-
-
-# Two things about this guard, both learned the hard way.
-#
-# It belongs at the very END of the file. `gemdb app.py` executes top to
-# bottom, so a guard next to serve() would start the server before the
-# templates below exist and every route would raise NameError -- which
-# importing the module hides completely, because an import finishes the file
-# before any route runs.
-#
-# And the entry point is `serve`, not `main`, because under Grail `__main__`
-# is one namespace shared by every script the database has ever run, and
-# dispatch is by argument count with defaults not counting. `main()` here
-# reached another script's zero-argument `main` and failed inside it.
 if __name__ == "__main__":
     serve()

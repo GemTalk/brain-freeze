@@ -11,6 +11,7 @@ from .underwriting import (
     COVERAGE_PLANS,
     RISK_TIER_MULT,
     TRIGGER_RISK_MULT,
+    CONSUMPTION_SPEEDS,
     TRIGGER_TYPES,
     BASE_RISK,
     Plan,
@@ -57,17 +58,30 @@ from .adjudication import (
     rule_for_reason,
 )
 
+#: The package's public surface, grouped exactly as the imports above are.
+#: `tests/test_brainfreeze.py` requires the two to agree name for name, so a
+#: function added to a submodule and imported here cannot quietly fail to be
+#: published -- which is the one way a hand-kept list of names goes wrong.
 __all__ = [
-    "COVERAGE_PLANS", "RISK_TIER_MULT", "TRIGGER_RISK_MULT", "TRIGGER_TYPES",
-    "BASE_RISK", "Plan", "Quote", "annual_premium", "quote", "risk_score",
-    "risk_tier", "score_breakdown", "ANNUAL_CLAIM_LIMIT", "Decision",
+    # underwriting: what a policy costs and why
+    "BASE_RISK", "CONSUMPTION_SPEEDS", "COVERAGE_PLANS", "RISK_TIER_MULT",
+    "TRIGGER_RISK_MULT", "TRIGGER_TYPES",
+    "Plan", "Quote",
+    "annual_premium", "quote", "risk_score", "risk_tier", "score_breakdown",
+
+    # model: the objects that live in the database
+    "Book", "Claim", "Event", "Policyholder", "SavedQuote",
+
+    # analysis: questions asked of a whole book
+    "book_summary", "claim_approval_rate", "denial_reasons", "denial_rules",
+    "least_profitable_plan", "loss_ratio_by_plan", "loss_ratio_by_tier",
+    "top_n_by_expected_claims", "top_n_by_loss_ratio",
+
+    # adjudication: whether a claim is paid, and the rule that decided
+    "ANNUAL_CLAIM_LIMIT",
     "REASON_ANNUAL_LIMIT", "REASON_BELOW_DEDUCTIBLE", "REASON_OUTSIDE_TERM",
     "REASON_PER_INCIDENT_LIMIT", "REASON_POLICY_LAPSED",
     "RULE_ANNUAL_LIMIT", "RULE_BELOW_DEDUCTIBLE", "RULE_OUTSIDE_TERM",
     "RULE_PER_INCIDENT_LIMIT", "RULE_POLICY_LAPSED",
-    "adjudicate", "assess_amount", "rule_for_reason",
-    "Book", "Claim", "Event", "Policyholder", "SavedQuote",
-    "book_summary", "claim_approval_rate", "denial_reasons", "denial_rules",
-    "least_profitable_plan", "loss_ratio_by_plan", "loss_ratio_by_tier",
-    "top_n_by_expected_claims", "top_n_by_loss_ratio",
+    "Decision", "adjudicate", "assess_amount", "rule_for_reason",
 ]

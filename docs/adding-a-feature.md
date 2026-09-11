@@ -94,7 +94,7 @@ database just knows". It is that a schemaless object database lets you declare
 optional fields up front and pay nothing for them later — a claim about
 foresight, and true.
 
-### The expensive one: `SavedQuote` and `Book.quotes` (#53)
+### The expensive one: `SavedQuote` and `Book.quotes`
 
 `POST /quote` used to price a quote, render it, and post the five answers back
 to the browser as hidden fields so that buying could work them out again. A
@@ -146,7 +146,7 @@ because the reader who meets a bare `AttributeError` here will otherwise
 reasonably conclude the code is broken. `Book.add_quote`'s docstring says the
 same thing for a reader coming from the model rather than from the browser.
 
-### The third shape, and the one to expect: `Claim.rule` (#49)
+### The third shape, and the one to expect: `Claim.rule`
 
 A refusal now records *which rule* refused it, as a stable identifier, beside
 the English sentence in `reason`. Same one-line class default as `flavour`:
@@ -182,9 +182,11 @@ Everything above collapses into these.
 
 **Is the file you edited inside `brainfreeze/`?** Then the database is serving a
 compiled copy of it and your edit is not live. Run `gemdb redeploy.py`.
-Top-level scripts — `app.py`, `seed.py`, `run_db_tests.py`, `lapse.py`,
-`verify_book.py` — are read from disk each time `gemdb` runs them, so restarting
-is enough for those. `findings/08_script_imports.py` measures the difference and
+Top-level modules — `app.py` and the five it is split across, plus `seed.py`,
+`run_db_tests.py`, `lapse.py`, `verify_book.py` — are read from disk each time
+`gemdb` runs them, so restarting is enough for those. That is why the web app
+is a handful of siblings rather than an `app/` package: the same measurement
+that says `brainfreeze/` needs a redeploy says these do not. `findings/08_script_imports.py` measures the difference and
 is blunt about where it comes from: writing an `__init__.py` beside a module is
 the whole of it.
 
@@ -223,7 +225,7 @@ class Claim:
 The load-bearing part is the two lines above `__init__`. An instance with no
 slot of its own reads the default through its class, so a claim written before
 the field existed answers `None` rather than raising. That is the entire
-migration, and `app.py` says so where the form constants are defined.
+migration, and `forms.py` says so where the questionnaire is defined.
 
 **Why that is the only moment a default is free.** Editing a class and importing
 the edited source compiles a *different* class. Measured, and reproduced by
@@ -277,7 +279,7 @@ Three more things about where a value goes, all from the model as it stands:
 
 ## 4. A change is not live until the package is redeployed
 
-Issue #62 called this "the crux and still open". **It is settled and has been
+This was called the crux of the demo, and open. **It is settled, and has been
 since [`findings/08_script_imports.py`](../findings/08_script_imports.py) was
 written.** What remains open is a different question — see the end of this
 section.
@@ -319,9 +321,9 @@ rest of the session.
 **If you add a new module to `brainfreeze/`, add it to `ORDER` in
 `redeploy.py`.** You will be told: `unlisted_modules()` compares `ORDER` against
 the directory and refuses to run until they agree. That check exists because
-`brainfreeze.wire` arrived with the JSON API and sat unlisted, so anyone editing
-it and redeploying would have kept the old compiled copy with nothing to say so
-— the exact failure the script prevents, reintroduced one module at a time.
+a module arrived with the JSON API and sat unlisted, so anyone editing it and
+redeploying would have kept the old compiled copy with nothing to say so — the
+exact failure the script prevents, reintroduced one module at a time.
 
 `redeploy.py` prints `annual_premium('Basic','Low')` and whether it is exact
 money at the end, which is a real check rather than a reassurance: if that line
@@ -332,7 +334,7 @@ the class they were made with. That is why the pair is two commands and not one:
 `gemdb redeploy.py` changes the rules, `gemdb seed.py` rebuilds the data those
 rules made.
 
-**What is still open** is issue #59: whether there is a recipe that re-binds
+**What is still open** is whether there is a recipe that re-binds
 *already committed instances* to an edited class without rebuilding them. Nobody
 has measured one. `findings/class-identity/` has the two arms that would answer
 it and has not been pointed at the question. Until that changes, "migration"
@@ -391,8 +393,7 @@ gemdb run_notebook_check.py         # every notebook cell, in order
 Measured in this checkout on 2026-09-10, the first is `Ran 251 tests ... OK
 (skipped=57)`. The 57 skips are the tests that need a database, so they skip
 themselves under CPython and the run stays green; the second command runs those
-too, which is why it reports 194. (Issue #62's "22 of them" is stale — that was
-before the JSON API, the quote flow and the rule identifiers arrived.)
+too, which is why it reports more.
 
 **Running the same suite twice is not belt-and-braces.** It is the demo's central
 claim reduced to a check: one set of rules, two runtimes, identical answers. It
@@ -444,8 +445,9 @@ than in a test.
 
 | surface | what it is | what pins it |
 | --- | --- | --- |
-| the web app | `app.py` — HTML routes and inline templates | `tests/test_app.py`, `features/*.feature` |
-| the JSON API | `brainfreeze/wire.py` serialises; `app.py` routes it | `tests/test_api.py` |
+| the web app | `routes_html.py` renders `templates.py`; `app.py` wires it up | `tests/test_app.py`, `features/*.feature` |
+| the JSON API | `wire.py` serialises; `routes_api.py` routes it | `tests/test_api.py` |
+| the questionnaire | `forms.py` — asked by both surfaces, read by one function | `tests/test_api.py`, `tests/test_app.py` |
 | the notebook | generated by `make_notebook.py` — **never edit `brain-freeze.ipynb` by hand** | `gemdb run_notebook_check.py` |
 | the MCP answers | `docs/mcp-questions.md`, generated by `gemdb make_mcp_questions.py` | `python3 refresh_mcp.py --verify` replays it over the transport |
 | the dataset description | `docs/dataset-for-agents.md`, `docs/csv-schema.md` | by hand — nothing checks these |
@@ -466,7 +468,7 @@ Two cautions about regenerating:
   have to describe a freshly seeded database rather than whatever the last demo
   left behind. It is not a step to run casually.
 - `docs/mcp-questions.md` publishes `analysis.denial_reasons`' exact output,
-  which is why #49 added `denial_rules` as a sibling rather than changing that
+  which is why `denial_rules` arrived as a sibling rather than changing that
   function's shape. A published answer is a promise; adding beside it is cheap
   and moving it is not.
 
@@ -482,8 +484,8 @@ dutifully editing all of it.
 Said plainly, because a confident wrong answer here is expensive.
 
 - **Whether committed instances can be re-bound to an edited class.** Nobody has
-  measured a recipe. That is issue #59, and it is the only part of #62 that was
-  genuinely blocked. Until it is measured, a "migration" here is a reseed or a
+  measured a recipe, and it is the one question here that is genuinely
+  blocked. Until it is measured, a "migration" here is a reseed or a
   `getattr`.
 - **Whether `isinstance` survives a class edit on your Grail.** It does not on
   `c875e56`; the parallel demo measured it surviving on `46c2a68`. Run

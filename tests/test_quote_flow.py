@@ -1,11 +1,11 @@
-"""The shape of the quote flow, read out of `app.py`'s source.
+"""The shape of the quote flow, read out of the surface modules' source.
 
 Run: python3 -m unittest tests.test_quote_flow -v
 
 `tests/test_app.py` drives these routes against a real database and skips
 everywhere else, because `app.py` imports `gemdb` and `flask` and neither
-exists under CPython. So the half of issue #53 that is easiest to undo by
-accident -- putting the answers back in the page -- would be pinned by
+exists under CPython. So the half of the quote work that is easiest to undo
+by accident -- putting the answers back in the page -- would be pinned by
 nothing at all outside the database. This reads the file instead, the way
 `tests/test_refresh.py` reads it for the transaction beat.
 
@@ -26,16 +26,27 @@ import os
 import unittest
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-APP = os.path.join(REPO_ROOT, "app.py")
+
+#: Everything a browser can reach: the two route modules and the templates
+#: they render. Read together, because "is any quote state in the browser"
+#: is a question about the whole surface, not about one file.
+SURFACES = ("app.py", "templates.py", "routes_html.py", "routes_api.py")
+
+#: The subset that declares routes.
+ROUTE_MODULES = ("routes_html.py", "routes_api.py")
 
 
-def source():
-    with open(APP) as handle:
+def read(filename):
+    with open(os.path.join(REPO_ROOT, filename)) as handle:
         return handle.read()
 
 
+def source():
+    return "\n".join(read(name) for name in SURFACES)
+
+
 def routes(tree):
-    """(rule, methods, function) for every `@app.route` in app.py.
+    """(rule, methods, function) for every `@app.route` in a route module.
 
     Flask's default when `methods` is not given is GET, and saying so here
     keeps the tests below reading like the routing table rather than like a
@@ -78,13 +89,14 @@ def calls(node):
 
 
 class TheQuoteFlowKeepsItsStateInTheDatabase(unittest.TestCase):
-    """Issue #53. The demo's argument is that these are just objects in the
-    database, and the quote flow was the one place the app did the opposite."""
+    """The demo's argument is that these are just objects in the database,
+    and the quote flow was the one place the app did the opposite."""
 
     def setUp(self):
         self.source = source()
-        self.tree = ast.parse(self.source, filename=APP)
-        self.routes = routes(self.tree)
+        self.routes = []
+        for name in ROUTE_MODULES:
+            self.routes.extend(routes(ast.parse(read(name), filename=name)))
 
     def handler(self, rule, method):
         for a_rule, methods, function in self.routes:

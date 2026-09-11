@@ -51,7 +51,6 @@ ORDER = [
     "brainfreeze.adjudication",
     "brainfreeze.model",
     "brainfreeze.analysis",
-    "brainfreeze.wire",
     "brainfreeze",
 ]
 
@@ -61,10 +60,10 @@ def unlisted_modules():
 
     ORDER has to be hand-written, because reload order is a dependency
     question no directory listing can answer. But a hand-written list drifts:
-    `brainfreeze.wire` arrived with the JSON API and sat unlisted, so anyone
-    editing it and running this would have kept the old compiled copy with
-    nothing to say so -- which is the exact failure this script exists to
-    prevent, reintroduced one module at a time.
+    a module has arrived and sat unlisted before, and anyone editing it and
+    running this would have kept the old compiled copy with nothing to say
+    so -- the exact failure this script exists to prevent, reintroduced one
+    module at a time.
 
     So the ORDER is checked rather than trusted. Two lists that must agree is
     the bug; one list and a check is not.

@@ -20,7 +20,7 @@ person debugs a fixture rather than their change.
 
 import subprocess
 
-from behave import given, then, when
+from behave import then, when
 
 from environment import REPO, gemdb_env
 

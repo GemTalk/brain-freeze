@@ -157,10 +157,14 @@ def score_breakdown(
 
 
 class Quote(NamedTuple):
-    """What the quote flow hands back: one score, one tier, three prices."""
+    """What the quote flow hands back: one score, one tier, three prices.
+
+    `risk_tier` rather than `tier`, because a `Policyholder` spells it that
+    way and the two are the same band computed by the same function.
+    """
 
     score: float
-    tier: str
+    risk_tier: str
     breakdown: list
     plans: dict  # plan name -> {"annual", "monthly", "limit", "deductible"}
 
@@ -176,10 +180,10 @@ def quote(
     """Price all three plans for one applicant."""
     score = risk_score(age, migraine_history, tension_type_headache_history,
                        typical_consumption_speed, favourite_trigger, base)
-    tier = risk_tier(score)
+    band = risk_tier(score)
     plans = {}
     for name, plan in COVERAGE_PLANS.items():
-        annual = round_cents(annual_premium(name, tier))
+        annual = round_cents(annual_premium(name, band))
         plans[name] = {
             "annual": annual,
             "monthly": round_cents(annual / 12),
@@ -188,4 +192,4 @@ def quote(
         }
     breakdown = score_breakdown(age, migraine_history, tension_type_headache_history,
                                 typical_consumption_speed, favourite_trigger, base)
-    return Quote(round(score, 1), tier, breakdown, plans)
+    return Quote(round(score, 1), band, breakdown, plans)

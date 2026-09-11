@@ -7,6 +7,7 @@ of policyholders.csv or claims.csv, so if the app and the sample data ever
 start disagreeing, this is what says so.
 """
 
+import types
 import unittest
 from datetime import date
 from decimal import Decimal
@@ -41,7 +42,7 @@ class Underwriting(unittest.TestCase):
         # age 11, eats fast, favourite is a slushie, no headache history
         q = quote(11, False, False, "fast", "slushie")
         self.assertEqual(q.score, 75.0)          # 45 + 18 + 12
-        self.assertEqual(q.tier, "High")
+        self.assertEqual(q.risk_tier, "High")
         self.assertEqual(q.plans["Basic"]["annual"], 85.50)
         self.assertEqual(q.plans["Standard"]["annual"], 171.00)
         self.assertEqual(q.plans["Premium"]["annual"], 342.00)
@@ -149,7 +150,7 @@ class Adjudication(unittest.TestCase):
 
 
 class EventOrderSurvivesAdding(unittest.TestCase):
-    """#71: sorting at load time is not enough.
+    """Sorting at load time is not enough.
 
     The app files a claim by adding an event dated TODAY to a policy whose
     seeded events run into 2027, so an appended event lands in the middle of
@@ -195,7 +196,7 @@ class EventOrderSurvivesAdding(unittest.TestCase):
 
 
 class RuleIdentifiers(unittest.TestCase):
-    """#49: a refusal has to be checkable, not just readable.
+    """A refusal has to be checkable, not just readable.
 
     The prose `reason` is what the claimant is told and it is allowed to be
     reworded. `rule` is what an agent explaining the refusal reads, so it is
@@ -338,7 +339,7 @@ class Assessment(unittest.TestCase):
 
 
 class QuotesAreObjects(unittest.TestCase):
-    """Issue #53: a quote used to have no identity.
+    """A quote used to have no identity.
 
     `POST /quote` priced one, rendered it, and posted the five answers back
     to the browser as hidden fields so that accepting could work them out
@@ -360,7 +361,7 @@ class QuotesAreObjects(unittest.TestCase):
         self.offer = quote(**self.answers)
         self.saved = SavedQuote(
             quote_id="QTE-000001", quoted_on=date(2026, 9, 10),
-            score=self.offer.score, tier=self.offer.tier,
+            score=self.offer.score, risk_tier=self.offer.risk_tier,
             breakdown=self.offer.breakdown, plans=self.offer.plans,
             **self.answers)
 
@@ -379,7 +380,7 @@ class QuotesAreObjects(unittest.TestCase):
         self.assertEqual(policy.annual_premium, usd("171.00"))
 
     def test_it_keeps_the_price_it_quoted(self):
-        self.assertEqual(self.saved.tier, "High")
+        self.assertEqual(self.saved.risk_tier, "High")
         self.assertEqual(self.saved.score, 75.0)
         self.assertEqual(self.saved.plans["Standard"]["annual"], usd("171.00"))
         self.assertEqual(self.saved.plans["Standard"]["monthly"], usd("14.25"))
@@ -389,7 +390,7 @@ class QuotesAreObjects(unittest.TestCase):
     def test_the_money_on_a_quote_is_decimal(self):
         # A quote holds money, so it holds Decimal, and a committed Decimal
         # keeps its value, ordering and equality. What it must never hold is
-        # a float -- see brainfreeze.money and issue #68.
+        # a float -- see brainfreeze.money.
         for name in ("Basic", "Standard", "Premium"):
             for field in ("annual", "monthly", "limit", "deductible"):
                 amount = self.saved.plans[name][field]
@@ -403,7 +404,7 @@ class QuotesAreObjects(unittest.TestCase):
                            "limit": 25.0, "deductible": 10.0}}
         with self.assertRaises(TypeError):
             SavedQuote(quote_id="QTE-000002", quoted_on=date(2026, 9, 10),
-                       score=75.0, tier="High", breakdown=[], plans=plans,
+                       score=75.0, risk_tier="High", breakdown=[], plans=plans,
                        **self.answers)
 
     def test_it_carries_the_reasoning_that_produced_it(self):
@@ -433,6 +434,59 @@ class QuotesAreObjects(unittest.TestCase):
         self.assertEqual(book.events, [])
         self.assertEqual(book.claims, [])
         self.assertIs(book.quotes["QTE-000001"], self.saved)
+
+
+class ThePackagePublishesWhatItImports(unittest.TestCase):
+    """`brainfreeze/__init__.py` names every export twice: once to import it
+    and once in `__all__`. Two lists kept by hand drift, and the way they
+    drift is silent -- a function is imported but never published, so
+    `from brainfreeze import *` and the documented surface disagree.
+
+    The package is compared against itself rather than against its source:
+    Grail's `ast` cannot be walked, and a check that skipped inside the
+    database would be absent from the runtime the package actually ships in.
+    """
+
+    def setUp(self):
+        import brainfreeze
+        self.package = brainfreeze
+        self.published = brainfreeze.__all__
+
+    def imported_names(self):
+        """Public attributes the package took from its submodules.
+
+        Submodules are attributes too -- `from .model import Book` binds
+        `model` as well -- and they are not exports, so they come out.
+        """
+        names = []
+        for name in dir(self.package):
+            if name.startswith("_"):
+                continue
+            value = getattr(self.package, name)
+            if isinstance(value, types.ModuleType):
+                continue
+            names.append(name)
+        return names
+
+    def test_everything_imported_is_published(self):
+        missing = sorted(set(self.imported_names()) - set(self.published))
+        self.assertEqual(missing, [],
+                         "imported from a submodule but missing from __all__")
+
+    def test_everything_published_is_importable(self):
+        missing = [name for name in self.published
+                   if not hasattr(self.package, name)]
+        self.assertEqual(missing, [],
+                         "named in __all__ but not bound -- `import *` "
+                         "would raise")
+
+    def test_nothing_is_published_twice(self):
+        duplicates = sorted({name for name in self.published
+                             if self.published.count(name) > 1})
+        self.assertEqual(duplicates, [])
+
+    def test_the_check_is_not_vacuous(self):
+        self.assertGreater(len(self.imported_names()), 20)
 
 
 if __name__ == "__main__":
