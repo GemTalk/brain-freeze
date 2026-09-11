@@ -38,6 +38,30 @@ import json
 import os
 import unittest
 from datetime import date
+
+
+def ast_is_usable():
+    """Whether this runtime's `ast` can be walked the way CPython's can.
+
+    Grail ships an `ast` whose `parse` answers a `_ParsedExpr` with no `body`,
+    so every test here that reads `app.py`'s syntax tree raises
+    `AttributeError` inside the database. Those tests are about the shape of
+    the source and lose nothing by running only under CPython.
+
+    What must NOT be skipped is the money-on-the-wire half. `wire_usd` does
+    Decimal arithmetic, and Decimal is exactly where the two runtimes differ --
+    `round(Decimal, 2)` ends the session, `int(Decimal)` floors here and
+    truncates there. Serialisation that is only ever checked under CPython is
+    checked in the wrong place.
+    """
+    try:
+        return hasattr(ast.parse("x = 1"), "body")
+    except Exception:
+        return False
+
+
+READS_THE_SOURCE = unittest.skipUnless(
+    ast_is_usable(), "this runtime's ast cannot be walked; see ast_is_usable")
 from decimal import Decimal
 
 import brainfreeze
@@ -275,6 +299,7 @@ class Payloads(unittest.TestCase):
                 self.assertNotIsInstance(value, Decimal, path)
 
 
+@READS_THE_SOURCE
 class TheQuestionnaire(unittest.TestCase):
     """What `/api/questions` publishes, and what `/api/quote` will accept.
 
@@ -366,6 +391,7 @@ class TheQuestionnaire(unittest.TestCase):
         brainfreeze.quote(**self.answers())
 
 
+@READS_THE_SOURCE
 class TheRouteContract(unittest.TestCase):
     """Issue #50 names six endpoints. `app.py` imports gemdb and flask, so
     this reads them out of the source rather than driving them --

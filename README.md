@@ -165,10 +165,10 @@ gemdb run_notebook_check.py         # every notebook cell, in order
 ```
 
 ```console
-Ran 251 tests in 0.901s
+Ran 271 tests in 1.014s
 OK (skipped=57)
 
-Ran 194 tests
+Ran 226 tests
 OK
 
 All 10 code cells ran.
