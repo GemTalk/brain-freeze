@@ -222,6 +222,38 @@ configuration to document.
 
 ---
 
+## 8a. FR-3.4 — there is no query API, and that is the answer
+
+> **FR-3.4** The Python API for querying GemDB from the notebook is documented
+> well enough that a user can write a novel ad hoc query without consulting
+> external docs.
+
+**Nothing to document, because nothing sits between the reader and the
+objects.** There is no connection string, no driver, no query language and no
+result set: the kernel *is* a GemStone session, `gemdb.root` is the database's
+root namespace, and a query is a `for` loop. A document describing the API
+would be a document describing Python.
+
+What the requirement is *reaching* for is real, though, and it is narrower:
+can someone open the notebook and compose a question they thought of
+themselves, without going elsewhere? That needs four facts — the one lookup,
+what the containers hold, which attributes are stored rather than computed,
+and where the questions that already have a name live.
+
+**The notebook now states all four, and prints the map by asking the
+objects** rather than by reciting a list, so it cannot drift from the model
+the way a written one would. `tools/run_notebook_check.py` runs that cell
+with the rest, and `features/every_surface_agrees.feature` requires what the
+notebook reports to match what the JSON surface and the page report.
+
+So the requirement is satisfied, and the clause "without consulting external
+docs" is satisfied literally rather than by pointing somewhere.
+[`dataset-for-agents.md`](dataset-for-agents.md) goes further for an agent
+composing questions over MCP — it is the map for a surface that has no
+notebook to read — and nothing in the notebook depends on it.
+
+---
+
 ## 9. FR-2.1 – FR-2.4 — satisfied, but they describe a subsystem that is not there
 
 > **FR-2.1** A documented, single command/procedure loads both CSVs…

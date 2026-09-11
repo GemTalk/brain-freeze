@@ -72,6 +72,45 @@ for name in ("risk_tier", "underwriting_risk_score", "total_paid",
 Smalltalk side, because these really are GemStone objects rather than Python
 objects in a wrapper."""),
 
+    (MD, """## Everything you need to ask your own question
+
+Four things, and then it is ordinary Python. There is no query language to
+learn and nothing here that is only in a manual — the cell below prints the
+map by asking the objects, so it cannot go stale the way a written one would.
+
+1. **One lookup.** `gemdb.root["brainfreeze"]` is a `Book`. Nothing else is
+   reachable any other way; everything below hangs off it.
+2. **What the containers hold.** Iterating the book gives policyholders,
+   `book[policy_id]` gives one, `policy.events` is every cold treat oldest
+   first, and `event.claim` is a `Claim` or `None` when the treat hurt nobody.
+   The ones that hurt nobody are the denominator, so they are kept.
+3. **Stored versus derived.** `vars(obj)` is what is actually on the instance;
+   everything else in `dir(obj)` is computed when you ask for it. Money is
+   `decimal.Decimal` throughout, never a float.
+4. **The named questions.** `brainfreeze.analysis` holds the aggregates, so
+   the notebook, the web app and an agent all answer them identically. Compose
+   your own from the objects; reach for these when the question already has a
+   name."""),
+
+    (PY, """from brainfreeze import analysis
+
+print("one lookup, then ordinary Python")
+print()
+print("  gemdb.root['brainfreeze']  ->", type(book).__name__)
+print("  for p in book              ->", type(next(iter(book))).__name__)
+print("  book['BF-100539']          ->", type(book['BF-100539']).__name__)
+print("  policy.events              -> list of",
+      type(book['BF-100539'].events[0]).__name__, "(oldest first)")
+print("  event.claim                -> a Claim, or None if it hurt nobody")
+print()
+print("the questions that already have a name:")
+for name in sorted(n for n in dir(analysis)
+                   if not n.startswith("_")
+                   and callable(getattr(analysis, n))
+                   and getattr(getattr(analysis, n), "__module__", "")
+                   == analysis.__name__):
+    print("   analysis." + name)"""),
+
     (MD, """## Three aggregates
 
 The helpers live in `brainfreeze.analysis` so that the notebook, the web app

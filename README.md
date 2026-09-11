@@ -208,7 +208,7 @@ OK (skipped=57)
 Ran 233 tests
 OK
 
-All 10 code cells ran.
+All 11 code cells ran.
 ```
 
 **Running the same suite twice is the demo's central claim reduced to a
@@ -495,6 +495,26 @@ actually stored  : 15
 
 `risk_tier`, `total_paid` and `loss_ratio` are not columns that could drift out
 of step with the data. They are questions the object answers.
+
+The cell after it is there so that nobody has to leave the notebook to write
+their own question. It prints the whole map — one lookup, what the containers
+hold, and the aggregates that already have a name — by asking the objects
+rather than by reciting a list, so it cannot go stale:
+
+```console
+one lookup, then ordinary Python
+
+  gemdb.root['brainfreeze']  -> Book
+  for p in book              -> Policyholder
+  book['BF-100539']          -> Policyholder
+  policy.events              -> list of Event (oldest first)
+  event.claim                -> a Claim, or None if it hurt nobody
+```
+
+That is the whole API. There is no query language to learn, which is why the
+guide to writing one is four facts and a `for` loop rather than a manual.
+[`docs/dataset-for-agents.md`](docs/dataset-for-agents.md) goes deeper for an
+agent composing questions over MCP; the notebook does not depend on it.
 
 There is no plotting library — Grail has no matplotlib and the kernel renders
 `text/plain` — so the chart is ten lines of Python in a cell:
