@@ -214,7 +214,7 @@ OK (skipped=57)
 Ran 233 tests
 OK
 
-All 11 code cells ran.
+All 12 code cells ran.
 ```
 
 **Running the same suite twice is the demo's central claim reduced to a

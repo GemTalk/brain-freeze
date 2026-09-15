@@ -40,15 +40,21 @@ book = gemdb.root["brainfreeze"]
 
 Two things in there are not obvious.
 
-**The `sys.path` line is required over MCP and only over MCP.** A worker gem's
-working directory is the stone's, not the repository's, so `brainfreeze` is not
-importable until you put the checkout on the path. A notebook or a `gemdb
-script.py` run already has that directory on `sys.path`, which is why the
-preamble printed at the top of `mcp-questions.md` omits it — that document's
-snippets are written to be runnable both ways. `tools/refresh_mcp.py` adds the
-path itself before replaying them over the transport. If your first `import
-brainfreeze` raises `ModuleNotFoundError`, this is why, and the fix is the path
-and not the package.
+**The `sys.path` line is required nearly everywhere, and it is the first thing
+to check.** A worker gem's working directory is the stone's, not the
+repository's, so `brainfreeze` is not importable until the checkout is on the
+path. That is true over MCP, and it is true in a notebook: the kernel starts in
+the database's directory and a cell has no `__file__` to derive one from. Only
+`gemdb script.py` gets it for free, and only because `gemdb` puts the
+**script's** directory on the path.
+
+The preamble printed at the top of `mcp-questions.md` omits the line, so a
+snippet pasted from there needs it added — `tools/refresh_mcp.py` adds it
+before replaying them over the transport, and the notebook's first cell does
+the same for itself.
+
+If your first `import brainfreeze` raises `ModuleNotFoundError`, this is why,
+and the fix is the path and not the package.
 
 **Names persist between calls, so binding once is worth doing.** Measured
 2026-09-09 against MCP server `0.7.0` (`3c08dde`): the `eval_python` tool's own

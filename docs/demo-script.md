@@ -280,14 +280,19 @@ deliberately.
 
 | Cell | What to say while it runs |
 | --- | --- |
-| **1** `import gemdb` | "One lookup. `gemdb.root` is the database's root namespace, and `book` is the same object the web app just served." |
-| **2** `policy = book["BF-100539"]` | The one to stop on. See below. |
-| **3** the map | "Four facts and a `for` loop. That is the whole query API, and it prints itself rather than being written down somewhere." |
-| **4** `book_summary` | "Nine hundred policies, and the loss ratio for the whole book." |
-| **6** loss ratio by band | Stop here too. See below. |
-| **8**, **9** the chart | "No matplotlib. The kernel renders text, so a chart is ten lines you can read." |
+| **1** the path | "The one thing it has to be told: where the code is. A kernel starts in the database's directory, not this one." It prints the repository it found. |
+| **2** `import gemdb` | "One lookup. `gemdb.root` is the database's root namespace, and `book` is the same object the web app just served." |
+| **3** `policy = book["BF-100539"]` | The one to stop on. See below. |
+| **4** the map | "Four facts and a `for` loop. That is the whole query API, and it prints itself rather than being written down somewhere." |
+| **5** `book_summary` | "Nine hundred policies, and the loss ratio for the whole book." |
+| **7** loss ratio by band | Stop here too. See below. |
+| **9**, **10** the chart | "No matplotlib. The kernel renders text, so a chart is ten lines you can read." |
 
-**Stop on cell 2.** It prints:
+Cell 1 is not ceremony and it is worth ten seconds: it is the same three lines
+every script in `tools/` and `web/` opens with, for the same reason, and beat 9
+has a finding about what happens when you try to share them.
+
+**Stop on cell 3.** It prints:
 
 ```
 class            : Policyholder from brainfreeze.model
@@ -300,14 +305,14 @@ actually stored  : 15
 > It is a question the object answers — which is why there was no schema to
 > change when we added flavours."
 
-**Stop on cell 6.** `{'Medium': 0.729, 'High': 0.501, 'Low': 0.409}`.
+**Stop on cell 7.** `{'Medium': 0.729, 'High': 0.501, 'Low': 0.409}`.
 
 > "Read that again. High is cheaper to carry than Medium. The 1.9x loading on
 > the High band over-prices the risk, so the customers the underwriter is most
 > worried about are the most profitable, and the middle of the book is where
 > the money leaks. That is a real finding about this data, not a scripted one."
 
-Leave cells 10 and 11 alone. They are the refresh beat, and they only say
+Leave cells 11 and 12 alone. They are the refresh beat, and they only say
 anything when another session has committed in between — which is beat 6, and
 it is better shown in the browser.
 

@@ -34,7 +34,38 @@ GemStone session, and `gemdb.root` is the database's root namespace. The
 objects below are the same objects the web app reads and writes.
 
 Pick the **GemDB** kernel in the kernel picker. That is the whole of the
-connection step."""),
+connection step.
+
+The one thing the notebook has to be told is where this checkout is. A cell has
+no `__file__`, and the kernel starts in the database's working directory rather
+than the repository's, so `import brainfreeze` finds nothing until the path is
+said out loud. Every script in `tools/` and `web/` opens the same way and for
+the same reason."""),
+
+    (PY, """import os
+import sys
+
+# Where the model lives. Walk up from wherever the kernel started, which
+# covers the ordinary case of having this folder open.
+def find_repo(start):
+    here = os.path.abspath(start)
+    while not os.path.isdir(os.path.join(here, "brainfreeze")):
+        parent = os.path.dirname(here)
+        if parent == here:
+            return None
+        here = parent
+    return here
+
+REPO = os.environ.get("BRAINFREEZE_REPO") or find_repo(os.getcwd())
+if REPO is None:
+    raise RuntimeError(
+        "No brainfreeze/ at or above %r. Open this repository as the "
+        "folder in your editor, or set REPO on the line above to your "
+        "checkout." % os.getcwd())
+if REPO not in sys.path:
+    sys.path.insert(0, REPO)
+
+print("repository:", REPO)"""),
 
     (PY, """import gemdb
 

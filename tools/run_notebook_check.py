@@ -18,11 +18,14 @@ import os
 import sys
 import traceback
 
-#: The repository, for the same reason and in the same way as every other
-#: script in here -- see `seed.py`.
+#: The repository. Note what is NOT here: this runner does **not** put it on
+#: `sys.path`. It used to, and that is exactly how the notebook came to ship
+#: without a path cell of its own -- every cell ran here, and the first
+#: `import brainfreeze` in a real kernel raised ModuleNotFoundError. A check
+#: that arranges conditions the thing being checked will not have is not a
+#: check. The notebook says where the repository is itself, in its first cell,
+#: and this runs the cells the way a kernel does.
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if REPO not in sys.path:
-    sys.path.insert(0, REPO)
 
 NOTEBOOK = os.path.join(REPO, "brain-freeze.ipynb")
 
