@@ -239,6 +239,22 @@ exist to catch the app and the dataset drifting apart.
 gemdb web/app.py
 ```
 
+**It will print nothing at all, and that is what success looks like.** No
+startup banner, no "Running on http://127.0.0.1:5000", no access log — not
+while it starts, and not after it serves a request. Werkzeug writes all of
+that through `logging`, and Grail's `logging` is a stub that drops it
+([finding 7](#7-an-exception-in-a-view-is-invisible)). A healthy app is a
+process that sits there saying nothing, which is indistinguishable from a
+hang until you ask it something:
+
+```sh
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5000/    # 200
+lsof -nP -iTCP:5000 -sTCP:LISTEN                                   # one listener
+```
+
+Give the first request up to a minute. It compiles every template into the
+database on the way through, and that is the slowest thing the demo does.
+
 Then open <http://127.0.0.1:5000/>. **Start it from the project directory** —
 see [finding 3](#3-__main__-is-one-shared-namespace-for-every-script-the-database-has-run).
 

@@ -59,6 +59,12 @@ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5000/
 is the slow one, and until the app has answered once it is carrying its whole
 startup as uncommitted work.
 
+**Terminal A will print nothing, ever.** No banner, no "Running on", no access
+log, not even after it answers. Werkzeug writes all of that through `logging`,
+which Grail stubs. A working app and a hung one look identical from the
+outside, so do not read the silence as a problem — the `curl` above is how you
+tell them apart.
+
 **4. Set VSCodium up once, and never leave it during the demo.**
 
 `Cmd+Shift+P` → *Preferences: Open User Settings (JSON)*:
@@ -475,6 +481,20 @@ is deployable for long-lived customer data.
 **The browser hangs on a page.** The first render of each template compiles it
 into the database. Wait. If it is still hanging after a minute, see the next
 one.
+
+**The app "hangs" when you start it, with nothing in the log.** It is almost
+certainly serving. `gemdb web/app.py` is a foreground server that never
+returns to the prompt, and it prints nothing at any point because Werkzeug's
+banner and access log both go through `logging`, which Grail stubs. Ask it
+rather than watching it:
+
+```sh
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5000/
+```
+
+`200` means it was working the whole time. Nothing on the port means it really
+did fail, and the reason will be in the terminal — a genuine failure to start
+does print, because it raises rather than logging.
 
 **A page returns nothing and the connection closes.** Flask's logging stub
 cannot report an exception in a view, so this is what a broken handler looks

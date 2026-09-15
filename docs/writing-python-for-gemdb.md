@@ -468,6 +468,25 @@ Three more, smaller:
 
 ## Web apps
 
+**Before any of that: a working server prints nothing.** No startup banner, no
+"Running on http://127.0.0.1:5000", no access log, not at startup and not after
+it answers a request. Werkzeug writes every one of those through `logging`, and
+`logging` here is a stub that drops them (§ *Debugging a view* below). Measured:
+an app serving correctly wrote **zero bytes** to its terminal over thirty-five
+seconds and a successful request.
+
+That matters more than it sounds, because it makes a healthy app and a hung one
+identical from the outside, and the first instinct is to read the silence as a
+failure. It is not something to fix — the stub is Grail's, not yours — it is
+something to know. Ask the server instead of watching it:
+
+```sh
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5000/
+lsof -nP -iTCP:5000 -sTCP:LISTEN
+```
+
+A genuine failure to start does print, because it raises rather than logging.
+
 Five things have to be right, and the failure when one is wrong does not point at
 it.
 
