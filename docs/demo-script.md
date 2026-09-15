@@ -140,8 +140,13 @@ minutes and there is slack in it.
 
 ### 1 — An insurance company (1 min)
 
-Open the Simple Browser tab. Say what it is: nine hundred policyholders, a
-risk band, what each has claimed. Click into one.
+**Do this.** Click [the app](http://127.0.0.1:5000/) in the table above. It
+opens in Simple Browser, in a tab. Drag that tab to the right half of the
+window so a terminal can sit beside it.
+
+You are looking at a table of policy ids, plan, risk band, status, claims and
+what each has been paid. The heading says **900 policyholders, live in the
+database**.
 
 **Do not explain the architecture yet.** The beat only works if they have first
 decided this is an ordinary web app.
@@ -149,26 +154,78 @@ decided this is an ordinary web app.
 > "Brain freeze insurance. Mock company, real dataset — nine hundred
 > policyholders, five thousand cold treats, two thousand claims."
 
-### 2 — A claim, and the arithmetic behind it (3 min)
+Click any policy id to show a history, then click **All policyholders** to come
+back. That is the whole tour.
 
-Go to **BF-100332**. Type it into the box and press Find. Clean history,
-Standard plan, nothing claimed yet, so nothing on screen competes with the
-point.
+### 2 — A claim, and the arithmetic behind it (4 min)
 
-File a claim. Describe an episode: a slushie, straight from the freezer, a lot
-of it, pain 9, lasting longer than ten minutes.
+**Do this, in order.**
 
-The decision screen is the beat. Four figures: what it was assessed at, what
-the episode cap took off, the deductible, what it pays.
+1. In the **Go to a policy** box, type `BF-100332` and click **Find**. It goes
+   straight there, because one match does not need choosing. Clean history,
+   Standard plan, nothing claimed yet.
+2. Click **File a claim**.
+3. Fill the form. Every question is a radio button except the pain score:
 
-> "Nobody typed an amount. The claimant described what happened, and the rules
-> worked out what that is worth. The app did not do this arithmetic — it asked
-> the same function the notebook and the agent will ask in a minute, and
-> printed the answer."
+   | Question | Pick |
+   | --- | --- |
+   | What did they have? | slushie |
+   | How cold was it? | Straight from the freezer |
+   | How much of it? | A lot |
+   | How fast? | All at once |
+   | How bad was it? (0–10) | type `9` |
+   | How long did it last? | Longer than ten |
+   | Where did it hurt? | Forehead |
+   | What did it feel like? | Stabbing |
+   | Which flavour? | Mint choc chip |
+   | Anything on top? | Sprinkles, Hot fudge |
 
-Then file a second claim on **BF-100092**, which has one approval left. It
-pays. File a third and it is refused, and the refusal names the rule rather
-than apologising.
+4. Click **Send the claim**.
+
+**The decision screen is the beat.** With those answers it reads
+**"$55.00 is yours"**, and under it four lines. Point at them one at a time.
+
+| Line | Figure | What it is |
+| --- | --- | --- |
+| What we worked it out at | `$99.00` | what that severity is worth |
+| Trimmed to your $60.00 episode cap | `−$39.00` | the plan's per-episode limit |
+| Your deductible | `−$5.00` | the excess |
+| **Paid to you** | **`$55.00`** | the three above, resolved |
+
+Those figures are exact for the answers in the table above. If you see
+different ones, you picked a different option somewhere — which is fine in the
+room, the arithmetic still adds up, but it means this page is no longer the one
+you rehearsed.
+
+> "Nobody typed an amount. The claimant described what happened — what they
+> ate, how much, how fast, how much it hurt, how long — and the rules worked
+> out what that is worth. The app did not do this arithmetic. It asked the
+> same function the notebook and the agent will ask in a minute, and printed
+> the answer."
+
+Click **see the policy**. The claim is on the record, in date order, among
+episodes dated later this year that have not happened yet.
+
+**Then show a refusal**, because a demo that only ever pays is not an
+insurance demo.
+
+1. **All policyholders** → type `BF-100092` → **Find**. Its tile reads **3/4
+   claims used**.
+2. **File a claim**, answer it any way you like, **Send the claim**. It pays.
+   Click **see the policy**: now **4/4**.
+3. Click **File a claim** again. Before you type anything, a banner across the
+   top of the form:
+
+   > *This policy has used all 4 approvals for the year. A new claim is
+   > refused until it renews.*
+
+   Fill it in and send it anyway — that is the point. It comes back **Not this
+   time**, and where the arithmetic was there is one sentence: *Exceeded annual
+   claim limit*.
+
+> "It did not apologise and it did not say 'error'. It named the rule that
+> bound. That string is one of nine the rules can produce, and each one also
+> carries an identifier a script can check without parsing English."
 
 ### 3 — The reveal (1 min)
 
@@ -210,13 +267,27 @@ Point at `"premium": "92081.22"`. A string, not a number.
 
 ### 5 — The notebook (3 min)
 
-Switch to the `brain-freeze.ipynb` tab. Pick the **GemDB** kernel if it is not
-already picked.
+**Do this.** Click the `brain-freeze.ipynb` tab. Top right, the kernel picker
+should already say **GemDB**; if it says *Select Kernel*, click it, choose
+**Jupyter Kernel**, then **GemDB**.
 
 > "No connection step. Picking the kernel *is* the connection — the kernel is a
-> session."
+> session on this database."
 
-Run the first cells. Stop on the introspection cell:
+Run cells with `Shift+Enter`, one at a time, so people can read them. Do **not**
+use Run All; the last cell is beat material and you want to arrive at it
+deliberately.
+
+| Cell | What to say while it runs |
+| --- | --- |
+| **1** `import gemdb` | "One lookup. `gemdb.root` is the database's root namespace, and `book` is the same object the web app just served." |
+| **2** `policy = book["BF-100539"]` | The one to stop on. See below. |
+| **3** the map | "Four facts and a `for` loop. That is the whole query API, and it prints itself rather than being written down somewhere." |
+| **4** `book_summary` | "Nine hundred policies, and the loss ratio for the whole book." |
+| **6** loss ratio by band | Stop here too. See below. |
+| **8**, **9** the chart | "No matplotlib. The kernel renders text, so a chart is ten lines you can read." |
+
+**Stop on cell 2.** It prints:
 
 ```
 class            : Policyholder from brainfreeze.model
@@ -226,33 +297,50 @@ actually stored  : 15
 
 > "Thirty-three names, fifteen of them stored. The rest are computed when you
 > ask. `risk_tier` is not a column that could drift out of step with the data.
-> It is a question the object answers."
+> It is a question the object answers — which is why there was no schema to
+> change when we added flavours."
 
-Then the map cell, which is there so nobody has to leave the notebook to write
-their own question. Then the chart — ten lines of Python, because there is no
-matplotlib and none is needed.
+**Stop on cell 6.** `{'Medium': 0.729, 'High': 0.501, 'Low': 0.409}`.
 
-If you have time, stop on loss ratio by band. High is cheaper to carry than
-Medium. That is a real finding about the data, not a scripted one.
+> "Read that again. High is cheaper to carry than Medium. The 1.9x loading on
+> the High band over-prices the risk, so the customers the underwriter is most
+> worried about are the most profitable, and the middle of the book is where
+> the money leaks. That is a real finding about this data, not a scripted one."
+
+Leave cells 10 and 11 alone. They are the refresh beat, and they only say
+anything when another session has committed in between — which is beat 6, and
+it is better shown in the browser.
 
 ### 6 — The beat worth slowing down for (2 min)
 
 **This is the demo.** If you only get one thing across, get this one.
 
-Leave the Simple Browser on [BF-100184](http://127.0.0.1:5000/policies/BF-100184).
-It is active. Say so out loud.
+**Do this.**
 
-Terminal B:
+1. Click [BF-100184](http://127.0.0.1:5000/policies/BF-100184) to put it in the
+   Simple Browser. Its status tag says **Active**. Say so out loud, and click
+   **File a claim** to show the form opens normally. Go back.
+2. In Terminal B, beside the browser:
 
-```sh
-gemdb tools/lapse.py BF-100184
-```
+   ```sh
+   gemdb tools/lapse.py BF-100184
+   ```
 
-> "Different process. Different session. It does not know the web app exists."
+   It prints what it did and ends *"the running app sees this on its NEXT
+   request — it takes a new view per request, so no restart is needed."*
 
-Refresh the Simple Browser — the circular arrow in its toolbar, or `Cmd+R` with
-it focused. The policy is lapsed. Try to file a claim on it: refused
-before a word is typed, and told why.
+   > "Different process. Different session. It does not know the web app
+   > exists."
+
+3. Refresh the Simple Browser — the circular arrow in its toolbar, or `Cmd+R`
+   with it focused. **Do not restart anything.** The status tag now reads
+   **Lapsed**, with a date.
+4. Click **File a claim** again. The form is gone. In its place:
+
+   > *Cover on this policy ended on 2026-09-15. Anything filed now is refused.*
+
+   Refused before a word is typed, and it names which absence of cover it is
+   rather than saying "error".
 
 > "No restart. No reload. No cache to invalidate, no message queue, no polling.
 > A session sees the database as of its last transaction boundary, so the app
@@ -267,13 +355,21 @@ gemdb tools/lapse.py BF-100184 --reinstate
 
 ### 7 — The agent (3 min)
 
-Switch to the Claude Code window you started in step 4 — the one whose `/mcp`
-showed `gemdb` connected. Ask it something nobody wrote a query for.
+**Do this.** Click into the Claude Code panel — the session you started in
+step 5, the one whose `/mcp` showed `gemdb` connected. Type this, verbatim:
 
-> "What is the loss ratio by risk tier, and why is the High band cheaper to
-> carry than Medium?"
+```
+Using the gemdb tools, work out the loss ratio by risk tier for the
+brainfreeze book, and tell me why the High band is cheaper to carry
+than Medium.
+```
 
-It writes Python, runs it inside the database, and answers from the objects.
+Naming the tools is not superstition: without it the agent may go and read the
+repository's source instead of asking the database, which answers the question
+correctly and shows nothing. You want it calling `eval_python`.
+
+Watch what it does, not just what it says. It writes Python, runs it **inside
+the database**, and answers from the objects.
 
 > "There is no query tool here. The surface is code-level: the agent writes
 > Python and runs it in the database. What makes that work is that the objects
@@ -319,7 +415,8 @@ afterwards — it started before the router did.
 
 ### 8 — Adding a field to a live database (3 min)
 
-Switch to the `brainfreeze/model.py` tab and show the `Claim` class:
+**Do this.** Click the `brainfreeze/model.py` tab and `Cmd+F` for `flavour`.
+It lands on line 37. Show those two lines and nothing else:
 
 ```python
 class Claim:
@@ -345,6 +442,11 @@ class Claim:
 
 Volunteering this is worth more than surviving the question. It is also the
 thing the room will remember you for.
+
+If someone asks to *see* it fail, do not do it live — it needs two sessions and
+a redeploy, and it is four minutes you do not have. Point at
+`findings/03_class_identity.py`, which reproduces it in two runs on their own
+database, and say the output is in the README under CUJ-4.
 
 ### 9 — What it cost (2 min)
 
