@@ -81,7 +81,7 @@ Both measured.
 | `tools/run_db_tests.py` | runs the suite inside the database — 233 tests | done |
 | `tools/run_notebook_check.py` | runs the notebook's cells inside the database | done |
 | `tools/refresh_mcp.py` | keeps the MCP server current, and re-checks the promises | done |
-| `tests/` | 290 tests under CPython, 57 of them skipping without a database | done |
+| `tests/` | 318 tests under CPython, 57 of them skipping without a database | done |
 | `features/` | eight features, fifteen scenarios, in a real browser | done |
 | `mockups/` | nine screens + insurer sketch, and `build_c.py` | done, **redrawn for BF-100539** |
 | `findings/` | nine scripts that reproduce the Grail findings | done |
@@ -99,7 +99,7 @@ which is worse than not having them. They are still in git history at
 ### The two commands that must keep working
 
 ```sh
-python3 -m unittest discover        # 290 tests, 57 skipping without a database
+python3 -m unittest discover        # 318 tests, 57 skipping without a database
 gemdb tools/run_db_tests.py         # 233 of them, inside the database
 gemdb web/app.py                    # serve on :5000
 .venv-acceptance/bin/behave         # 15 scenarios, in a real browser

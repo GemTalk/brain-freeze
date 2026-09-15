@@ -109,6 +109,8 @@ class TheDatabaseRunnerRunsEverything(unittest.TestCase):
             "test_route_coverage",  # reads the route modules' syntax trees
             "test_imports",         # resolves imports without running them
             "test_lint",            # shells out to pyflakes under CPython
+            "test_notebook",        # reads the .ipynb and its generator
+            "test_demo_script",     # reads a document, not the database
             "test_datagen",         # numpy does not exist in the database
             "test_tooling",         # this file
         }

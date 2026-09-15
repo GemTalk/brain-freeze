@@ -391,7 +391,7 @@ gemdb tools/run_notebook_check.py     # every notebook cell, in order
 .venv-acceptance/bin/behave           # the acceptance suite, in a real browser
 ```
 
-The first reports `Ran 290 tests ... OK (skipped=57)`. The 57 skips are the
+The first reports `Ran 318 tests ... OK (skipped=57)`. The 57 skips are the
 tests that need a database: they skip themselves under CPython so the run
 stays green, and the second command is where they actually run, reporting
 `Ran 233 tests ... OK`.
