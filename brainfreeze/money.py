@@ -84,6 +84,26 @@ def usd(value):
             "read from, or an int" % value)
     if isinstance(value, int):
         return Decimal(value)
+    if not hasattr(value, "strip"):
+        # Anything else is a programming error, and one shape of it is worth
+        # naming because it is coming: a Python runtime upgrade can leave the
+        # database's own committed money answering False to
+        # `isinstance(value, Decimal)` while still being exact money. Grail
+        # `main` already unbinds the name `Decimal` from GemStone's
+        # `ScaledDecimal` and deliberately keeps the old class alive for
+        # values already in the extent, so a book committed before the
+        # upgrade reaches here.
+        #
+        # Without this branch the fall-through is `value.strip()`, and the
+        # first thing anyone sees is `AttributeError: strip` -- a string
+        # method nobody called, on a figure that is not a string, from a line
+        # that is not the problem. Say what it is instead.
+        raise TypeError(
+            "money of type %s, which this runtime does not recognise as a "
+            "Decimal. If this is a figure read back from the database after "
+            "a Python runtime upgrade, the value is intact and it is the "
+            "class that moved -- see the upgrade notes rather than the data."
+            % type(value).__name__)
     text = value.strip()
     if not text:
         return None

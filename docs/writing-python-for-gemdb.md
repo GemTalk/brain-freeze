@@ -571,6 +571,44 @@ Tests that need a database skip themselves under CPython, so
 
 ---
 
+## An upgrade can strand your data, in two independent ways
+
+Both are measured, neither is hypothetical, and only one of them is about
+class shape.
+
+**The class your objects point at.** Reinstalling the Python runtime recreates
+Grail's classes with new identity, so every committed object is left pointing
+at a class nothing recognises. GemDB's `reinstallPythonOnUpdate` defaults to
+`true`, so an ordinary extension update does it, and nothing warns you.
+[Finding 3](../findings/03_class_identity.py) reproduces the single-class
+version; an upgrade does it to everything at once.
+
+Grail's answer is better than it sounds: a module-scope class is minted through
+a registry keyed by `module.ClassName`, and a rebuild reuses the existing class
+object, recompiling its methods in place — so there is nothing to migrate. The
+gap is the case where it declines, and their own docs name it
+(`Persistent_Modules_and_Classes.md` §8.3): a change of *shape* re-mints. **A
+class attribute the new body adds is a shape change**, because a class
+attribute is backed by a metaclass slot and a metaclass cannot grow one. That
+is the most ordinary schema change there is.
+
+**The type your money is.** Separately, `70971d6d` on Grail `main` unbinds the
+Python name `Decimal` from GemStone's `ScaledDecimal`, deliberately keeping the
+old class alive for values already in the extent. Committed money still
+computes, and `isinstance(x, decimal.Decimal)` is now `False` for it.
+
+That second one is worth stating as a rule, because it is not about upgrades at
+all: **do not branch on `isinstance` for a type the database might have created
+under a different runtime.** `brainfreeze/money.py` did, in the one function
+every figure passes through, and the fall-through reached `value.strip()` — so
+the first symptom would have been `AttributeError: strip`, a string method
+nobody called, on a figure that is not a string, from a line that is not the
+problem. It now names the type and says the value is intact and the class
+moved. The acceptance path is deliberately not written: it cannot be produced
+or tested without a build that has the change.
+
+---
+
 ## What this document does not know
 
 Said plainly, because guessing here is how a confident wrong answer gets written.

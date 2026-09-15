@@ -185,5 +185,44 @@ class WireFormatTests(unittest.TestCase):
                           format_usd(value).replace(",", ""))
 
 
+class MoneyFromAnotherRuntimeSaysSo(unittest.TestCase):
+    """A Python runtime upgrade can leave committed money answering False to
+    `isinstance(value, Decimal)` while still being exact money: Grail `main`
+    unbinds the name from GemStone's `ScaledDecimal` and keeps the old class
+    alive for values already in the extent.
+
+    Nothing here can produce such a value under CPython, and guessing at its
+    behaviour is not worth doing. What IS worth pinning is that `usd` does not
+    fall through to `value.strip()` on something that is neither a Decimal nor
+    a string, because the resulting `AttributeError: strip` names a string
+    method nobody called and points at the wrong line.
+    """
+
+    class NotQuiteADecimal(object):
+        """Exact, decimal-shaped, and not a `decimal.Decimal`."""
+
+        def __repr__(self):
+            return "ScaledDecimal('1.50')"
+
+    def test_it_is_refused_by_type_and_not_by_accident(self):
+        with self.assertRaises(TypeError) as raised:
+            usd(self.NotQuiteADecimal())
+        self.assertIn("NotQuiteADecimal", str(raised.exception))
+
+    def test_the_message_says_the_value_is_intact(self):
+        """The reader's first question is whether the book is damaged. It is
+        not: the figure is fine and the class moved."""
+        with self.assertRaises(TypeError) as raised:
+            usd(self.NotQuiteADecimal())
+        said = str(raised.exception).lower()
+        self.assertIn("runtime", said)
+        self.assertIn("intact", said)
+
+    def test_a_string_is_still_money(self):
+        """The guard must not have closed the ordinary door."""
+        self.assertEqual(usd("171.00"), Decimal("171.00"))
+        self.assertIsNone(usd("   "))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -121,7 +121,19 @@ class MoneyOnTheWire(unittest.TestCase):
     """
 
     def test_it_is_the_money_modules_wire_format(self):
-        self.assertIs(wire.money, wire_usd)
+        """By name and by answer, not by object identity.
+
+        `assertIs` was the obvious spelling and it is wrong here. Reading a
+        module-level function as an attribute makes a fresh `BoundMethod`
+        wrapper in Grail, so `wire.money is wire_usd` compares two wrappers
+        around the SAME function and answers False -- under CPython it passed,
+        and inside the database it failed the first time a redeploy made new
+        wrappers. What the test means is that the serialiser uses the money
+        module's wire format rather than a second spelling of it, and that
+        survives being asked in a way both runtimes can answer."""
+        self.assertEqual(getattr(wire.money, "__name__", None), "wire_usd")
+        for figure in ("92081.22", "0.00", "171.00"):
+            self.assertEqual(wire.money(usd(figure)), wire_usd(usd(figure)))
 
     def test_a_decimal_is_the_thing_json_cannot_take(self):
         # The reason any of this had to be decided. Not a test of Python: it
