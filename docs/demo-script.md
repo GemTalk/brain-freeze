@@ -20,7 +20,7 @@ database and is the slowest thing in the demo; you do not want an audience
 watching it.
 
 ```sh
-export PATH="$HOME/GemDB/bin:$PATH"     # not needed in a VS Code terminal
+export PATH="$HOME/GemDB/bin:$PATH"     # not needed in a VSCodium terminal
 cd ~/GemTalk/"Brain Freeze Insurance"
 ```
 
@@ -59,52 +59,65 @@ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5000/
 is the slow one, and until the app has answered once it is carrying its whole
 startup as uncommitted work.
 
-**4. Have the agent ready, and do it in this order.** The agent is **Claude
-Code**, started in this repository directory. It reaches the database through
-an MCP server named `gemdb`, configured per-project in `~/.claude.json`:
+**4. Set VSCodium up once, and never leave it during the demo.**
+
+Two settings. `Cmd+Shift+P` → *Preferences: Open User Settings (JSON)*:
 
 ```json
-"/Users/srbaker/GemTalk/Brain Freeze Insurance": {
-  "mcpServers": {
-    "gemdb": { "type": "http", "url": "http://127.0.0.1:50390/mcp" }
-  }
-}
+"gemdb.mcp.enabled": true,
+"claudeCode.preferredLocation": "panel",
+"workbench.externalUriOpeners": { "127.0.0.1": "simpleBrowser.open" }
 ```
 
-**The order is load-bearing.** That is an HTTP server the agent connects to
-when the session starts. If the router is not listening at that moment, the
-agent comes up without the tools and stays that way for the whole session — no
-error, just nothing. Restarting the agent is the only fix, and you do not want
-to discover it at beat 7.
+The third is the one that keeps you in the editor: every `127.0.0.1` link — in
+this document's preview, or in terminal output — then opens in VSCodium's
+built-in **Simple Browser**, in a tab beside your code, instead of throwing you
+into Chrome. Without it you get a "how do you want to open this" prompt every
+time, which is worse in front of people than either answer.
 
-So: router first, agent second.
+Read this script in the preview, not the source: open it and press
+`Cmd+Shift+V`. That is what makes the links below clickable.
+
+**5. Bring up the agent, in this order.**
+
+The GemDB extension *is* the MCP server. With `gemdb.mcp.enabled` on, opening
+this folder in VSCodium starts it on port 50390. Nothing else needs starting.
+
+**The order is load-bearing.** Claude Code connects to that server when its
+session starts. If the server is not listening at that moment, the agent comes
+up with no `gemdb` tools and stays that way for the whole session — no error,
+no retry, just an absence. You do not want to find that out at beat 7.
+
+So: open the folder in VSCodium, wait a beat, *then* start Claude Code in the
+panel. Confirm inside the agent with `/mcp` — you want `gemdb` connected.
+If it is missing, restart the agent; the server being up now does not rescue a
+session that started before it.
+
+Optional, and worth it if you have five minutes: check the promises still hold.
 
 ```sh
-lsof -nP -iTCP:50390 -sTCP:LISTEN          # is a router already up?
-python3 tools/refresh_mcp.py --verify      # starts one if not, and checks it
+python3 tools/refresh_mcp.py --verify
 ```
 
-`--verify` ends `9 kept, 0 broken` and reports the server's version and how
-many tools it offers. It borrows a router that is already running and leaves
-it running, so it is safe to use even when someone else is connected. If it
-says something is broken, you have drifted from a fresh seed — reseed and
-re-run.
+Ends `9 kept, 0 broken`, reports the server's version and tool count, and
+borrows the extension's server rather than starting a second one. If something
+is broken you have drifted from a fresh seed — reseed and re-run.
 
-**Then start the agent, and confirm it inside the agent.** Run `/mcp`. You
-want `gemdb` listed as connected. If it is not there, quit the agent and start
-it again; the router being up now does not help a session that started before
-it.
+**6. Lay the window out, and leave it alone.** Everything below is a tab or a
+panel in the same VSCodium window.
 
-**5. Open these, in this order, and leave them open.**
-
-| Tab | What |
+| Where | What |
 | --- | --- |
-| Browser | `http://127.0.0.1:5000/` |
-| Editor | `brain-freeze.ipynb`, kernel picker set to **GemDB** |
-| Editor | `brainfreeze/model.py` |
+| Editor tab | [the app](http://127.0.0.1:5000/) in Simple Browser — click it from this preview |
+| Editor tab | `brain-freeze.ipynb`, kernel picker set to **GemDB** |
+| Editor tab | `brainfreeze/model.py` |
 | Terminal A | the running app — you will not touch it again |
 | Terminal B | free, for the shell beats |
-| Agent | Claude Code, started **after** the router, `/mcp` showing `gemdb` |
+| Panel | Claude Code, started **after** the folder opened, `/mcp` showing `gemdb` |
+
+Drag the Simple Browser tab into a split beside the editor. Beat 6 is you
+clicking refresh in one half while a terminal in the other half changes the
+database, and it reads badly if either is hidden.
 
 ---
 
@@ -115,8 +128,8 @@ minutes and there is slack in it.
 
 ### 1 — An insurance company (1 min)
 
-Open the browser tab. Say what it is: nine hundred policyholders, a risk band,
-what each has claimed. Click into one.
+Open the Simple Browser tab. Say what it is: nine hundred policyholders, a
+risk band, what each has claimed. Click into one.
 
 **Do not explain the architecture yet.** The beat only works if they have first
 decided this is an ordinary web app.
@@ -163,7 +176,7 @@ angle.
 
 ### 4 — The same objects over curl (2 min)
 
-Terminal B:
+Terminal B. Split it beside the Simple Browser so both are on screen:
 
 ```sh
 curl -s localhost:5000/api/policy/BF-100539 | python3 -m json.tool | head -30
@@ -185,7 +198,8 @@ Point at `"premium": "92081.22"`. A string, not a number.
 
 ### 5 — The notebook (3 min)
 
-Switch to the editor. Pick the **GemDB** kernel if it is not already picked.
+Switch to the `brain-freeze.ipynb` tab. Pick the **GemDB** kernel if it is not
+already picked.
 
 > "No connection step. Picking the kernel *is* the connection — the kernel is a
 > session."
@@ -213,7 +227,8 @@ Medium. That is a real finding about the data, not a scripted one.
 
 **This is the demo.** If you only get one thing across, get this one.
 
-Leave the browser on **BF-100184**. It is active. Say so out loud.
+Leave the Simple Browser on [BF-100184](http://127.0.0.1:5000/policies/BF-100184).
+It is active. Say so out loud.
 
 Terminal B:
 
@@ -223,7 +238,8 @@ gemdb tools/lapse.py BF-100184
 
 > "Different process. Different session. It does not know the web app exists."
 
-Refresh the browser. The policy is lapsed. Try to file a claim on it: refused
+Refresh the Simple Browser — the circular arrow in its toolbar, or `Cmd+R` with
+it focused. The policy is lapsed. Try to file a claim on it: refused
 before a word is typed, and told why.
 
 > "No restart. No reload. No cache to invalidate, no message queue, no polling.
@@ -291,7 +307,7 @@ afterwards — it started before the router did.
 
 ### 8 — Adding a field to a live database (3 min)
 
-Open `brainfreeze/model.py` and show the `Claim` class:
+Switch to the `brainfreeze/model.py` tab and show the `Claim` class:
 
 ```python
 class Claim:
