@@ -54,6 +54,12 @@ Running the generator additionally needs numpy and pandas, which the model
 deliberately does not — `python3 -m pip install --user numpy pandas`. Nothing
 else does.
 
+**If you are about to show this to someone**, read
+[`docs/demo-script.md`](docs/demo-script.md) instead of this file. It is the
+same material ordered as a run of show — twenty minutes, nine beats, what to
+say while each one happens, and what to do when one goes wrong. This file is
+the walkthrough it is built on, and carries every command with its real output.
+
 ---
 
 ## CUJ-0 — Clone and seed
@@ -707,11 +713,11 @@ datagen/       the generator; the only numpy/pandas in the repo
 data/          the two generated CSVs
 tests/         the suite -- python3 -m unittest discover
 mockups/       nine screens, an insurer sketch, and build_c.py that makes them
-docs/          the PRD, the questions the demo promises to answer, the
-               dataset description an agent needs to ask its own, the rules
-               for writing Python that runs inside the database, what it
-               takes to add a feature to this repo, and the column
-               dictionary for the two CSVs
+docs/          the demo as a run of show, the PRD, the questions the demo
+               promises to answer, the dataset description an agent needs to
+               ask its own, the rules for writing Python that runs inside the
+               database, what it takes to add a feature to this repo, and the
+               column dictionary for the two CSVs
 features/      the acceptance suite -- .venv-acceptance/bin/behave
 findings/      the nine things that cost time, as scripts you can run
 PLAN.md        the working notes, including what is still open
