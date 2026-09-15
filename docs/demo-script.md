@@ -61,15 +61,14 @@ startup as uncommitted work.
 
 **4. Set VSCodium up once, and never leave it during the demo.**
 
-Two settings. `Cmd+Shift+P` → *Preferences: Open User Settings (JSON)*:
+`Cmd+Shift+P` → *Preferences: Open User Settings (JSON)*:
 
 ```json
-"gemdb.mcp.enabled": true,
 "claudeCode.preferredLocation": "panel",
 "workbench.externalUriOpeners": { "127.0.0.1": "simpleBrowser.open" }
 ```
 
-The third is the one that keeps you in the editor: every `127.0.0.1` link — in
+The second is the one that keeps you in the editor: every `127.0.0.1` link — in
 this document's preview, or in terminal output — then opens in VSCodium's
 built-in **Simple Browser**, in a tab beside your code, instead of throwing you
 into Chrome. Without it you get a "how do you want to open this" prompt every
@@ -78,30 +77,43 @@ time, which is worse in front of people than either answer.
 Read this script in the preview, not the source: open it and press
 `Cmd+Shift+V`. That is what makes the links below clickable.
 
-**5. Bring up the agent, in this order.**
+**5. Get an MCP server listening on 50390, then start the agent. In that
+order.**
 
-The GemDB extension *is* the MCP server. With `gemdb.mcp.enabled` on, opening
-this folder in VSCodium starts it on port 50390. Nothing else needs starting.
+Check first — this is the only thing that matters, whoever started it:
 
-**The order is load-bearing.** Claude Code connects to that server when its
-session starts. If the server is not listening at that moment, the agent comes
-up with no `gemdb` tools and stays that way for the whole session — no error,
-no retry, just an absence. You do not want to find that out at beat 7.
+```sh
+lsof -nP -iTCP:50390 -sTCP:LISTEN
+```
 
-So: open the folder in VSCodium, wait a beat, *then* start Claude Code in the
-panel. Confirm inside the agent with `/mcp` — you want `gemdb` connected.
-If it is missing, restart the agent; the server being up now does not rescue a
-session that started before it.
-
-Optional, and worth it if you have five minutes: check the promises still hold.
+If nothing is listening, start one and check the answers at the same time:
 
 ```sh
 python3 tools/refresh_mcp.py --verify
 ```
 
 Ends `9 kept, 0 broken`, reports the server's version and tool count, and
-borrows the extension's server rather than starting a second one. If something
-is broken you have drifted from a fresh seed — reseed and re-run.
+leaves it running. If it borrows one that was already up it says so and does
+not stop it on the way out. If something is broken you have drifted from a
+fresh seed — reseed and re-run.
+
+There are two things that can serve this port and it is worth knowing which
+you have. `tools/refresh_mcp.py` stages a payload under `~/GemDB/mcp/` and
+runs `run-server.sh` from there. The GemDB extension can also serve it, via
+`gemdb.mcp.enabled` — but **that setting only exists in some builds of the
+extension**, and if VSCodium greys it out as an unknown setting then yours is
+not one of them and the script above is your route. Do not spend demo time on
+this; the `lsof` line answers the only question you have.
+
+**The order is load-bearing.** Claude Code connects to that server when its
+session starts. If nothing is listening at that moment, the agent comes up with
+no `gemdb` tools and stays that way for the whole session — no error, no retry,
+just an absence. You do not want to find that out at beat 7.
+
+So: server listening, *then* start Claude Code in the panel. Confirm inside the
+agent with `/mcp` — you want `gemdb` connected. If it is missing, restart the
+agent; the server being up now does not rescue a session that started before
+it.
 
 **6. Lay the window out, and leave it alone.** Everything below is a tab or a
 panel in the same VSCodium window.
@@ -371,6 +383,13 @@ and start again. The seed is the reset, and it takes nine seconds.
 
 **The agent answers with a number you were not expecting.** Same cause. The
 answers in `docs/mcp-questions.md` describe a *freshly seeded* book.
+
+**`gemdb.mcp.enabled` is greyed out as an unknown setting.** Your build of the
+extension does not declare it, and a stale duplicate install is the usual
+reason — two folders under `~/.vscode-oss/extensions/` for the same version,
+one platform-suffixed, only one of them registered. It does not matter for the
+demo: `tools/refresh_mcp.py` serves the port either way, and the `lsof` check
+in step 5 is the one that decides.
 
 **The agent has no `gemdb` tools at all.** It started before the router was
 listening. An HTTP MCP server is connected at session start, so a session that
