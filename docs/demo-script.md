@@ -59,15 +59,41 @@ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5000/
 is the slow one, and until the app has answered once it is carrying its whole
 startup as uncommitted work.
 
-**4. Have the agent ready.** The MCP router should be listening on 50390. If
-you are not sure:
+**4. Have the agent ready, and do it in this order.** The agent is **Claude
+Code**, started in this repository directory. It reaches the database through
+an MCP server named `gemdb`, configured per-project in `~/.claude.json`:
 
-```sh
-python3 tools/refresh_mcp.py --verify
+```json
+"/Users/srbaker/GemTalk/Brain Freeze Insurance": {
+  "mcpServers": {
+    "gemdb": { "type": "http", "url": "http://127.0.0.1:50390/mcp" }
+  }
+}
 ```
 
-Ends `9 kept, 0 broken` and leaves a router running. If it says something is
-broken, you have drifted from a fresh seed — reseed and re-run.
+**The order is load-bearing.** That is an HTTP server the agent connects to
+when the session starts. If the router is not listening at that moment, the
+agent comes up without the tools and stays that way for the whole session — no
+error, just nothing. Restarting the agent is the only fix, and you do not want
+to discover it at beat 7.
+
+So: router first, agent second.
+
+```sh
+lsof -nP -iTCP:50390 -sTCP:LISTEN          # is a router already up?
+python3 tools/refresh_mcp.py --verify      # starts one if not, and checks it
+```
+
+`--verify` ends `9 kept, 0 broken` and reports the server's version and how
+many tools it offers. It borrows a router that is already running and leaves
+it running, so it is safe to use even when someone else is connected. If it
+says something is broken, you have drifted from a fresh seed — reseed and
+re-run.
+
+**Then start the agent, and confirm it inside the agent.** Run `/mcp`. You
+want `gemdb` listed as connected. If it is not there, quit the agent and start
+it again; the router being up now does not help a session that started before
+it.
 
 **5. Open these, in this order, and leave them open.**
 
@@ -78,6 +104,7 @@ broken, you have drifted from a fresh seed — reseed and re-run.
 | Editor | `brainfreeze/model.py` |
 | Terminal A | the running app — you will not touch it again |
 | Terminal B | free, for the shell beats |
+| Agent | Claude Code, started **after** the router, `/mcp` showing `gemdb` |
 
 ---
 
@@ -212,8 +239,8 @@ gemdb tools/lapse.py BF-100184 --reinstate
 
 ### 7 — The agent (3 min)
 
-Open the agent with the MCP server attached. Ask something nobody wrote a query
-for.
+Switch to the Claude Code window you started in step 4 — the one whose `/mcp`
+showed `gemdb` connected. Ask it something nobody wrote a query for.
 
 > "What is the loss ratio by risk tier, and why is the High band cheaper to
 > carry than Medium?"
@@ -229,6 +256,38 @@ It writes Python, runs it inside the database, and answers from the objects.
 `docs/mcp-questions.md` has nine questions with the exact answers a fresh book
 returns, and `tools/refresh_mcp.py --verify` replays them over the real
 transport. Say that; do not run it live.
+
+**If the agent has no `gemdb` tools when you get here**, do not debug it in
+front of the room. The beat survives without it, because the snippets the
+document publishes are the same Python the agent would write. Keep this file
+in the repository root, ready to run:
+
+```python
+# ask.py
+import gemdb
+from brainfreeze import analysis
+
+book = gemdb.root["brainfreeze"]
+print(analysis.loss_ratio_by_tier(book))
+```
+
+```sh
+gemdb ask.py
+```
+
+```console
+{'Medium': 0.729, 'High': 0.501, 'Low': 0.409}
+```
+
+**A file, not `gemdb -c`.** The one-liner answers `No module named
+'brainfreeze'`, because `gemdb` puts the *script's* directory on the path and
+`-c` has no script. The preamble published in `docs/mcp-questions.md` leaves
+the path line out for the same reason: it is written for a notebook or a
+`gemdb script.py`, both of which already have it.
+
+You lose "it wrote the query itself" and you keep the point that matters: one
+set of rules, and the same answer from a different way in. Fix the agent
+afterwards — it started before the router did.
 
 ### 8 — Adding a field to a live database (3 min)
 
@@ -296,6 +355,13 @@ and start again. The seed is the reset, and it takes nine seconds.
 
 **The agent answers with a number you were not expecting.** Same cause. The
 answers in `docs/mcp-questions.md` describe a *freshly seeded* book.
+
+**The agent has no `gemdb` tools at all.** It started before the router was
+listening. An HTTP MCP server is connected at session start, so a session that
+came up without it never gets it — there is no retry and no error, just an
+absence. Confirm the router with `lsof -nP -iTCP:50390 -sTCP:LISTEN`, then
+quit the agent and start it again. Use the `ask.py` fallback in beat 7 if you
+are already in front of people.
 
 **Everything refuses to start, including `topaz`.** You have run out of
 sessions. See below.
