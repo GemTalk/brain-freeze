@@ -241,11 +241,14 @@ gemdb web/app.py
 
 **It will print nothing at all, and that is what success looks like.** No
 startup banner, no "Running on http://127.0.0.1:5000", no access log — not
-while it starts, and not after it serves a request. Werkzeug writes all of
-that through `logging`, and Grail's `logging` is a stub that drops it
-([finding 7](#7-an-exception-in-a-view-is-invisible)). A healthy app is a
-process that sits there saying nothing, which is indistinguishable from a
-hang until you ask it something:
+while it starts, and not after it serves a request.
+
+That is not the logging stub, which works: Grail ships its **own**
+`werkzeug.serving`, rebuilt on the stdlib `http.server` stack, and in it
+`log_request` is defined as `pass` and there is no banner function at all.
+Measured with `run_simple` on its own, no Flask and no handler of ours: zero
+bytes. A healthy app is a process that sits there saying nothing, which is
+indistinguishable from a hang until you ask it something:
 
 ```sh
 curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5000/    # 200

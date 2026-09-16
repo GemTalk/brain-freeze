@@ -470,10 +470,19 @@ Three more, smaller:
 
 **Before any of that: a working server prints nothing.** No startup banner, no
 "Running on http://127.0.0.1:5000", no access log, not at startup and not after
-it answers a request. Werkzeug writes every one of those through `logging`, and
-`logging` here is a stub that drops them (§ *Debugging a view* below). Measured:
-an app serving correctly wrote **zero bytes** to its terminal over thirty-five
-seconds and a successful request.
+it answers a request. Measured: an app serving correctly wrote **zero bytes**
+to its terminal over thirty-five seconds and a successful request.
+
+**It is not the logging stub, and the obvious guess is wrong.** `logging`
+works — configured the way Werkzeug configures it, `logger.info(...)` prints.
+The reason is that Grail does not ship upstream `werkzeug.serving` at all. It
+ships its own, 256 lines rebuilt on the stdlib `http.server` stack, in which
+`log_request` is defined as `pass` and no banner function exists. Confirmed by
+calling `run_simple` directly with no Flask and no handler of ours: a `print`
+immediately before it appears, and the server itself says nothing.
+
+Keep that separate from *Debugging a view* below, which is about `logging` and
+is a different failure with a different cause.
 
 That matters more than it sounds, because it makes a healthy app and a hung one
 identical from the outside, and the first instinct is to read the silence as a

@@ -60,10 +60,10 @@ is the slow one, and until the app has answered once it is carrying its whole
 startup as uncommitted work.
 
 **Terminal A will print nothing, ever.** No banner, no "Running on", no access
-log, not even after it answers. Werkzeug writes all of that through `logging`,
-which Grail stubs. A working app and a hung one look identical from the
-outside, so do not read the silence as a problem — the `curl` above is how you
-tell them apart.
+log, not even after it answers. Grail ships its own `werkzeug.serving`, and in
+it the access log is a no-op and there is no banner to print. A working app and
+a hung one look identical from the outside, so do not read the silence as a
+problem — the `curl` above is how you tell them apart.
 
 **4. Set VSCodium up once, and never leave it during the demo.**
 
@@ -484,9 +484,9 @@ one.
 
 **The app "hangs" when you start it, with nothing in the log.** It is almost
 certainly serving. `gemdb web/app.py` is a foreground server that never
-returns to the prompt, and it prints nothing at any point because Werkzeug's
-banner and access log both go through `logging`, which Grail stubs. Ask it
-rather than watching it:
+returns to the prompt, and it prints nothing at any point: Grail's
+`werkzeug.serving` has no startup banner and its `log_request` is a no-op. Ask
+it rather than watching it:
 
 ```sh
 curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5000/
