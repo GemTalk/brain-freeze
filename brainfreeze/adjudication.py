@@ -175,7 +175,7 @@ def adjudicate(
     payable = max(ZERO, limited - deductible_per_incident)
     deductible_applied = round_cents(limited - payable)
 
-    if payable <= 0:
+    if payable <= ZERO:
         # Two caps applied and between them left nothing. Report the tighter
         # one, because that is the one that decided the number: compare what
         # each would have allowed on its own, not what each took off.

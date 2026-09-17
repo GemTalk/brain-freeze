@@ -131,7 +131,7 @@ def round_half_up(value, places=2):
         return None
     value = value if isinstance(value, Decimal) else Decimal(str(value))
     scale = Decimal(10) ** places
-    negative = value < 0
+    negative = value < ZERO
     shifted = (-value if negative else value) * scale
     whole = int(shifted)
     if shifted - whole >= _HALF:
@@ -190,7 +190,7 @@ def wire_usd(value):
     if value is None:
         return None
     cents = round_cents(value)
-    negative = cents < 0
+    negative = cents < ZERO
     magnitude = -cents if negative else cents     # never int() a negative here
     whole = int(magnitude)
     fraction = int((magnitude - whole) * _HUNDRED + Decimal("0.5"))

@@ -116,6 +116,9 @@ class TheDatabaseRunnerRunsEverything(unittest.TestCase):
             # These two DRIVE database sessions with subprocess, so they
             # cannot be one: run inside the database they would nest.
             "test_class_identity",
+            # And this one needs a session where `numbers` was never
+            # imported, which the shared suite session cannot promise.
+            "test_decimal_comparison",
         }
         # test_api is NOT here on purpose. Most of it reads app.py's syntax
         # tree and skips inside the database, but its money-on-the-wire half
