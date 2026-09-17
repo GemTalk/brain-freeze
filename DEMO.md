@@ -117,7 +117,7 @@ rest of the demo uses.
    | How fast do they eat it? | Very fast |
    | Favourite cold treat? | Slushie |
 
-3. Submit. **Stop and look at the address bar.** It says `/quote/QTE-000001`.
+3. Click **See the price**. **Stop and look at the address bar.** It says `/quote/QTE-000001`.
 
    > "That is not a result page. That is an address. The quote is an object,
    > it has an id, and it is in the database — not in a session, not in a
@@ -138,7 +138,7 @@ rest of the demo uses.
    > "Refreshing a result page normally either re-posts the form or loses it.
    > This just re-opens the object."
 
-5. Click **Buy** on **Standard**. You land on `/policies/BF-100900`, a policy
+5. Click **Take out Standard**. You land on `/policies/BF-100900`, a policy
    that did not exist ninety seconds ago, at **$171.00** — the number they
    were shown.
 
