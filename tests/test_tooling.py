@@ -113,6 +113,9 @@ class TheDatabaseRunnerRunsEverything(unittest.TestCase):
             "test_demo_script",     # reads a document, not the database
             "test_datagen",         # numpy does not exist in the database
             "test_tooling",         # this file
+            # These two DRIVE database sessions with subprocess, so they
+            # cannot be one: run inside the database they would nest.
+            "test_class_identity",
         }
         # test_api is NOT here on purpose. Most of it reads app.py's syntax
         # tree and skips inside the database, but its money-on-the-wire half
