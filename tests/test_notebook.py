@@ -169,3 +169,74 @@ class TheCommittedNotebookIsWhatTheGeneratorMakes(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TheFirstCellFindsACheckoutBelowWhereTheKernelStarted(unittest.TestCase):
+    """A kernel does not start inside the checkout, and it does not start
+    above it in the useful sense either. It starts at HOME, and the checkout
+    is three directories underneath.
+
+    Measured, from the GemDB extension's own error output:
+
+        GemDBError: RuntimeError - No brainfreeze/ at or above
+        '/Users/srbaker'. Open this repository as the folder in your editor
+
+    `find_repo` walked upward only, so a checkout BELOW the starting point was
+    unreachable by construction: the parents of `/Users/srbaker` are `/Users`
+    and `/`, and neither holds a `brainfreeze/`. The first cell raised, and
+    every cell after it failed on a name that was never bound -- which is why
+    this reads as "the notebook gets errors" rather than as one error.
+
+    This is the same defect as `TheNotebookCanFindItsOwnModel` above, one step
+    out: that one fixed a cell that never looked, this one fixes a cell that
+    looked in the only direction that could not work.
+
+    It runs the first cell the way a kernel does -- its own process, and a
+    working directory that is an ANCESTOR of the checkout.
+    """
+
+    def run_first_cell(self, cwd):
+        env = dict(os.environ)
+        # The escape hatch is not what is under test; discovery is.
+        env.pop("BRAINFREEZE_REPO", None)
+        return subprocess.run([sys.executable, "-c", source(code_cells()[0])],
+                              cwd=cwd, env=env, capture_output=True, text=True)
+
+    def reported(self, done):
+        """The path the cell says it found, not merely that it said something."""
+        for line in done.stdout.splitlines():
+            if line.startswith("repository:"):
+                return line.split(":", 1)[1].strip()
+        return None
+
+    def test_it_finds_a_checkout_underneath_the_working_directory(self):
+        with tempfile.TemporaryDirectory() as raw:
+            tmp = os.path.realpath(raw)
+            checkout = os.path.join(tmp, "GemTalk", "Brain Freeze Insurance")
+            os.makedirs(os.path.join(checkout, "brainfreeze"))
+            done = self.run_first_cell(tmp)
+            self.assertEqual(done.returncode, 0,
+                             "the first cell failed from an ancestor of the "
+                             "checkout, which is where a kernel starts:\n"
+                             + done.stderr)
+            self.assertEqual(self.reported(done), checkout)
+
+    def test_a_checkout_it_is_standing_in_still_wins(self):
+        """The downward search is a fallback, not a replacement. A kernel
+        started inside a checkout must use that one, even when another lies
+        beneath it."""
+        with tempfile.TemporaryDirectory() as raw:
+            tmp = os.path.realpath(raw)
+            here = os.path.join(tmp, "here")
+            os.makedirs(os.path.join(here, "brainfreeze"))
+            os.makedirs(os.path.join(here, "nested", "decoy", "brainfreeze"))
+            done = self.run_first_cell(here)
+            self.assertEqual(done.returncode, 0, done.stderr)
+            self.assertEqual(self.reported(done), here)
+
+    def test_it_still_says_what_to_do_when_there_is_no_checkout_anywhere(self):
+        """Losing the message would trade one silent failure for another."""
+        with tempfile.TemporaryDirectory() as raw:
+            done = self.run_first_cell(os.path.realpath(raw))
+            self.assertNotEqual(done.returncode, 0)
+            self.assertIn("BRAINFREEZE_REPO", done.stderr)

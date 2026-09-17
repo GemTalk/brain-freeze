@@ -45,9 +45,10 @@ the same reason."""),
     (PY, """import os
 import sys
 
-# Where the model lives. Walk up from wherever the kernel started, which
-# covers the ordinary case of having this folder open.
-def find_repo(start):
+# Where the model lives. A kernel starts in the database's working directory,
+# which is usually HOME -- so the checkout is as likely to be BELOW where we
+# started as above it, and looking only one way finds nothing.
+def find_repo_above(start):
     here = os.path.abspath(start)
     while not os.path.isdir(os.path.join(here, "brainfreeze")):
         parent = os.path.dirname(here)
@@ -56,12 +57,41 @@ def find_repo(start):
         here = parent
     return here
 
-REPO = os.environ.get("BRAINFREEZE_REPO") or find_repo(os.getcwd())
+# Breadth first, so the shallowest checkout wins rather than whichever one
+# a depth-first walk happened to reach; hidden and heavy directories are
+# skipped because HOME is the ordinary starting point.
+SKIP = ("Library", "Applications", "node_modules", "Pictures", "Music", "Movies")
+
+def find_repo_below(start, depth=3):
+    frontier = [(os.path.abspath(start), 0)]
+    while frontier:
+        here, level = frontier.pop(0)
+        if os.path.isdir(os.path.join(here, "brainfreeze")):
+            return here
+        if level >= depth:
+            continue
+        try:
+            names = sorted(os.listdir(here))
+        except OSError:
+            continue          # unreadable is not exceptional when starting at HOME
+        for name in names:
+            if name.startswith(".") or name in SKIP:
+                continue
+            child = os.path.join(here, name)
+            if os.path.isdir(child) and not os.path.islink(child):
+                frontier.append((child, level + 1))
+    return None
+
+# Standing in the checkout wins over one lying beneath: an editor opened on
+# this folder means this folder, even if another copy is nested inside it.
+REPO = (os.environ.get("BRAINFREEZE_REPO")
+        or find_repo_above(os.getcwd())
+        or find_repo_below(os.getcwd()))
 if REPO is None:
     raise RuntimeError(
-        "No brainfreeze/ at or above %r. Open this repository as the "
-        "folder in your editor, or set REPO on the line above to your "
-        "checkout." % os.getcwd())
+        "No brainfreeze/ above or below %r. Open this repository as the "
+        "folder in your editor, or set BRAINFREEZE_REPO to your checkout "
+        "and restart the kernel." % os.getcwd())
 if REPO not in sys.path:
     sys.path.insert(0, REPO)
 
