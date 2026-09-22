@@ -2,7 +2,7 @@
 
 WHY A DOCUMENT GETS A TEST
 
-`docs/demo-script.md` is not prose about the demo, it is instructions for
+`DEMO.md` is not prose about the demo, it is instructions for
 driving it: type this id, click that button, expect these four figures. Every
 one of those is a fact about code that changes, and the failure mode is not a
 broken build. It is someone standing in front of an audience clicking a button
@@ -23,7 +23,11 @@ import re
 import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SCRIPT = os.path.join(REPO, "docs", "demo-script.md")
+
+#: The policy beat 2 creates in front of the room. It is the one id in the
+#: script that must NOT be in the seeded book.
+MINTED = "BF-100900"
+SCRIPT = os.path.join(REPO, "DEMO.md")
 
 
 def script():
@@ -187,6 +191,8 @@ class ThePoliciesItNamesAreFitForTheirBeat(unittest.TestCase):
         named = sorted(set(re.findall(r"BF-1\d{5}", self.text)))
         self.assertTrue(named, "the script names no policies at all")
         for policy_id in named:
+            if policy_id == MINTED:
+                continue
             try:
                 self.book[policy_id]
             except KeyError:
@@ -210,12 +216,22 @@ class ThePoliciesItNamesAreFitForTheirBeat(unittest.TestCase):
                          "written for exactly one"
                          % policy.claims_remaining_this_year)
 
-    def test_the_cross_surface_policy_starts_in_force(self):
-        """BF-100184 is lapsed live in beat 6, so it must begin active."""
-        from datetime import date
-        self.assertTrue(self.book["BF-100184"].is_in_force_on(date.today()),
-                        "BF-100184 does not start in force, so beat 6 opens "
-                        "by lapsing something already lapsed")
+    def test_the_policy_the_demo_mints_is_not_already_there(self):
+        """Beat 2 sells BF-100900 and beat 6 lapses it, so the whole spine
+        rests on that id being the *next* one rather than an existing one.
+
+        The seeded book runs BF-100000 to BF-100899. If the dataset ever grows
+        by one, the demo sells BF-100901, every id in beats 2, 5 and 6 is
+        wrong, and nothing else in the suite would say so -- the app would
+        happily sell a policy and the script would happily name another."""
+        try:
+            self.book[MINTED]
+        except KeyError:
+            pass
+        else:
+            self.fail("%s is already in the seeded book, so beat 2 does not "
+                      "mint it and every id downstream of it has moved"
+                      % MINTED)
 
 
 class TheNotebookCellsItNumbersAreTheNotebookS(unittest.TestCase):

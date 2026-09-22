@@ -31,7 +31,7 @@ A terminal opened in VS Code already has `gemdb` on its PATH. Anywhere else:
 
 ```sh
 export PATH="$HOME/GemDB/bin:$PATH"      # not needed in a VS Code terminal
-cd ~/GemTalk/"Brain Freeze Insurance"
+cd ~/GemTalk/brain-freeze
 ```
 
 **Check the database can run a web framework**, because the failure mode is
@@ -55,10 +55,11 @@ deliberately does not — `python3 -m pip install --user numpy pandas`. Nothing
 else does.
 
 **If you are about to show this to someone**, read
-[`docs/demo-script.md`](docs/demo-script.md) instead of this file. It is the
-same material ordered as a run of show — twenty minutes, nine beats, what to
-say while each one happens, and what to do when one goes wrong. This file is
-the walkthrough it is built on, and carries every command with its real output.
+[`DEMO.md`](DEMO.md) instead of this file. It is the same material ordered as a
+run of show — twenty-eight minutes, nine beats, what to say while each one
+happens, and what to do when one goes wrong, with a twenty-minute cut named at
+the top. This file is the walkthrough it is built on, and carries every command
+with its real output.
 
 ---
 

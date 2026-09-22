@@ -37,7 +37,7 @@ stack requires machinery and this one requires none.
 
 ## Where things are
 
-Everything is in this repo, `~/GemTalk/Brain Freeze Insurance`, on `main`.
+Everything is in this repo, `~/GemTalk/brain-freeze`, on `main`.
 
 ```
 brainfreeze/   the model and the rules; standard library only, runs in the DB
