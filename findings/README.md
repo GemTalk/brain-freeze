@@ -270,6 +270,46 @@ helper that silently does not help.
 
 ---
 
+## 10. Two sessions compiling the same callable kills the server
+
+`gemdb findings/10_compiled_code_conflict.py`, with the app running.
+
+Grail compiles a function into the database **when it is called**, not when its
+module is imported. The app takes a new view before every request and
+`take_new_view()` has to commit first, so between requests it is always holding
+uncommitted compiled code. Let another session call the same function and
+commit, and the app's next commit is a Write-Write conflict.
+
+It cannot recover. `gemdb.abort()` would take a new view, and would also throw
+away this session's uncommitted work — which is the app's own compiled
+handlers. So the work stays uncommitted, the next request re-attempts the same
+commit, and fails identically. **The server does not degrade. It stops
+answering, and stays stopped.**
+
+Four measurements separate the cause from its neighbours:
+
+| The other session | The app had | Result |
+| --- | --- | --- |
+| defines a function, commits | — | survives |
+| imports the module, commits | — | survives |
+| calls a function the app never called | — | survives |
+| calls a function the app **has** called | called it | **dead** |
+
+So it is not "another session committed". It is "both compiled the same
+callable".
+
+Finding 7 then removes the evidence: Flask reports the exception through
+`Logger.error(..., exc_info=True)`, which raises a `TypeError` of its own over
+the top of the `ConflictError`. What reaches the log is the reporting failure,
+not the failure.
+
+This is what breaks the acceptance suite. `every_surface_agrees` runs the
+notebook, the notebook calls `analysis.book_summary`, and so does `/api/stats`
+— every feature after it fails with an empty response. The demo is exposed the
+same way: beat 5 runs the notebook and beat 6 needs the app still answering.
+
+---
+
 ## What to do with these
 
 The four shared findings — class identity, dirty sessions, Flask's logging stub
