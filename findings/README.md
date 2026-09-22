@@ -303,10 +303,15 @@ Finding 7 then removes the evidence: Flask reports the exception through
 the top of the `ConflictError`. What reaches the log is the reporting failure,
 not the failure.
 
-This is what breaks the acceptance suite. `every_surface_agrees` runs the
-notebook, the notebook calls `analysis.book_summary`, and so does `/api/stats`
-— every feature after it fails with an empty response. The demo is exposed the
-same way: beat 5 runs the notebook and beat 6 needs the app still answering.
+This is what used to break the acceptance suite. `every_surface_agrees` runs
+the notebook, the notebook calls `analysis.book_summary`, and so does
+`/api/stats` — every feature after it failed with an empty response. The
+harness now checks the app after each script it runs in a session of its own
+and restarts it if that script killed it, which is a tourniquet rather than a
+fix: the bug is unchanged and tracked as #83.
+
+The demo has no harness. Beat 5 runs the notebook and beat 6 needs the app
+still answering, which is DEMO.md's first trap.
 
 ---
 

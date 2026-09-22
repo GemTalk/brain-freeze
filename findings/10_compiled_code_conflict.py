@@ -48,7 +48,18 @@ The acceptance suite. `features/every_surface_agrees.feature` runs the
 notebook inside the database to check it answers what the JSON surface
 answers. The notebook calls `brainfreeze.analysis.book_summary`, and so does
 `/api/stats`. Whichever the suite drove first, the app dies on the next
-request, and every feature after it fails with an empty response.
+request, and every feature after it used to fail with an empty response.
+
+The harness now checks after every script it runs from a session of its own,
+and restarts the app if that script killed it (`ensure_app_answering` in
+`features/environment.py`). That makes the suite survive this; it does not
+make the bug go away, and it is deliberately a check rather than an
+unconditional restart, because `the app was never restarted` is a real claim
+two scenarios make.
+
+And the demo has no harness. Beat 5 runs the notebook and beat 6 needs the app
+still answering, which is why DEMO.md's first trap tells the presenter to
+reload the browser before moving on.
 """
 
 import os

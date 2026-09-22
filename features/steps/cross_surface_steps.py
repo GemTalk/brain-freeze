@@ -116,10 +116,19 @@ def app_never_restarted(context):
     The harness started the app and holds the handle, so this is a fact rather
     than an inference: same process, still running, across a change made by a
     different GemStone session.
+
+    Both halves are needed. A live process is not enough on its own, because
+    the harness can restart the app when another session's commit has killed it
+    (issue #83). If that happened during this scenario, the browser is talking
+    to a server that started AFTER the change, and the scenario would be
+    demonstrating nothing while passing.
     """
-    assert context.app.poll() is None, (
+    assert context.app_state["process"].poll() is None, (
         "the app process is gone -- whatever the browser is talking to, it is "
         "not the server this scenario started")
+    assert context.app_state["restarts"] == context.app_restarts_at_start, (
+        "the harness restarted the app during this scenario, so 'the app saw "
+        "it without a restart' is not what was measured")
 
 
 def after_scenario_restore(context):

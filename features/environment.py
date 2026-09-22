@@ -198,6 +198,114 @@ def run_gemdb(script, *args):
     return finished.stdout
 
 
+
+#: How many times this run has had to restart the app. Deliberately module
+#: state rather than `context`: behave layers attributes per scenario, so a
+#: counter a step incremented would not be the counter the next scenario
+#: reads -- and `the app was never restarted` depends on reading it truly.
+#: The app handle and the restart count live in ONE MUTABLE DICT on `context`,
+#: created by `before_all`, and every reader and writer goes through it.
+#:
+#: Not module state: behave execs this file itself, while a steps module says
+#: `from environment import ...` and gets a second, independent copy. Constants
+#: survive that; a counter does not, and the steps' side simply reads `None`
+#: forever.
+#:
+#: Not a plain `context.app` either: `ensure_app_answering` runs inside a step,
+#: and behave discards what a step ASSIGNS when the scenario ends -- so after a
+#: mid-run restart, `context.app` would point at the process the harness had
+#: already killed. MUTATING a dict that `before_all` put there is neither, and
+#: both failures above were paid for once each before this comment existed.
+def new_app_state():
+    return {"process": None, "restarts": 0}
+
+
+def start_app(context):
+    """Start the app and wait until it serves.
+
+    `start_new_session` is load-bearing, not hygiene. `gemdb` is a shell
+    wrapper that execs topaz; terminating the wrapper leaves topaz running,
+    reparented to init, still holding its GemStone session and still bound to
+    the port. Measured the first time this suite ran: the scenario passed,
+    teardown "succeeded", and the leak check caught a server that had outlived
+    its own launcher. Its own group means the whole tree can be signalled.
+    """
+    context.app_state["process"] = subprocess.Popen(
+        ["gemdb", "web/app.py"], cwd=REPO, env=gemdb_env(),
+        stdout=context.app_log, stderr=subprocess.STDOUT,
+        start_new_session=True)
+
+    deadline = time.time() + APP_START_TIMEOUT_S
+    while time.time() < deadline:
+        if context.app_state["process"].poll() is not None:
+            raise RuntimeError("the app exited before it served; see artifacts/app.log")
+        if port_is_open():
+            break
+        time.sleep(1)
+    else:
+        raise RuntimeError("the app did not serve within %ds" % APP_START_TIMEOUT_S)
+
+
+def stop_app(context):
+    """Stop the app and wait for the port, so a restart cannot race the bind."""
+    app = context.app_state["process"]
+    if app is not None and app.poll() is None:
+        stop_process_group(app)
+    for _ in range(15):
+        if not port_is_open():
+            return
+        time.sleep(1)
+    raise RuntimeError(
+        "the app would not let go of %s, so it cannot be restarted -- that is "
+        "a leaked GemStone session and the stone allows ten" % BASE_URL)
+
+
+def app_is_answering(timeout=15):
+    """Is the app still serving?
+
+    A cheap route on purpose: `/api/questions` reads the model and renders no
+    template, so a slow answer here means something is wrong rather than
+    something is big. The failure this exists to catch is not slowness anyway
+    -- a conflicted app closes the connection at once.
+    """
+    try:
+        request = urllib.request.Request(BASE_URL + "/api/questions")
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return response.status == 200
+    except Exception:
+        return False
+
+
+def ensure_app_answering(context, why):
+    """Restart the app if running `why` in another session has killed it.
+
+    Grail compiles a function into the database when it is CALLED, so a script
+    run from a session of its own can commit the compiled form of something the
+    app is still holding uncommitted. The app's next `take_new_view()` is then a
+    Write-Write conflict it cannot abort out of -- aborting would discard its own
+    handlers -- so the work stays uncommitted and every later request fails the
+    same way. See findings/10_compiled_code_conflict.py and issue #83.
+
+    Checked rather than done unconditionally: a restart costs ten seconds and,
+    more importantly, `the app was never restarted` is a real claim that
+    cross_surface.feature and the_demo_as_written.feature make. A harness that
+    restarted the app whenever another session ran would make that claim
+    untestable, which is worse than the bug.
+    """
+    if app_is_answering():
+        return False
+    print("\n  the app stopped answering after %s -- restarting it.\n"
+          "  (issue #83; findings/10_compiled_code_conflict.py reproduces it)"
+          % why, flush=True)
+    stop_app(context)
+    start_app(context)
+    context.app_state["restarts"] += 1
+    if not app_is_answering():
+        raise RuntimeError(
+            "the app did not answer after being restarted following %s" % why)
+    return True
+
+
 def before_all(context):
     if port_is_open():
         raise RuntimeError(
@@ -221,28 +329,9 @@ def before_all(context):
     run_gemdb("tools/seed.py")
 
     print("  starting the app ...", flush=True)
+    context.app_state = new_app_state()
     context.app_log = open(os.path.join(ARTIFACTS, "app.log"), "w")
-    # `start_new_session` is load-bearing, not hygiene. `gemdb` is a shell
-    # wrapper that execs topaz; terminating the wrapper leaves topaz running,
-    # reparented to init, still holding its GemStone session and still bound
-    # to the port. Measured the first time this suite ran: the scenario
-    # passed, teardown "succeeded", and the leak check caught a server that
-    # had outlived its own launcher. Its own group means the whole tree can
-    # be signalled.
-    context.app = subprocess.Popen(
-        ["gemdb", "web/app.py"], cwd=REPO, env=gemdb_env(),
-        stdout=context.app_log, stderr=subprocess.STDOUT,
-        start_new_session=True)
-
-    deadline = time.time() + APP_START_TIMEOUT_S
-    while time.time() < deadline:
-        if context.app.poll() is not None:
-            raise RuntimeError("the app exited before it served; see artifacts/app.log")
-        if port_is_open():
-            break
-        time.sleep(1)
-    else:
-        raise RuntimeError("the app did not serve within %ds" % APP_START_TIMEOUT_S)
+    start_app(context)
     print("  serving on %s" % BASE_URL, flush=True)
 
     from playwright.sync_api import sync_playwright
@@ -261,7 +350,7 @@ def after_all(context):
         except Exception:
             pass                      # never let cleanup hide a real failure
 
-    app = getattr(context, "app", None)
+    app = context.app_state["process"]
     if app is not None and app.poll() is None:
         stop_process_group(app)
     if getattr(context, "app_log", None):
@@ -336,6 +425,10 @@ def before_feature(context, feature):
 
 
 def before_scenario(context, scenario):
+    #: So `the app was never restarted` can mean "not during this scenario"
+    #: rather than merely "some app process is alive".
+    context.app_restarts_at_start = context.app_state["restarts"]
+
     context.page = context.browser.new_page(viewport={"width": 1100, "height": 900})
     context.page.set_default_timeout(PAGE_TIMEOUT_MS)
     watch(context, context.page)

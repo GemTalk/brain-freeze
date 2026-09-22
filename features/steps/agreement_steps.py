@@ -19,7 +19,7 @@ import sys
 
 from behave import then, when
 
-from environment import REPO, gemdb_env, keep
+from environment import REPO, ensure_app_answering, gemdb_env, keep
 
 # `tools/` is a plain directory rather than a package, so it goes on the path.
 # The document parser lives in `refresh_mcp` and there is no reason to have a
@@ -81,6 +81,11 @@ def run_published(context, title_fragment):
             os.path.relpath(path, REPO)).strip()
     finally:
         os.remove(path)
+
+    # Same exposure as the notebook: the snippet runs in a session of its own
+    # and calls `analysis.book_summary`, which is exactly what `/api/stats`
+    # calls. See issue #83.
+    ensure_app_answering(context, "a published snippet")
     return context.published_output
 
 
@@ -92,6 +97,12 @@ def run_the_notebook(context):
     context.notebook_figures = {
         name: int(value)
         for name, value in NOTEBOOK_FIGURE.findall(context.notebook_output)}
+
+    # The notebook commits from a session of its own, and what it commits
+    # includes the compiled form of functions this app has also called. That
+    # can leave the app unable to commit ever again (issue #83), and the steps
+    # below ask the app questions. Put it back before they do.
+    ensure_app_answering(context, "the notebook")
 
 
 @then('every one of its cells ran')
