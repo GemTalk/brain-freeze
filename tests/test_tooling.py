@@ -113,9 +113,14 @@ class TheDatabaseRunnerRunsEverything(unittest.TestCase):
             "test_demo_script",     # reads a document, not the database
             "test_datagen",         # numpy does not exist in the database
             "test_tooling",         # this file
-            # These two DRIVE database sessions with subprocess, so they
-            # cannot be one: run inside the database they would nest.
+            # This one DRIVES database sessions with subprocess, so it
+            # cannot be one: run inside the database it would nest.
             "test_class_identity",
+            # A path calculation, and the database behaviour it defends
+            # against needs a canonical module compiled from a directory
+            # that has since been renamed -- which cannot be staged from
+            # inside a session that is already running out of one.
+            "test_redeploy_path",
             # And this one needs a session where `numbers` was never
             # imported, which the shared suite session cannot promise.
             "test_decimal_comparison",

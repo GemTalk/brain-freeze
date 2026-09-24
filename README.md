@@ -664,6 +664,28 @@ Reproduce all of it on your own database:
 two-session case, and `findings/class-identity/live_reload.py`, which needs
 only one run.
 
+### What a redeploy is, exactly
+
+One command, and it is not a restart:
+
+```console
+gemdb tools/redeploy.py
+```
+
+Restarting the app process is *not* a redeploy. Grail compiles modules into
+the database and keeps them, so a brand-new session importing `brainfreeze`
+gets what the database compiled, not what the file says. A restarted app runs
+last week's rules and says nothing about it.
+
+| | what it reaches |
+| --- | --- |
+| **`gemdb tools/redeploy.py`** | the CODE: `importlib.reload` in dependency order, then a commit. Records already committed see fields it adds to their class, without a restart. |
+| **`gemdb tools/seed.py`** | the DATA: rebuilds all 900 policies from the current code. Needed when objects must be *reshaped*, not merely read through a new class. |
+| **restarting the app** | neither. It picks up an edited `web/` file, because `web/` is a plain directory and is recompiled from disk each run. It does nothing for `brainfreeze/`. |
+
+So: adding a field needs the first. Changing what one means needs the first
+and then the second. Editing a page needs neither.
+
 **This used to be false, and the history is the point.** On Grail `c875e56`
 editing a class compiled a *different* class: `type(record) is TheClass` went
 False, `isinstance` went False, and an existing record raised `AttributeError`
@@ -828,10 +850,9 @@ breaks.** The evidence is [`findings/`](findings/README.md), summarised
 and the one to read before **changing** anything in here. The demo's line is "I
 didn't write any code — I told the agent to add toppings and flavours", and
 this is what makes that a conversation rather than a guess: where a new field
-goes and why a class-level default is free only before the first commit, that a
-change to `brainfreeze/` is not live until `gemdb tools/redeploy.py`, when a reseed is
-needed as well, both test commands and why there are two, and the surfaces that
-have to stay in agreement. It is a worked example rather than a list of rules —
+goes, that a change to `brainfreeze/` is not live until `gemdb
+tools/redeploy.py`, when a reseed is needed as well, both test commands and why
+there are two, and the surfaces that have to stay in agreement. It is a worked example rather than a list of rules —
 `flavour`/`toppings` cost nothing and `SavedQuote` cost a redeploy and a reseed,
 and the difference between them is the whole lesson.
 

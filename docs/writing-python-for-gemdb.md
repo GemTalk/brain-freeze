@@ -337,6 +337,34 @@ sys.modules in this session. Use importlib.reload() to re-execute it, or assign
 a replacement into sys.modules to substitute it.
 ```
 
+**And the database remembers WHERE each module came from.** That path is kept
+with the compiled module, `reload` re-reads it, and it expires the moment the
+checkout is renamed or moved:
+
+```
+GsFile open failed for '.../Brain Freeze Insurance/brainfreeze/money.py'
+(mode 'rb'): No such file or directory
+```
+
+This repository hit that: it used to be called `Brain Freeze Insurance`, and
+after the rename `gemdb tools/redeploy.py` failed while **every other command
+kept working** — the app served, the tests passed, the notebook ran, all of
+them on the code the database had been given before the rename. Nothing pointed
+at the cause, because the only broken thing was the one command whose whole job
+is to fix that.
+
+`redeploy.py` now rewrites `__file__` to where the source is now, before
+reloading, and says so when it has had to. If you are doing this by hand:
+
+```python
+module.__file__ = os.path.join(REPO, *name.split(".")) + ".py"
+importlib.reload(module)
+```
+
+Grail's own answer is Smalltalk-side — `importlib ___forgetCanonicalModule___:`
+un-deploys a module so the next import re-executes its body — and is not
+reachable from Python.
+
 `redeploy.py` re-executes modules; what that does to records already committed
 under the old class is the next item, and the answer changed.
 

@@ -29,13 +29,24 @@ is canonical (deployed)`.
 deployed module removed that way cannot be imported again for the rest of the
 session, which is a dead end rather than a reset.
 
-WHAT IT DOES NOT DO
+WHAT IT DOES AND DOES NOT REACH
 
-It does not migrate anything. Objects already committed keep the class they
-were made with -- see `findings/03_class_identity.py`. Re-running `gemdb
-seed.py` afterwards is what rebuilds the book under the new code, and that is
-why the two are separate commands: one changes the rules, the other rebuilds
-the data those rules made.
+It reaches the CODE, and — measured on Grail `9a0b0fc`, 2026-09-24 — records
+already committed do see a field added to their class by it, keeping their
+identity and their data, in this session and in later ones. That is
+`findings/class-identity/live_reload.py`, and it is why a redeploy is not
+followed by a migration script here.
+
+It does not RESHAPE anything. Nothing it does rewrites a committed object:
+a field that changed meaning still holds the old value, a field that was
+removed is still on the instances that have it, and a value that needs
+recomputing under the new rules is still the old value. Re-running `gemdb
+tools/seed.py` is what rebuilds the book under the new code, which is why the
+two are separate commands: one changes the rules, the other rebuilds the data
+those rules made.
+
+The short version: a redeploy is the only step needed to ADD; a reseed (or a
+fix-up pass nobody here has had to write) is what CHANGING would need.
 """
 
 import os
@@ -58,6 +69,41 @@ ORDER = [
     "brainfreeze.analysis",
     "brainfreeze",
 ]
+
+
+def point_at_disk(module, name, root):
+    """Point `module.__file__` at where its source is NOW. Did it change?
+
+    THE DATABASE REMEMBERS WHERE A MODULE CAME FROM, AND THE ANSWER EXPIRES.
+
+    A module compiled by a session that commits is kept, and the path it was
+    compiled from is kept with it. `importlib.reload` re-reads that path. So
+    renaming the checkout breaks a redeploy and nothing else:
+
+        GsFile open failed for '.../Brain Freeze Insurance/brainfreeze/money.py'
+        (mode 'rb'): No such file or directory
+
+    This repository did exactly that -- it used to be `Brain Freeze Insurance`
+    -- and the database went on serving the code it had been given before the
+    rename, with every other command still working, so there was nothing to
+    read the failure as except a broken script.
+
+    Rewriting `__file__` first is enough: measured, `reload` then re-reads the
+    file that is actually there. The alternative is Smalltalk-side --
+    `importlib ___forgetCanonicalModule___:` un-deploys a module so the next
+    import re-executes it -- which is not reachable from here.
+
+    Silent when there is no source on disk to point at, because inventing a
+    path turns a clear failure into a puzzling one.
+    """
+    path = os.path.join(root, *name.split("."))
+    for candidate in (path + ".py", os.path.join(path, "__init__.py")):
+        if os.path.isfile(candidate):
+            if getattr(module, "__file__", None) == candidate:
+                return False
+            module.__file__ = candidate
+            return True
+    return False
 
 
 def unlisted_modules():
@@ -99,9 +145,14 @@ def redeploy():
     importlib.import_module("brainfreeze")
 
     failed = []
+    moved = []
     for name in ORDER:
         try:
             module = importlib.import_module(name)
+            # Before reloading, not after: reload re-reads `__file__`, and the
+            # database's copy of it can predate a rename of this checkout.
+            if point_at_disk(module, name, REPO):
+                moved.append(name)
             reloaded = importlib.reload(module)
             # Put it back where its dependents will look. reload() leaves a
             # deployed module absent from sys.modules, and the next module in
@@ -114,6 +165,13 @@ def redeploy():
                   % (name, type(error).__name__, str(error)[:60]))
 
     gemdb.commit()
+
+    if moved:
+        print()
+        print("  %d module(s) were compiled from a path that no longer exists"
+              % len(moved))
+        print("  and have been re-read from this checkout. That is what a")
+        print("  renamed or moved clone looks like; nothing is wrong now.")
 
     from brainfreeze import underwriting
     from brainfreeze.money import usd
