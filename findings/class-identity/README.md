@@ -16,6 +16,19 @@ gemdb findings/class-identity/abort_write.py
 gemdb findings/class-identity/abort_read.py
 ```
 
+Plus one that is ours and runs in a single session:
+
+```sh
+gemdb findings/class-identity/live_reload.py
+```
+
+It answers the half the two-session scripts structurally cannot: whether a
+redeploy -- `importlib.reload` and a commit, which is what `tools/redeploy.py`
+does -- reaches a record the running process is already holding. On Grail
+`9a0b0fc` it does: identity survives, data survives, and the record reads a
+class attribute added while the process was up. That is the measurement issue
+#59 asked for before the demo made a claim about live schema change.
+
 `commit_write.py` and `abort_write.py` differ only in `gemdb.commit()` versus
 `gemdb.abort()`, and in which of two identical sample modules they import. The
 finding is the difference in what the *reading* scripts print.

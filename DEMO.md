@@ -441,15 +441,25 @@ it is the first question anyone asks:
 > class in a new session and the records keep their identity and read the new
 > default. Measured, both ways, on two Grail versions."
 
-**Do not stretch that into "a live migration is free."** What is measured is an
-edit plus a new session. Whether a redeploy takes effect for records already
-loaded in a *running* process is not measured here, and saying so is worth more
-than guessing in front of an evaluator.
+**If they ask whether that needs a restart, it does not, and that is measured
+too** -- as of 2026-09-24, and separately from the above, because the two-
+session scripts structurally could not answer it:
 
-If someone wants to see it, point at
-[`findings/03_class_identity.py`](findings/03_class_identity.py), which
-reproduces it in two runs on their own database, and say the output is in the
-README under CUJ-4.
+> "A redeploy reaches records the running process is already holding. Same
+> session, `importlib.reload`, commit -- the record in hand keeps its identity,
+> keeps its data, and reads the field that was added while the process was up."
+
+**What is still not measured is the hard half of migration**: changing a
+field's meaning, removing one, or anything needing the existing 900 records
+rewritten. Adding is free here; do not let "adding is free" be heard as
+"migration is free."
+
+If someone wants to see either, point at
+[`findings/class-identity/`](findings/class-identity/):
+[`03_class_identity.py`](findings/03_class_identity.py) reproduces the
+new-session case in two runs on their own database, and
+[`live_reload.py`](findings/class-identity/live_reload.py) the live one in a
+single run. The output is in the README under CUJ-4.
 
 ### 8 — The agent (3 min)
 
