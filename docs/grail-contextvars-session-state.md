@@ -14,7 +14,7 @@ worth doing them in:
 | --- | --- | --- |
 | `docs/grail-logging-exc-info.md` | `Logger.error(..., exc_info=True)` raises | do first — it makes the others findable |
 | `docs/grail-contextvars-session-state.md` | the current Context is committed state | design settled, ready to write |
-| `docs/grail-deployed-module-bindings.md` | a deployed module keeps another session's modules | opens with questions, not answers |
+| `docs/grail-deployed-module-bindings.md` | a deployed module keeps another session's modules | ~~open~~ — fixed upstream in `bcedc68a` |
 
 ## The bug
 

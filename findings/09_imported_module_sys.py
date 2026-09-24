@@ -2,7 +2,10 @@
 
     gemdb findings/09_imported_module_sys.py        # run it TWICE
 
-Last verified against Grail 9a0b0fc (engine 4.0.0.a2), 2026-09-23.
+Last verified against Grail 9a0b0fc (engine 4.0.0.a2), 2026-09-23 -- and
+FIXED UPSTREAM in Grail bcedc68a (2026-09-23), which is not in that build. On
+current main a deployed module hands later sessions the caller's sys, os and
+json, so this no longer reproduces. See docs/grail-deployed-module-bindings.md.
 
 WHAT IT COSTS
 

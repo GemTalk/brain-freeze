@@ -1,5 +1,35 @@
 # A deployed module keeps another session's modules forever
 
+> **CLOSED 2026-09-24: already fixed upstream. Do not implement this.**
+>
+> Grail `bcedc68a` ("A deployed module stays coherent with what it imported",
+> 2026-09-23) makes every native module subclass `NativeModule`, with one
+> instance created and committed by `install.sh` and answered in every session.
+> `docs/Persistent_Modules_and_Classes.md` D8 describes the seam this closes in
+> the same terms as the measurement below.
+>
+> It landed one day after the build this was measured on (`9a0b0fc`,
+> 2026-09-17), which is the whole reason the bug looked open.
+>
+> Re-measured on current main, with a deployed module whose body is
+> `import sys, os, json, re`:
+>
+> | module | on `9a0b0fc` | on current main |
+> | --- | --- | --- |
+> | `sys` | stale | **the caller's** |
+> | `os` | stale | **the caller's** |
+> | `json` | stale | **the caller's** |
+> | `re` | the caller's | the caller's |
+>
+> That also answers the open question this plan told a reader to pull on --
+> why `re` differed. It did not need the fix; the native modules did.
+>
+> Kept rather than deleted: the measurement is the evidence that the upstream
+> fix works, and anyone on a build older than `bcedc68a` will still meet it.
+> The plan below is what it looked like before that was known.
+
+---
+
 A fix plan for Grail. Written to be handed to someone working in
 `GemTalk/Grail`; nothing in it needs the Brain Freeze repository, though that is
 where it was found.
@@ -15,7 +45,7 @@ worth doing them in:
 | --- | --- | --- |
 | `docs/grail-logging-exc-info.md` | `Logger.error(..., exc_info=True)` raises | do first — it makes the others findable |
 | `docs/grail-contextvars-session-state.md` | the current Context is committed state | design settled, ready to write |
-| `docs/grail-deployed-module-bindings.md` | a deployed module keeps another session's modules | opens with questions, not answers |
+| `docs/grail-deployed-module-bindings.md` | a deployed module keeps another session's modules | ~~open~~ — fixed upstream in `bcedc68a` |
 
 This one is a diagnosis and an investigation plan, not a prescribed patch. The
 measurement is solid; the mechanism below is inference and is labelled as such.

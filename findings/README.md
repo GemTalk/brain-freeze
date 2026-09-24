@@ -302,7 +302,7 @@ whole suite passing against rules that were no longer on disk. Nothing reports
 the divergence. `redeploy.py` is the answer, and it is only obvious once you
 know the failure exists.
 
-## 9. A path helper works until something commits
+## 9. A path helper works until something commits — fixed upstream
 
 `gemdb tools/seed.py` puts the **script's** directory on `sys.path`, not the
 repository, so every entry point in a subdirectory has to say where the model
@@ -327,11 +327,16 @@ then execute tests that import from it.
 **Put the path lines in each entry point.** Duplication is cheaper than a
 helper that silently does not help.
 
-**It is not only `sys`** (measured 2026-09-24). A deployed module whose body is
-`import sys, os, json, re` hands a fresh session a different `sys`, `os` and
-`json` than the caller has — but the same `re`. So a deployed module's bindings
-look to be resolved once, at commit, and to keep the deploying session's
-instances; `re` behaving differently is the thread to pull. A fix plan is in
+**It was not only `sys`, and it is now fixed.** A deployed module whose body is
+`import sys, os, json, re` handed a fresh session a different `sys`, `os` and
+`json` than the caller had — but the same `re`. Grail `bcedc68a` (2026-09-23,
+"A deployed module stays coherent with what it imported") makes every native
+module subclass `NativeModule`, one committed instance answered in every
+session, and on current main all four are the caller's. That also explains
+`re`: it never needed the fix; the native modules did.
+
+`bcedc68a` landed one day after the build this was measured on, which is why it
+looked open. The evidence and the re-measurement are in
 [`docs/grail-deployed-module-bindings.md`](../docs/grail-deployed-module-bindings.md).
 
 ---
