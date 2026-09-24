@@ -251,7 +251,7 @@ The script's section labels are older than its measurements, which is exactly
 the trap this whole file is about; read the values it prints, not the headings
 over them, until it is rewritten.
 
-## 7. Reporting a view's exception is what fails
+## 7. Reporting a view's exception is what fails — fixed upstream
 
 A Flask view raises. Flask calls its logger to say so, with `exc_info=True`.
 Grail's `logging` is a hand-written stub whose `Logger.error` took only
@@ -264,15 +264,15 @@ as the crash behind finding 6: in each one, the code that exists to explain a
 problem is the code that breaks. It is the single most consistent thing this
 repo has to say about Grail.
 
-The fix is written: branch `fix/logging-exc-info` in the Grail repository, one
-commit, unmerged since 2026-09-08 and 907 commits behind their main — though it
-merges cleanly. It is more than the two lines this file used to claim: the
-record carries the traceback, the formatter renders it, and every `Logger`
-method gains `**kwargs`, with tests. `LoggerAdapter.error` in the same file
-already took `**kwargs`, so the module currently disagrees with itself.
+**Fixed upstream 2026-09-24**, in Grail `b8bdeb76` — a branch that had sat
+unmerged since 2026-09-08 and 907 commits behind their main, rebased, squashed
+and landed. It was more than the two lines this file used to claim: the record
+carries the traceback, the formatter renders it, and every `Logger` method
+gains `**kwargs`, with tests. `LoggerAdapter.error` already took `**kwargs`, so
+the module had been disagreeing with its own signature.
 
-A plan to land it is in
-[`docs/grail-logging-exc-info.md`](../docs/grail-logging-exc-info.md).
+Not in the build here (`9a0b0fc`), so the script still reproduces — like
+findings 5 and 9, it stops the moment you update.
 
 ## 8. A script's neighbours, and modules the database will not let go of
 

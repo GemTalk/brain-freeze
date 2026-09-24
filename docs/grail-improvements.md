@@ -2,12 +2,12 @@
 
 > **Audited 2026-09-24 against current Grail main, on a scratch stone.** The
 > list below was written 2026-09-08 against `c875e56`; the running build is
-> `9a0b0fc` and main is far past both. Seven asks have been met since and nothing
+> `9a0b0fc` and main is far past both. Eight asks have been met since and nothing
 > recorded it — the same drift that left three `findings/` wrong for a fortnight.
 >
 > | Ask | Now |
 > | --- | --- |
-> | P0.3 `Logger.error` rejects `exc_info=` | **filed and fixed** — GemTalk/Grail#1163, green, unmerged |
+> | P0.3 `Logger.error` rejects `exc_info=` | **done** — GemTalk/Grail#1163, merged 2026-09-24 as `b8bdeb76` |
 > | P0.4 #849 exceptions carry no `__traceback__` | **done** — `e.__traceback__` is present |
 > | P0.5 `round()` half-up vs banker's | **done** — 0.5→0, 1.5→2, 2.5→2, matches CPython |
 > | P1.6 the Decimal cluster | **done** — `quantize`, `as_tuple`, `//`, `%`, `divmod`, `format(spec)` |

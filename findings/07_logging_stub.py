@@ -2,7 +2,10 @@
 
     gemdb findings/07_logging_stub.py
 
-Last verified against Grail 9a0b0fc (engine 4.0.0.a2), 2026-09-23.
+Last verified against Grail 9a0b0fc (engine 4.0.0.a2), 2026-09-23 -- and
+FIXED UPSTREAM in Grail b8bdeb76 (2026-09-24), which is not in that build. On
+current main every Logger method takes **kwargs and exc_info is honoured, so
+this stops reproducing the moment you update.
 
 A Flask view raises. Flask catches it and calls its logger to say so:
 
@@ -18,8 +21,9 @@ the same shape as finding 5 and as the `str.replace` crash behind finding 6:
 in each, the code that exists to explain a problem is the code that breaks.
 
 This script writes nothing and changes nothing. It reports which behaviour
-*your* Grail has, because there is a fix on `fix/logging-exc-info` in the Grail
-repository which is not merged, so the two are both in circulation.
+*your* Grail has, because the fix landed on 2026-09-24 and every build older
+than that still has the old signature -- the two are in circulation until you
+update.
 """
 
 import sys
@@ -87,10 +91,10 @@ def logging_stub():
     print("  view here means adding print statements, because the framework's")
     print("  own reporting cannot run.")
     print()
-    print("  The fix is two lines, on `fix/logging-exc-info` in the Grail")
-    print("  repository, unmerged. `LoggerAdapter.error` in the same file")
-    print("  already takes `**kwargs`, so the signature is the only thing")
-    print("  standing between this and a working traceback.")
+    print("  Fixed upstream in Grail b8bdeb76 (2026-09-24): every Logger")
+    print("  method takes **kwargs, the record carries the traceback and the")
+    print("  formatter renders it. If you are seeing this, your build")
+    print("  predates it -- update, rather than working around it.")
     return 0
 
 

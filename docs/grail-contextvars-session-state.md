@@ -6,14 +6,10 @@ is where it was found.
 
 Checked against `origin/main` at `9f46b86c` (2026-09-24). **Not fixed there.**
 
-**The set.** Two Grail bugs found together and handed over together, this one
-among them. Each is independent; they interact, and this is the order worth
-doing them in:
-
-| | | |
-| --- | --- | --- |
-| `docs/grail-logging-exc-info.md` | `Logger.error(..., exc_info=True)` raises | do first — it makes the others findable |
-| `docs/grail-contextvars-session-state.md` | the current Context is committed state | design settled, ready to write |
+**The last of three.** Three Grail bugs were found together. The logging one
+(`Logger.error` refusing `exc_info=`) merged as `b8bdeb76` on 2026-09-24; the
+deployed-module one turned out to be fixed already, in `bcedc68a`. This is the
+one still open.
 
 ## The bug
 
@@ -155,10 +151,10 @@ separate question (are patterns interned persistently? is something on the
 pattern mutated on use?) and wants its own investigation before it is written
 up as one item or two. Fixing `contextvars` alone will not clear it.
 
-**`Logger.error` still takes only `*args`.** Unrelated as a cause, and the
+**`Logger.error` used to take only `*args`.** Unrelated as a cause, and the
 reason this cost a week: every occurrence surfaced as a `TypeError` about
-`exc_info` instead of the `ConflictError` underneath. Its own plan is
-`docs/grail-logging-exc-info.md`, and it is the cheaper of the two.
+`exc_info` instead of the `ConflictError` underneath. Fixed in `b8bdeb76`
+(2026-09-24), so the next person to hit this conflict will at least see it.
 
 ## Reproduction
 
