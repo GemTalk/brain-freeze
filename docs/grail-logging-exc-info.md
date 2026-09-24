@@ -3,7 +3,17 @@
 A fix plan for Grail. Written to be handed to someone working in
 `GemTalk/Grail`; nothing in it needs the Brain Freeze repository.
 
-Checked against `origin/main` at `1f2f5ed1` (2026-09-23). **Not fixed there.**
+Checked against `origin/main` at `9f46b86c` (2026-09-24). **Not fixed there.**
+
+**The set.** Three Grail bugs were found together and are handed over together,
+this one among them. Each is independent; they interact, and this is the order
+worth doing them in:
+
+| | | |
+| --- | --- | --- |
+| `docs/grail-logging-exc-info.md` | `Logger.error(..., exc_info=True)` raises | do first — it makes the others findable |
+| `docs/grail-contextvars-session-state.md` | the current Context is committed state | design settled, ready to write |
+| `docs/grail-deployed-module-bindings.md` | a deployed module keeps another session's modules | opens with questions, not answers |
 
 ## The bug
 
@@ -40,7 +50,7 @@ be, this is the thing standing between the reporter and it.
 ## The fix is already written
 
 Branch `fix/logging-exc-info`, one commit `5a07f235`, by Steven R. Baker,
-2026-09-08. It is **907 commits behind `origin/main`** and `git merge-tree`
+2026-09-08. It is **909 commits behind `origin/main`** and `git merge-tree`
 reports **no conflicts** against it.
 
 ```
@@ -67,11 +77,11 @@ What it does:
 ## The plan
 
 1. Rebase `fix/logging-exc-info` onto `origin/main`. No conflicts are expected;
-   907 commits have landed under it, so expect churn around it rather than in it.
+   909 commits have landed under it, so expect churn around it rather than in it.
 2. Re-read the diff as if new. It was written against a much older tree and has
    never been reviewed.
 3. Check three things the original may not have covered, each of which is the
-   kind of thing 907 commits could have changed:
+   kind of thing 909 commits could have changed:
    * `LoggerAdapter` parity — it already took `**kwargs`; does it now forward
      `exc_info` to the underlying logger, or swallow it?
    * `stack_info` and `stacklevel`, the other two keywords CPython's signature

@@ -4,8 +4,18 @@ A fix plan for Grail. Written to be handed to someone working in
 `GemTalk/Grail`; nothing in it needs the Brain Freeze repository, though that is
 where it was found.
 
-Checked against `origin/main` at `1f2f5ed1` (2026-09-23), measured on the
+Checked against `origin/main` at `9f46b86c` (2026-09-24), measured on the
 installed build `9a0b0fc`. **Not fixed.**
+
+**The set.** Three Grail bugs were found together and are handed over together,
+this one among them. Each is independent; they interact, and this is the order
+worth doing them in:
+
+| | | |
+| --- | --- | --- |
+| `docs/grail-logging-exc-info.md` | `Logger.error(..., exc_info=True)` raises | do first — it makes the others findable |
+| `docs/grail-contextvars-session-state.md` | the current Context is committed state | design settled, ready to write |
+| `docs/grail-deployed-module-bindings.md` | a deployed module keeps another session's modules | opens with questions, not answers |
 
 This one is a diagnosis and an investigation plan, not a prescribed patch. The
 measurement is solid; the mechanism below is inference and is labelled as such.

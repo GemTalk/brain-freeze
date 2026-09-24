@@ -4,7 +4,17 @@ A fix plan for Grail. Written to be handed to someone working in
 `GemTalk/Grail`; nothing in it needs the Brain Freeze repository, though that
 is where it was found.
 
-Checked against `origin/main` at `1f2f5ed1` (2026-09-23). **Not fixed there.**
+Checked against `origin/main` at `9f46b86c` (2026-09-24). **Not fixed there.**
+
+**The set.** Three Grail bugs were found together and are handed over together,
+this one among them. Each is independent; they interact, and this is the order
+worth doing them in:
+
+| | | |
+| --- | --- | --- |
+| `docs/grail-logging-exc-info.md` | `Logger.error(..., exc_info=True)` raises | do first — it makes the others findable |
+| `docs/grail-contextvars-session-state.md` | the current Context is committed state | design settled, ready to write |
+| `docs/grail-deployed-module-bindings.md` | a deployed module keeps another session's modules | opens with questions, not answers |
 
 ## The bug
 
@@ -100,7 +110,8 @@ per session, lazily, the first time that session asks.
 
 ### Every site that touches the globals
 
-Nine references, five call sites. Line numbers are `origin/main`.
+Nine references, five call sites. Line numbers re-checked against
+`origin/main` at `9f46b86c` and unchanged from `1f2f5ed1`.
 
 | Line(s) | Site | Change |
 | --- | --- | --- |
@@ -145,12 +156,10 @@ separate question (are patterns interned persistently? is something on the
 pattern mutated on use?) and wants its own investigation before it is written
 up as one item or two. Fixing `contextvars` alone will not clear it.
 
-**`Logger.error` still takes only `*args`**, so
-`Logger.error(msg, exc_info=True)` raises a `TypeError` over the top of
-whatever it was called to report. That is what hid this bug for a week: the log
-showed the reporting failure, not the `ConflictError`. The branch
-`fix/logging-exc-info` exists and was never merged. It is unrelated as a cause
-and closely related as a reason this was expensive to find.
+**`Logger.error` still takes only `*args`.** Unrelated as a cause, and the
+reason this cost a week: every occurrence surfaced as a `TypeError` about
+`exc_info` instead of the `ConflictError` underneath. Its own plan is
+`docs/grail-logging-exc-info.md`, and it is the cheaper of the two.
 
 ## Reproduction
 
