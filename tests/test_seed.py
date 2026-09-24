@@ -17,10 +17,29 @@ from brainfreeze.money import usd
 import seed
 
 
+#: One book for the whole module.
+#:
+#: Every class here asserts a property of the SEEDED book and none of them
+#: writes to it, so seven rebuilds were seven copies of the same 900
+#: policyholders. That is not merely slow: each `seed.load()` is deep work in
+#: one session, and by the fourth the session hit `AlmostOutOfStack` -- which
+#: then reported itself against whichever `setUpClass` happened to be running,
+#: so the suite failed in four classes that had nothing wrong with them.
+#: See issue #85.
+_BOOK = None
+
+
+def seeded_book():
+    global _BOOK
+    if _BOOK is None:
+        _BOOK = seed.load()
+    return _BOOK
+
+
 class TheLoad(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.book = seed.load()
+        cls.book = seeded_book()
 
     def test_counts(self):
         self.assertEqual(len(self.book), 900)
@@ -64,7 +83,7 @@ class MoneyIsExact(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.book = seed.load()
+        cls.book = seeded_book()
         with open(seed.POLICYHOLDERS_CSV, newline="") as handle:
             cls.rows = {r["policy_id"]: r for r in csv.DictReader(handle)}
 
@@ -107,7 +126,7 @@ class TheUnderwritingBase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.book = seed.load()
+        cls.book = seeded_book()
         cls.stored = {}
         with open(seed.POLICYHOLDERS_CSV, newline="") as handle:
             for row in csv.DictReader(handle):
@@ -164,7 +183,7 @@ class LapsedPolicies(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.book = seed.load()
+        cls.book = seeded_book()
 
     def test_a_lapsed_policy_lapses_inside_its_term(self):
         lapsed = [p for p in self.book if p.policy_status == "Lapsed"]
@@ -223,7 +242,7 @@ class ThePolicyTerm(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.book = seed.load()
+        cls.book = seeded_book()
         # An ordinary policy that never lapsed, so the term is the only thing
         # that can end cover on it.
         cls.active = [p for p in cls.book
@@ -317,7 +336,7 @@ class BF100539(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.policy = seed.load()["BF-100539"]
+        cls.policy = seeded_book()["BF-100539"]
 
     def test_the_shape_the_screens_show(self):
         p = self.policy
@@ -421,7 +440,7 @@ class EventOrderIsTheLoadersJob(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.ordered = seed.load()
+        cls.ordered = seeded_book()
 
     @staticmethod
     def _rewritten(directory, rows, header, name="claims-shuffled.csv"):

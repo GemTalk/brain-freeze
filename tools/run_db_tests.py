@@ -19,6 +19,7 @@ previous version of the tests is worse than no runner.
 import os
 import sys
 import types
+import subprocess
 import unittest
 
 #: The repository, for the same reason and in the same way as every other
@@ -50,19 +51,65 @@ def load_module_from_file(name, path):
     return module
 
 
-def run_db_tests():
-    wanted = [a if a.startswith("test_") else "test_" + a
-              for a in sys.argv[1:]] or MODULES
-    suite = unittest.TestSuite()
-    for name in wanted:
-        path = os.path.join(REPO, "tests", "%s.py" % name)
-        if not os.path.exists(path):
-            print("no such test module: %s" % path)
-            return 2
-        module = load_module_from_file("%s_live" % name, path)
-        suite.addTests(unittest.TestLoader().loadTestsFromModule(module))
+def run_one_module(name):
+    """Load and run a single module in THIS session."""
+    path = os.path.join(REPO, "tests", "%s.py" % name)
+    if not os.path.exists(path):
+        print("no such test module: %s" % path)
+        return 2
+    module = load_module_from_file("%s_live" % name, path)
+    suite = unittest.TestLoader().loadTestsFromModule(module)
     result = unittest.TextTestRunner(verbosity=1).run(suite)
     return 0 if result.wasSuccessful() else 1
+
+
+def run_each_in_its_own_session():
+    """Run every module in a session of its own, and report them together.
+
+    ONE SESSION CANNOT HOLD THE WHOLE SUITE, AND THE WAY IT FAILS IS A LIE.
+
+    A session's Smalltalk execution stack is finite, and running the corpus in
+    one of them exhausts it: the run dies of `AlmostOutOfStack` (notification
+    2502) reported against whichever `setUpClass` happened to be running when
+    the budget ran out. So the suite failed in classes that had nothing wrong
+    with them, on every run, and the real failures underneath went unread --
+    including a money assertion comparing a Decimal against a bare int, which
+    had never once executed. Issue #85.
+
+    Every module passes on its own. Grail's own SUnit runner partitions for the
+    same reason and says so: the partition count decides how much of the corpus
+    one session carries.
+
+    A child gets its module name on the command line and so takes the branch
+    below, which is what stops this recursing.
+    """
+    failed = []
+    for name in MODULES:
+        print("\n=== %s ===" % name, flush=True)
+        finished = subprocess.run(
+            ["gemdb", os.path.join("tools", "run_db_tests.py"), name],
+            cwd=REPO)
+        if finished.returncode != 0:
+            failed.append(name)
+
+    print()
+    if failed:
+        print("FAILED in %d of %d modules: %s"
+              % (len(failed), len(MODULES), ", ".join(failed)))
+        return 1
+    print("OK -- %d modules, each in a session of its own." % len(MODULES))
+    return 0
+
+
+def run_db_tests():
+    wanted = [a if a.startswith("test_") else "test_" + a
+              for a in sys.argv[1:]]
+    if not wanted:
+        return run_each_in_its_own_session()
+    worst = 0
+    for name in wanted:
+        worst = max(worst, run_one_module(name))
+    return worst
 
 
 if __name__ == "__main__":
