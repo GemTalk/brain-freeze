@@ -428,18 +428,25 @@ class Claim:
 
 > "And that works because those defaults were on the class before anything was
 > committed. A claim written without them has no slot of its own, so it reads
-> the default through the class. Adding a field *later* is a different story:
-> editing a class compiles a different class, and instances already committed
-> keep the one they were made under. So the claim is not 'edit the model and
-> the database just knows'. It is that a schemaless object database lets you
-> declare optional fields up front and pay nothing for them later. That is a
-> claim about foresight, and it is true."
+> the default through the class. What a schemaless object database buys you is
+> that you can declare optional fields up front and pay nothing for them
+> later."
 
-Volunteering this is worth more than surviving the question. It is also the
-thing the room will remember you for.
+**Then say what you do and do not know about adding one afterwards**, because
+it is the first question anyone asks:
 
-If someone asks to *see* it fail, do not do it live — it needs two sessions and
-a redeploy, and it is four minutes you do not have. Point at
+> "Adding a field to a class that is already in use used to be a different
+> story — the edit compiled a *different* class and committed records kept the
+> one they were made under. On this build it does not: re-import the edited
+> class in a new session and the records keep their identity and read the new
+> default. Measured, both ways, on two Grail versions."
+
+**Do not stretch that into "a live migration is free."** What is measured is an
+edit plus a new session. Whether a redeploy takes effect for records already
+loaded in a *running* process is not measured here, and saying so is worth more
+than guessing in front of an evaluator.
+
+If someone wants to see it, point at
 [`findings/03_class_identity.py`](findings/03_class_identity.py), which
 reproduces it in two runs on their own database, and say the output is in the
 README under CUJ-4.
