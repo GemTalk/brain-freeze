@@ -5,15 +5,14 @@ A fix plan for Grail. Written to be handed to someone working in
 
 Checked against `origin/main` at `9f46b86c` (2026-09-24). **Not fixed there.**
 
-**The set.** Three Grail bugs were found together and are handed over together,
-this one among them. Each is independent; they interact, and this is the order
-worth doing them in:
+**The set.** Two Grail bugs found together and handed over together, this one
+among them. Each is independent; they interact, and this is the order worth
+doing them in:
 
 | | | |
 | --- | --- | --- |
 | `docs/grail-logging-exc-info.md` | `Logger.error(..., exc_info=True)` raises | do first — it makes the others findable |
 | `docs/grail-contextvars-session-state.md` | the current Context is committed state | design settled, ready to write |
-| `docs/grail-deployed-module-bindings.md` | a deployed module keeps another session's modules | ~~open~~ — fixed upstream in `bcedc68a` |
 
 ## The bug
 

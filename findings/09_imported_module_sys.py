@@ -5,7 +5,9 @@
 Last verified against Grail 9a0b0fc (engine 4.0.0.a2), 2026-09-23 -- and
 FIXED UPSTREAM in Grail bcedc68a (2026-09-23), which is not in that build. On
 current main a deployed module hands later sessions the caller's sys, os and
-json, so this no longer reproduces. See docs/grail-deployed-module-bindings.md.
+json, so this no longer reproduces. Grail bcedc68a makes every native module
+subclass NativeModule, one committed instance answered in every session; see
+D8 of Grail's docs/Persistent_Modules_and_Classes.md.
 
 WHAT IT COSTS
 
@@ -54,8 +56,7 @@ fresh session:
 
 So this is not a quirk of `sys`. A deployed module's bindings appear to be
 resolved once, when it is committed, and to keep whatever instances the
-deploying session had. `re` behaving differently is the thread to pull. A fix
-plan for the Grail side is in docs/grail-deployed-module-bindings.md.
+deploying session had. `re` never needed the fix -- the native modules did.
 
 WHAT TO DO INSTEAD
 

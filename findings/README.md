@@ -336,8 +336,8 @@ session, and on current main all four are the caller's. That also explains
 `re`: it never needed the fix; the native modules did.
 
 `bcedc68a` landed one day after the build this was measured on, which is why it
-looked open. The evidence and the re-measurement are in
-[`docs/grail-deployed-module-bindings.md`](../docs/grail-deployed-module-bindings.md).
+looked open. D8 of Grail's `docs/Persistent_Modules_and_Classes.md` describes
+the seam it closes.
 
 ---
 
