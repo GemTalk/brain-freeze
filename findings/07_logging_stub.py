@@ -2,6 +2,8 @@
 
     gemdb findings/07_logging_stub.py
 
+Last verified against Grail 9a0b0fc (engine 4.0.0.a2), 2026-09-23.
+
 A Flask view raises. Flask catches it and calls its logger to say so:
 
     self.logger.error("Exception on %s [%s]", path, method, exc_info=True)

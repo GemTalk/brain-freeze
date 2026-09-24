@@ -2,6 +2,8 @@
 
     gemdb findings/08_script_imports.py     # run it TWICE
 
+Last verified against Grail 9a0b0fc (engine 4.0.0.a2), 2026-09-23.
+
 Two halves. The first is about where `sys.path` points, and it is fixed on
 current Grail -- with one wrinkle still worth knowing. The second is about the
 database keeping a compiled copy of a module and serving it in preference to

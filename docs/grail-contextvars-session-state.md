@@ -166,5 +166,5 @@ Decimal(1) / Decimal(3)          # sets Inexact, Rounded
 ```
 
 A packaged version against a live web app is in the Brain Freeze repository at
-`findings/10_compiled_code_conflict.py`, with the reasoning in
+`findings/10_shared_session_state.py`, with the reasoning in
 `findings/README.md`.

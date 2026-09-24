@@ -2,6 +2,8 @@
 
     gemdb findings/04_dirty_session.py
 
+Last verified against Grail 9a0b0fc (engine 4.0.0.a2), 2026-09-23.
+
 Commits and aborts nothing that matters -- it defines one function, calls it,
 and inspects the session. Safe to run at any time.
 

@@ -279,12 +279,14 @@ def app_is_answering(timeout=15):
 def ensure_app_answering(context, why):
     """Restart the app if running `why` in another session has killed it.
 
-    Grail compiles a function into the database when it is CALLED, so a script
-    run from a session of its own can commit the compiled form of something the
-    app is still holding uncommitted. The app's next `take_new_view()` is then a
-    Write-Write conflict it cannot abort out of -- aborting would discard its own
-    handlers -- so the work stays uncommitted and every later request fails the
-    same way. See findings/10_compiled_code_conflict.py and issue #83.
+    Python stdlib runtime state lives in the repository here: Grail's
+    `contextvars` keeps the current Context in module-level globals of a
+    committed module, so every session shares one decimal Context and mutates
+    one `flags` dict. A script run from a session of its own commits its half,
+    and the app's next `take_new_view()` is a Write-Write conflict it cannot
+    abort out of -- aborting would discard its own compiled handlers -- so the
+    work stays uncommitted and every later request fails the same way. See
+    findings/10_shared_session_state.py and issue #83.
 
     Checked rather than done unconditionally: a restart costs ten seconds and,
     more importantly, `the app was never restarted` is a real claim that
@@ -295,7 +297,7 @@ def ensure_app_answering(context, why):
     if app_is_answering():
         return False
     print("\n  the app stopped answering after %s -- restarting it.\n"
-          "  (issue #83; findings/10_compiled_code_conflict.py reproduces it)"
+          "  (issue #83; findings/10_shared_session_state.py reproduces it)"
           % why, flush=True)
     stop_app(context)
     start_app(context)

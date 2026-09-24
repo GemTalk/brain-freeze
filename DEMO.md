@@ -497,7 +497,7 @@ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5000/   # warm it
 ```
 
 That is thirty seconds of dead air, which is why you check during the beat
-rather than discovering it in front of the lapse. `gemdb findings/10_compiled_code_conflict.py`
+rather than discovering it in front of the lapse. `gemdb findings/10_shared_session_state.py`
 reproduces it deliberately if you want to see it once before you meet it.
 
 ### `abort()` is not your undo

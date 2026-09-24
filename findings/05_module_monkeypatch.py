@@ -2,6 +2,9 @@
 
     gemdb findings/05_module_monkeypatch.py
 
+Last verified against Grail 9a0b0fc (engine 4.0.0.a2), 2026-09-23. Fixed
+upstream in Grail 03d51ac3, which is not in this build.
+
 Rebinding an attribute on an imported module -- the ordinary way to spy on a
 function in a test -- leaves the session in a dirty state that `commit()` does
 **not** clear. Every later `gemdb.refresh()` then raises

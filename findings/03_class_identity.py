@@ -3,6 +3,10 @@
 
     gemdb findings/03_class_identity.py     # run it TWICE
 
+Last verified against Grail 9a0b0fc (engine 4.0.0.a2), 2026-09-23 --
+and on that build it NO LONGER REPRODUCES: identity survives the edit. See
+the note in findings/README.md; the script prints what your build does.
+
 Run 1 creates a record under the original class and then edits the class on
 disk. Run 2 is a fresh session that imports the edited source normally and
 compares. Two runs, because a genuine re-import needs a genuine new session --
@@ -113,8 +117,21 @@ def arm_two(gemdb):
 
     same = type(record) is Subject
     iso = isinstance(record, Subject)
+    # Measured, not asserted: on Grail 9a0b0fc the record DOES read the
+    # attribute added after it was committed, through the class. Printing a
+    # fixed sentence here is how this script came to contradict its own
+    # output for a fortnight.
+    try:
+        gained = getattr(record, "added_later", None) is not None
+    except AttributeError:
+        gained = False
     print()
-    print("  The record kept its data and did not gain the new attribute.")
+    if gained:
+        print("  The record kept its data, and reads the attribute added")
+        print("  after it was committed -- through the class, which is what")
+        print("  a class-level default is for.")
+    else:
+        print("  The record kept its data and did not gain the new attribute.")
     if not same and not iso:
         print("  Its class is NOT the class the edited source compiles, and")
         print("  `isinstance` does not hold either. This matches what this")

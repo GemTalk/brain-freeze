@@ -2,6 +2,11 @@
 
     gemdb findings/06_decimal_money.py
 
+Last verified against Grail 9a0b0fc (engine 4.0.0.a2), 2026-09-23. Most of
+what this reports as missing or fatal now WORKS -- quantize, //, %, divmod,
+format(spec) and round(Decimal, n). Only statistics.mean/median still end the
+gem. The section labels below are older than the values they head.
+
 Money must not be a float. `0.1 * 3` is not `0.3`, ten dimes are not a dollar,
 and this repo shipped 23 monthly premiums that disagreed with their own annual
 figure by a cent because two libraries rounded the same float differently.

@@ -1,11 +1,11 @@
 # Findings, as scripts you can run
 
-Nine things about running Python inside GemDB that cost real time while
+Ten things about running Python inside GemDB that cost real time while
 building this demo, each reduced to a script that reproduces it on your own
 database rather than asking you to believe a transcript.
 
 [`docs/writing-python-for-gemdb.md`](../docs/writing-python-for-gemdb.md) is
-these nine turned into advice, with the rest of what this repo learned folded
+these turned into advice, with the rest of what this repo learned folded
 in. Read that if you are about to write code; read this if you want to see it
 happen on your own database.
 
@@ -20,18 +20,37 @@ gemdb findings/06_decimal_money.py
 gemdb findings/07_logging_stub.py
 gemdb findings/08_script_imports.py     # run this one twice
 gemdb findings/09_imported_module_sys.py  # run this one twice
+gemdb findings/10_shared_session_state.py # needs the app running; stops it
 ```
 
 `class-identity/` is a fourth-and-a-half: four scripts in two arms, inherited from the demo being retired. See
 [`class-identity/README.md`](class-identity/README.md).
 
-All nine are safe. Only 03 writes to `gemdb.root`, and it removes what it
-wrote; 05 patches the `gemdb` module and puts it back; 08 and 09 write a
-throwaway module under `findings/` and remove it. 09 commits, which is the
-whole point of it, and so leaves one small compiled module in the database.
+All of them leave your data alone. Only 03 writes to `gemdb.root`, and it
+removes what it wrote; 05 patches the `gemdb` module and puts it back; 08 and
+09 write a throwaway module under `findings/` and remove it. 09 commits, which
+is the whole point of it, and so leaves one small compiled module in the
+database. **10 is the exception to "safe": it deliberately stops a running app
+answering.** Nothing in the book changes; restart the app.
 
-Measured on 2026-09-08 against GemStone/S 3.7.5 with Grail `c875e56`. **Two of
-them disagree with the same findings reached independently in
+**Last audited 2026-09-23 against engine 4.0.0.a2 with Grail `9a0b0fc`**, by
+running every one of them. First measured 2026-09-08 against GemStone/S 3.7.5
+with Grail `c875e56` — and the gap between those two lines is the point: three
+findings changed behaviour across it and said nothing, because nothing recorded
+what they had been measured against. Each script now carries its own
+"last verified against" line. When you run one and it disagrees with its prose,
+the prose is what is out of date.
+
+What the 2026-09-23 audit found:
+
+| | Then | Now |
+| --- | --- | --- |
+| 03 class identity | identity lost on edit | **fixed** — identity survives, and the new attribute reads through the class |
+| 05 patched module | dirties the session for good | still true here, **fixed upstream** in Grail `03d51ac3`, which is not in this build |
+| 06 decimal | `quantize`, `//`, `%`, `divmod`, `format(spec)`, `round()` all missing or fatal | **all work**; only `statistics.mean`/`median` on a Decimal still ends the gem |
+| everything else | | unchanged, and re-reproduced |
+
+**Two of them disagree with the same findings reached independently in
 [the parallel demo](https://github.com/GemTalk/GemDB_Code/blob/c9c261ac017fd7831cd29aa71b79da4ee8c1ed9b/docs/demo/brain-freeze/) (pinned at `c9c261a`), which measured Grail `46c2a68`.** Where
 they disagree, the scripts say so and print what *your* Grail does. If yours
 matches theirs rather than ours, that is the more interesting result and the
@@ -47,6 +66,8 @@ Grail team should hear it.
 | `06_decimal_money.py` | `decimal` works; the operators around it do not | **corrects our own older note** |
 | `07_logging_stub.py` | an exception in a view is invisible | shared with their finding 4 |
 | `08_script_imports.py` | what a script can import, and what the database keeps | **the stale half is ours** |
+| `09_imported_module_sys.py` | a path helper works until something commits | **not documented anywhere** |
+| `10_shared_session_state.py` | stdlib state in the repository stops a running app for good | **not documented anywhere** |
 | `class-identity/` | committing after imports is what keeps class identity | **theirs, and it reproduces here** |
 
 ---
@@ -93,7 +114,7 @@ fixing your source fixes what you compile next and nothing you compiled
 before. The same run lists names from scripts that were written, run once and
 deleted.
 
-## 3. Editing a class compiles a different class
+## 3. Editing a class compiles a different class — fixed since first measured
 
 Run it twice — a genuine re-import needs a genuine new session. A record
 committed under the old class keeps its data, raises `AttributeError` for the
@@ -110,8 +131,16 @@ it is not merely tidier but necessary.
 **What CUJ-4 should claim.** Adding `flavour` and `toppings` cost nothing here
 because they were declared on the class *before anything was committed*. That
 is what a schemaless object database buys you, and it is a claim about
-foresight rather than magic. Editing a model live in front of an evaluator
-shows them an `AttributeError`.
+foresight rather than magic.
+
+**Re-measured 2026-09-23 on Grail `9a0b0fc`: this no longer reproduces.** Run 2
+now reports `type(record) is C` and `isinstance(record, C)` both True, and the
+record reads the attribute added after it was committed, through the class.
+Identity survives the edit entirely — which matches neither the original
+measurement here nor the parallel demo's. The finding is kept because the
+advice it produced is still the right advice (find records by index, not by
+`isinstance`; declare optional fields up front), and because a reader on an
+older Grail will still meet it. The script prints what *your* build does.
 
 ## 4. A read-only session is not clean
 
@@ -138,7 +167,7 @@ see which your Grail does.
 
 ---
 
-## 5. A patched module stays dirty, and commit will not clear it
+## 5. A patched module stays dirty, and commit will not clear it — fixed upstream
 
 Found by a test that could not work. The web app was made to `commit()`
 then `refresh()` before each request, and the obvious test wraps both to
@@ -169,9 +198,16 @@ For the product, this wants a better error. "refresh() would discard
 uncommitted changes" is true and points nowhere near a `setattr` three lines
 earlier.
 
+**Fixed upstream, and not in this build.** Grail `03d51ac3` (2026-09-23, "A
+monkey-patch is session state") moves patched methods from persistent
+compilation to transient session methods, naming the same symptom this finding
+reports: *"commit conflicts between patching sessions"*. The installed build is
+`9a0b0fc`, which predates it, so the script still reproduces here. Re-run it
+after the next Grail update; if it stops reproducing, that is why.
+
 ---
 
-## 6. `decimal` works, and everything you reach for next does not
+## 6. `decimal` works, and everything you reach for next does not — mostly landed
 
 The one that changed this repo's mind. Money was float, and the repo carried a
 note saying `Decimal` was unusable on Grail. **That note was stale.**
@@ -198,6 +234,22 @@ prints as `170.1`.
 
 `brainfreeze/money.py` is the answer to all of it, and `gemdb tools/run_db_tests.py`
 running the same suite in both runtimes is what keeps it honest.
+
+**Re-measured 2026-09-23 on Grail `9a0b0fc`: most of this has landed.**
+`quantize`, `as_tuple`, `//`, `%`, `divmod`, `format(d, '.2f')` and
+`round(Decimal, n)` all work now — the last of those was listed here as
+*fatal*, and it returns `Decimal('1.00')`. Upstream `6c13e852` ("Make
+ScaledDecimal's Decimal dunders exact: str/repr, \*, /, \*\*, quantize") is
+the change.
+
+What survives: **`statistics.mean` and `statistics.median` on Decimals still
+end the gem**, with `a Decimal does not understand #'_generality'` and no
+Python exception to catch. That one is unchanged and still the reason to
+compute aggregates by hand.
+
+The script's section labels are older than its measurements, which is exactly
+the trap this whole file is about; read the values it prints, not the headings
+over them, until it is rewritten.
 
 ## 7. Reporting a view's exception is what fails
 
@@ -270,48 +322,66 @@ helper that silently does not help.
 
 ---
 
-## 10. Two sessions compiling the same callable kills the server
+## 10. Stdlib state lives in the repository, and it stops a running app
 
-`gemdb findings/10_compiled_code_conflict.py`, with the app running.
+`gemdb findings/10_shared_session_state.py`, with the app running. It will stop
+the app answering; that is the demonstration.
 
-Grail compiles a function into the database **when it is called**, not when its
-module is imported. The app takes a new view before every request and
-`take_new_view()` has to commit first, so between requests it is always holding
-uncommitted compiled code. Let another session call the same function and
-commit, and the app's next commit is a Write-Write conflict.
+A Flask app serving from inside the database takes a new view before every
+request, and `take_new_view()` has to commit first, so between requests it is
+always holding uncommitted work. Let another session commit and the app's next
+commit can be a Write-Write conflict. It cannot abort out of it — that would
+discard its own compiled handlers — so the work stays uncommitted, the next
+request re-attempts the same commit, and fails identically. **The server does
+not degrade. It stops answering and stays stopped.**
 
-It cannot recover. `gemdb.abort()` would take a new view, and would also throw
-away this session's uncommitted work — which is the app's own compiled
-handlers. So the work stays uncommitted, the next request re-attempts the same
-commit, and fails identically. **The server does not degrade. It stops
-answering, and stays stopped.**
+The interesting part is what they fight over. Catching the `ConflictError` and
+printing `conflicts` names five objects: two `SrePattern`s, a `decimal`
+`Context.flags` dict carrying `Inexact: 1, Rounded: 1`, and that dict's
+collision buckets.
 
-Four measurements separate the cause from its neighbours:
+A GemStone Write-Write needs the **same object**, so both sessions are sharing
+one decimal `Context`. They reach it through Grail's `contextvars`, which ends:
 
-| The other session | The app had | Result |
-| --- | --- | --- |
-| defines a function, commits | — | survives |
-| imports the module, commits | — | survives |
-| calls a function the app never called | — | survives |
-| calls a function the app **has** called | called it | **dead** |
+```python
+_top_context = Context()
+_current_context = _top_context
+```
 
-So it is not "another session committed". It is "both compiled the same
-callable".
+Module-level globals in a committed module. Anything any library puts in a
+`ContextVar` is shared across every session and persists in the repository. And
+this is a money application, so every request rounds something.
 
-Finding 7 then removes the evidence: Flask reports the exception through
-`Logger.error(..., exc_info=True)`, which raises a `TypeError` of its own over
-the top of the `ConflictError`. What reaches the log is the reporting failure,
-not the failure.
+**This finding said something else first, and it was wrong.** It said "two
+sessions compiling the same callable", inferred from black-box experiments:
+calling a function the app had also called killed it, calling one it had not
+did not. The experiments were sound and the inference over them was not. `/`
+formats money but does not *set* `Inexact`/`Rounded`; `/api/stats` aggregates
+and does. "The app had called that function" was really "the app had set those
+flags" — and the old wording pointed a reader at compilation, which is not what
+conflicts.
 
-This is what used to break the acceptance suite. `every_surface_agrees` runs
-the notebook, the notebook calls `analysis.book_summary`, and so does
-`/api/stats` — every feature after it failed with an empty response. The
-harness now checks the app after each script it runs in a session of its own
-and restarts it if that script killed it, which is a tourniquet rather than a
-fix: the bug is unchanged and tracked as #83.
+Finding 7 is why it took a week: Flask reports the exception through
+`Logger.error(..., exc_info=True)`, which raises a `TypeError` over the top of
+the `ConflictError`. The log shows the reporting failure, not the failure.
 
-The demo has no harness. Beat 5 runs the notebook and beat 6 needs the app
-still answering, which is DEMO.md's first trap.
+**The fix belongs in Grail**, which has done this migration three times already
+— `random`, `secrets`, and `re._cache` all hold per-session state now, and
+`docs/Concurrency.md` states the rule. `contextvars` has not had it. A plan
+written to be handed to someone working in that repository is in
+[`docs/grail-contextvars-session-state.md`](../docs/grail-contextvars-session-state.md).
+Confirmed not fixed on Grail `origin/main` at `1f2f5ed1` (2026-09-23). Tracked
+as issue #83.
+
+The acceptance suite works around it — the steps that run something in a
+session of their own check the app afterwards and restart it if it is gone. The
+demo has no harness, which is why DEMO.md's first trap tells the presenter to
+reload the browser after the notebook beat.
+
+Still unexplained: the two `SrePattern` objects. `re._cache` is already a
+`SessionDict` in this build, so the cache is not what conflicted — the pattern
+objects themselves were written by both sessions. Fixing `contextvars` will not
+clear that.
 
 ---
 

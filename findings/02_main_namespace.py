@@ -3,6 +3,8 @@ has ever run, and dispatch is by argument count.
 
     gemdb findings/02_main_namespace.py
 
+Last verified against Grail 9a0b0fc (engine 4.0.0.a2), 2026-09-23.
+
 Read-only apart from what running any script writes anyway.
 
 WHY THIS MATTERS

@@ -2,6 +2,8 @@
 
     gemdb findings/01_shim_missing.py
 
+Last verified against Grail 9a0b0fc (engine 4.0.0.a2), 2026-09-23.
+
 Read-only. Diagnoses, changes nothing.
 
 WHY THIS MATTERS
