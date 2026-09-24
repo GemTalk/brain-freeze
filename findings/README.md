@@ -69,6 +69,7 @@ Grail team should hear it.
 | `09_imported_module_sys.py` | a path helper works until something commits | **not documented anywhere** |
 | `10_shared_session_state.py` | stdlib state in the repository stops a running app for good | **not documented anywhere** |
 | `class-identity/` | committing after imports is what keeps class identity | **theirs, and it reproduces here** |
+| `runtime-reinstall/` | a Python runtime reinstall orphans every committed object | **measured 2026-09-24** |
 
 ---
 
