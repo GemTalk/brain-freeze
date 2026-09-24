@@ -28,7 +28,7 @@ if gemdb is not None:
     import forms
     import routes_html
     import seed
-    from brainfreeze.money import usd
+    from brainfreeze.money import ZERO, usd
 
 
 # The database is shared across these tests and filing a claim mutates it, so
@@ -446,7 +446,11 @@ class TheApp(unittest.TestCase):
         claim = self.newest_claim(policy)
         self.assertIsNotNone(claim)
         self.assertEqual(claim.status, "Approved")
-        self.assertGreater(claim.approved, 0)
+        # ZERO, not 0: `claim.approved` is money, and a Decimal compared
+        # against a bare int raises TypeError in the database (see
+        # tests/test_decimal_comparison.py). This line had never run -- the
+        # suite died of AlmostOutOfStack before reaching it.
+        self.assertGreater(claim.approved, ZERO)
         self.assertGreater(policy.total_paid, before_paid)
 
         # and the decision is a GET, so a refresh cannot re-file it
