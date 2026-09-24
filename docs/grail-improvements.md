@@ -1,5 +1,28 @@
 # What this demo needs from Grail
 
+> **Audited 2026-09-24 against current Grail main, on a scratch stone.** The
+> list below was written 2026-09-08 against `c875e56`; the running build is
+> `9a0b0fc` and main is far past both. Six asks have been met since and nothing
+> recorded it — the same drift that left three `findings/` wrong for a fortnight.
+>
+> | Ask | Now |
+> | --- | --- |
+> | P0.3 `Logger.error` rejects `exc_info=` | **filed and fixed** — GemTalk/Grail#1163, green, unmerged |
+> | P0.4 #849 exceptions carry no `__traceback__` | **done** — `e.__traceback__` is present |
+> | P0.5 `round()` half-up vs banker's | **done** — 0.5→0, 1.5→2, 2.5→2, matches CPython |
+> | P1.6 the Decimal cluster | **done** — `quantize`, `as_tuple`, `//`, `%`, `divmod`, `format(spec)` |
+> | P2.10 `import x.y as m` | **done** |
+> | P2.11 no `strptime` | **done** |
+> | P2.12 #861 `os.remove` and `$` | **still broken** — `OSError: remove cannot address ...` |
+> | P0.1 render throughput | not re-measured |
+> | P0.2 #851 compiling is a repository write | still true (`findings/04`) |
+> | P1.7 module staleness | not re-measured (`findings/08`) |
+> | P1.8 `contextvars` across green threads | not re-measured — `docs/grail-contextvars-session-state.md` is the same area |
+>
+> Re-measure before filing anything from this list. An ask that has already
+> landed reads exactly like one that has not.
+
+
 Grail is the Python implementation that runs inside the database, and every
 surface in this demo is Python, so most of what cost time here is Grail's.
 This is the list, prioritised by whether a surface works, whether the three

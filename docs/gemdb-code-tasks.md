@@ -1,5 +1,16 @@
 # What this demo needs from GemDB Code
 
+> **Not re-audited as of 2026-09-24, and stale in at least two ways.** It is
+> pinned to GemDB `main` at `f61ac65` and a working tree on `feat/mcp-server`,
+> both from 2026-09-08. Its section 4, "Before this repo goes public",
+> describes a gate that is past — the repo is public. Issue #65 (the MCP
+> payload omitting `session-lifetime.sh`) is still open and still blocks the
+> demo's agent beat.
+>
+> Treat every item here as unverified until re-measured, for the reason the
+> sibling list `grail-improvements.md` now carries at its own top.
+
+
 Building all five CUJs against a real database turned up work that belongs in
 the extension rather than in the demo. This is that list, ordered by whether a
 PRD requirement is blocked, satisfiable-but-undocumented, or merely rough.
