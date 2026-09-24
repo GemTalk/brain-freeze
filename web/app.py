@@ -119,6 +119,7 @@ import brainfreeze
 import gemdb
 import routes_api
 import routes_html
+import serving
 from brainfreeze.money import format_usd
 
 
@@ -241,6 +242,7 @@ def create_app():
 
     routes_html.register(app, render, cover_state)
     routes_api.register(app)
+    serving.install_reporting(app)
     return app
 
 
@@ -263,11 +265,18 @@ def serve(host="127.0.0.1", port=5000):
     Committing here makes the window a request wide instead of a startup
     wide. `take_new_view` closes the rest of it.
     """
+    try:
+        serving.preflight(host, port)
+    except serving.PortBusy as busy:
+        print(busy)
+        return 1
+
     app = create_app()
     gemdb.commit()
+    print(serving.banner(host, port))
     app.run(host=host, port=port, threaded=False,
             request_handler=CloseAfterResponseHandler)
 
 
 if __name__ == "__main__":
-    serve()
+    sys.exit(serve())

@@ -38,7 +38,7 @@ if WEB not in sys.path:
 
 #: In dependency order, cheapest first, so a broken foundation fails fast.
 MODULES = ["test_money", "test_brainfreeze", "test_seed", "test_analysis",
-           "test_packaging", "test_api", "test_app"]
+           "test_packaging", "test_serving", "test_api", "test_app"]
 
 
 def load_module_from_file(name, path):
