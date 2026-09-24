@@ -2,7 +2,7 @@
 
 > **Audited 2026-09-24 against current Grail main, on a scratch stone.** The
 > list below was written 2026-09-08 against `c875e56`; the running build is
-> `9a0b0fc` and main is far past both. Six asks have been met since and nothing
+> `9a0b0fc` and main is far past both. Seven asks have been met since and nothing
 > recorded it — the same drift that left three `findings/` wrong for a fortnight.
 >
 > | Ask | Now |
@@ -13,7 +13,7 @@
 > | P1.6 the Decimal cluster | **done** — `quantize`, `as_tuple`, `//`, `%`, `divmod`, `format(spec)` |
 > | P2.10 `import x.y as m` | **done** |
 > | P2.11 no `strptime` | **done** |
-> | P2.12 #861 `os.remove` and `$` | **still broken** — `OSError: remove cannot address ...` |
+> | P2.12 #861 `os.remove` and `$` | **done** — closed 2026-09-15 by #1001; it now REFUSES such a path with an explanatory `OSError` instead of deleting the shell-expanded one. The error I first read as the bug is the fix. |
 > | P0.1 render throughput | not re-measured |
 > | P0.2 #851 compiling is a repository write | still true (`findings/04`) |
 > | P1.7 module staleness | not re-measured (`findings/08`) |
