@@ -855,10 +855,13 @@ an existing claim reads it : AttributeError
 a NEW claim reads it       : None
 ```
 
-**Editing a class compiles a different class.** The instances already in the
-database keep the one they were created under, and are orphaned from the new
-one — same name, same module, different object. A claim created after the edit
-reads the new attribute; the 2,172 committed before it cannot.
+**Editing a class compiles a different class.** *(Superseded 2026-09-24: fixed
+upstream in Grail. On `9a0b0fc` the class is reused and a record committed
+before the edit reads the new attribute -- see `findings/class-identity/`. The
+paragraph below records what was true on `c875e56`.)* The instances already in
+the database keep the one they were created under, and are orphaned from the
+new one — same name, same module, different object. A claim created after the
+edit reads the new attribute; the 2,172 committed before it cannot.
 
 Removing the attribute and re-seeding puts identity back:
 `SAME CLASS OBJECT? True`, same id. Nothing permanent was left behind.

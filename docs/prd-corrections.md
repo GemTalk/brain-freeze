@@ -167,6 +167,21 @@ Note also that `seed.py` **hides** this: re-seeding rebuilds every object from
 the new class, so a source edit appears to have propagated when the objects
 were in fact replaced.
 
+**RESOLVED 2026-09-24, in the parallel demo's favour.** The disagreement above
+was a version difference and Grail settled it: on `9a0b0fc` / engine 4.0.0.a2
+the class is reused, so `type(record) is TheClass`, `isinstance` and the added
+field all hold for a record committed before the edit -- in a new session and
+inside a process that never stopped. Their rule 2 was right on their build and
+is right again on this one; `c875e56` was the outlier.
+
+What stands from this correction: `getattr` is still the way to read a field
+that may predate a record, because an older database is still a database; and
+"no migration needed" is measured for **adding** a field only. Changing or
+removing one is unmeasured. The current measurement lives in
+`findings/class-identity/` and in the README under "What a schema change
+actually costs here"; read the rest of this section as the history of how it
+was found.
+
 ---
 
 ## 6. FR-5.2 — do not ask for `sex`

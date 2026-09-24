@@ -110,14 +110,19 @@ global belonging to an unrelated script. Either scope `__main__` per script or
 say plainly that script entry points must not be named `main`.
 See `findings/02_main_namespace.py`.
 
-**2.3 Editing a class compiles a different class.** A record committed under the
-old class keeps its data, raises `AttributeError` for the new field, and stops
-being `type(record) is TheClass`. CUJ-4 works here only because the optional
-fields were declared before anything was committed — a claim about foresight,
-not magic. Editing a model live in front of an evaluator shows them an
-`AttributeError`. This needs to be a documented command ("re-import this module
-into the database and commit"), not folklore.
-See `findings/03_class_identity.py` and [`prd-corrections.md`](prd-corrections.md) §5.
+**2.3 Redeploying a class needs to be a documented command, not folklore.**
+The reason this was filed has been fixed: editing a class used to compile a
+*different* class, orphaning every record committed under the old one, so
+editing a model live in front of an evaluator showed them an `AttributeError`.
+On Grail `9a0b0fc` the class is reused and existing records read the added
+field, with or without a restart (`findings/class-identity/`).
+
+The ask survives its reason. "Re-import this module into the database and
+commit" is still the step nobody can guess, it is still the difference between
+a demo that lands and one that does not, and `tools/redeploy.py` is still a
+script this repo had to write for itself. What changed is the urgency and the
+wording: it is now a convenience to document rather than a trap to warn about.
+See `findings/class-identity/` and [`prd-corrections.md`](prd-corrections.md) §5.
 
 **2.4 ~~Each MCP tool call is a clean slate.~~ Not on 0.7.0 -- names persist.**
 This was recorded from `main`'s `docs/mcp-server.md`, and measuring it on

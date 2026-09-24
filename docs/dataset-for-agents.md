@@ -221,12 +221,16 @@ claim written before the fields existed has no slot of its own and reads the
 default through the class. Reading them on a seeded claim is safe and gives
 `None` and `()`; 2,172 of them do.
 
-`rule` was added later still, and the difference matters. A default declared
-after records are committed is **not** visible to those records — editing the
-class compiles a different class, and the 2,172 seeded claims keep the one they
-were created under. Read it as `getattr(claim, "rule", None)`, never
-`claim.rule`, and fall back to `adjudication.rule_for_reason(claim.reason)`
-for a claim that predates it. `analysis.denial_rules` does both.
+`rule` was added later still. Read it as `getattr(claim, "rule", None)`, never
+`claim.rule`, and fall back to `adjudication.rule_for_reason(claim.reason)` for
+a claim that predates it. `analysis.denial_rules` does both.
+
+The original reason for that care no longer applies — a default declared after
+records are committed used to be invisible to them, because editing a class
+compiled a different class, and that is fixed upstream
+(`findings/class-identity/`). Keep the `getattr` anyway: a database seeded from
+an older checkout is still a database you may be handed, and the fallback costs
+nothing.
 
 The CSV has a third `claim_status`, `"Not Filed"`, on 2,821 rows. Those rows
 have no claim id, so the loader gives the event `claim=None` and no `Claim`
@@ -357,14 +361,13 @@ claims = {e.claim.claim_id: (p, e) for p in book for e in p.events if e.claim}
 
 **Do not find records by class.** Not `isinstance`, not a class extent, not a
 scan for "every `Policyholder` in the database". Grail compiles a Python class
-into a real GemStone class, and editing the source compiles a *different* class.
-Instances already committed keep the one they were created under: same name,
-same module, different object. Measured on Grail `c875e56`
-(`findings/03_class_identity.py`), a record committed under the old class is no
-longer `type(record) is TheClass` **and no longer `isinstance(record,
-TheClass)` either**. The parallel demo measured `isinstance` still holding on
-Grail `46c2a68`, so this changed between versions and you cannot rely on either
-answer. `type(obj).__name__` survives both, if you need a last resort.
+into a real GemStone class, and whether editing the source reuses that class
+has now answered differently on three Grail versions: `isinstance` held on
+`46c2a68`, failed on `c875e56`, and holds again on `9a0b0fc`, where a record
+committed before an edit keeps its identity and reads the added field
+(`findings/class-identity/`). The current answer is the one you want — and
+code whose correctness turns on it is code whose correctness turns on the
+build. `type(obj).__name__` survived all three, if you need a last resort.
 
 So on this Grail, finding by index is not tidier — it is the only thing that
 keeps working after someone edits `model.py`. Reachability from

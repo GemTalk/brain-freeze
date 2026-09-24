@@ -39,12 +39,15 @@ class Claim:
 
     #: Which rule refused this claim, as a stable identifier, alongside
     #: the sentence in `reason`. Same class-attribute default and the same
-    #: reason for it -- but note what docs/prd-corrections.md measured: a
-    #: default declared *after* records are committed is not visible to those
-    #: records, because editing the class compiles a different one. Claims
-    #: already in the database therefore raise AttributeError on `.rule`, and
-    #: anything reading it across the whole book must go through
-    #: `getattr(claim, "rule", None)`. `analysis.denial_rules` does.
+    #: reason for it.
+    #:
+    #: Read it as `getattr(claim, "rule", None)` across the whole book, the way
+    #: `analysis.denial_rules` does. The original reason for that was that a
+    #: default declared after records were committed could not reach them --
+    #: editing a class compiled a different one -- which is fixed upstream and
+    #: no longer true (findings/class-identity/). The defence stays because a
+    #: database seeded by an older checkout is still out there, and because
+    #: `getattr` costs nothing.
     rule = None
 
     def __init__(self, claim_id, requested, approved, status, reason=None,
@@ -421,14 +424,18 @@ class Book:
     def add_quote(self, a_quote):
         """Keep a quote. It is not a policy and is counted as neither.
 
-        A Book committed before this field existed has no `quotes` slot of its
-        own, and declaring one on the class now would not reach it: editing a
-        class compiles a DIFFERENT class and instances keep the one they were
-        made under (findings/03_class_identity.py, docs/prd-corrections.md
-        correction 5). So this raises AttributeError on an old book rather
-        than pretending, and the fix is the documented pair -- `gemdb
-        redeploy.py` to give the database the new code, then `gemdb tools/seed.py`
-        to rebuild the book under it.
+        A Book committed before this field existed has no `quotes` slot of
+        its own. There is deliberately no class-level `quotes = {}` to cover
+        that: a mutable default on the class would be SHARED by every Book
+        that fell through to it, which is a worse bug than the AttributeError.
+        So this raises on an old book rather than pretending, and the fix is
+        the documented pair -- `gemdb redeploy.py` to give the database the
+        new code, then `gemdb tools/seed.py` to rebuild the book under it.
+
+        (Until Grail bcedc68a a class-level default could not have reached an
+        old book anyway, because editing a class compiled a different one.
+        That is fixed -- see findings/class-identity/ -- so the mutable-default
+        trap is now the only reason this is written the way it is.)
         """
         self.quotes[a_quote.quote_id] = a_quote
         return a_quote

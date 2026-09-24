@@ -337,32 +337,35 @@ sys.modules in this session. Use importlib.reload() to re-execute it, or assign
 a replacement into sys.modules to substitute it.
 ```
 
-`redeploy.py` does not migrate anything. Objects already committed keep the class
-they were made with, which is the next item.
+`redeploy.py` re-executes modules; what that does to records already committed
+under the old class is the next item, and the answer changed.
 
-### 2. Editing a class compiles a *different* class
+### 2. Editing a class reuses the class — on current Grail
 
-A record committed under the old class keeps its data, raises `AttributeError`
-for the new field, and is no longer `type(record) is TheClass`. On `c875e56` it
-is not `isinstance(record, TheClass)` either
-([finding 3](../findings/03_class_identity.py)).
+**This section used to say the opposite, and the reversal is the useful part.**
+On Grail `c875e56` editing a class compiled a *different* class: a record
+committed under the old one kept its data, raised `AttributeError` for the new
+field, and was no longer `type(record) is TheClass` — nor `isinstance(record,
+TheClass)`. That was real, reproducible, and is fixed upstream.
 
-That last part is a version difference, not a settled fact: the parallel demo
-measured `isinstance` continuing to work on Grail `46c2a68`, and both
-measurements are reproducible. If finding 3 prints `isinstance: True` on your
-build, that is the interesting result and the Grail team should hear it.
+Measured on `9a0b0fc` / engine 4.0.0.a2, 2026-09-24, in both shapes:
 
-`type(obj).__name__` survives either way, which is why the right rule is **find
-records by index, not by `isinstance`** — see §5 of
-[`dataset-for-agents.md`](dataset-for-agents.md) for how this demo's indexes are
-shaped.
+| | result |
+| --- | --- |
+| edit, import in a NEW session (`findings/class-identity/migration_{write,read}.py`) | `ISINSTANCE: True`, `TYPE_IS: True`, data intact, reads the added field |
+| edit, `importlib.reload` in the SAME running session (`live_reload.py`) | same four, and the record already in hand reads the field added while the process was up |
 
-The honest version of "add a field to a live database": it costs nothing when the
-attribute was declared on the class *before anything was committed*, because an
-instance with no slot of its own reads the default through the class. That is
-what a schemaless object database buys you, and it is a claim about foresight
-rather than magic. Editing a model live in front of an evaluator shows them an
-`AttributeError`.
+So a redeploy does reach existing records, and it reaches them without a
+restart.
+
+**Two things that have NOT changed.** Adding a field is what was measured;
+changing what one means or removing one is a genuine migration and is not
+measured here. And the rule about lookup stands for its own reasons: **find
+records by index, not by `isinstance`** — `isinstance` has now answered
+differently on three Grail versions, so code that depends on it is code that
+depends on the build. `type(obj).__name__` survived all three. See §5 of
+[`dataset-for-agents.md`](dataset-for-agents.md) for how this demo's indexes
+are shaped.
 
 `seed.py` hides this, which is worth knowing before you conclude that a source
 edit propagated: seeding rebuilds every object from the new class, so no instance
@@ -677,7 +680,7 @@ Said plainly, because guessing here is how a confident wrong answer gets written
 | --- | --- |
 | [`findings/01_shim_missing.py`](../findings/01_shim_missing.py) | whether this database can run a web framework at all |
 | [`findings/02_main_namespace.py`](../findings/02_main_namespace.py) | `__main__` is shared by every script; dispatch is by arity |
-| [`findings/03_class_identity.py`](../findings/03_class_identity.py) | editing a class compiles a different class |
+| [`findings/03_class_identity.py`](../findings/03_class_identity.py) | editing a class USED to compile a different class; fixed upstream |
 | [`findings/04_dirty_session.py`](../findings/04_dirty_session.py) | running any code dirties the session, so `refresh()` refuses |
 | [`findings/05_module_monkeypatch.py`](../findings/05_module_monkeypatch.py) | a patched module dirties the session for good |
 | [`findings/06_decimal_money.py`](../findings/06_decimal_money.py) | `decimal` works; the operators around it do not |

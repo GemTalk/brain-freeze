@@ -120,10 +120,11 @@ the old compiled copy.** `gemdb tools/redeploy.py` is the fix — §4.
 
 **Cost two: `Book.quotes` is a new field on an object that was already
 committed.** The book in `gemdb.root["brainfreeze"]` was built before `quotes`
-existed. A class-level default declared now does not reach it: editing a class
-compiles a *different* class, and instances keep the one they were made under
-(§3). So the fix is `gemdb tools/seed.py`, which rebuilds every object from the new
-code.
+existed. When this was written a class-level default declared afterwards did
+not reach it, so the fix was `gemdb tools/seed.py`, which rebuilds every object
+from the new code. That is no longer required — a default added later does now
+reach records committed before it (§3) — but reseeding remains the shortest
+path when you are changing the shape of the sample data anyway.
 
 The order matters and the app says so out loud. From `app.py`:
 
@@ -228,9 +229,9 @@ slot of its own reads the default through its class, so a claim written before
 the field existed answers `None` rather than raising. That is the entire
 migration, and `forms.py` says so where the questionnaire is defined.
 
-**Why that is the only moment a default is free.** Editing a class and importing
-the edited source compiles a *different* class. Measured, and reproduced by
-[`findings/03_class_identity.py`](../findings/03_class_identity.py):
+**That used to be the ONLY moment a default was free, and it no longer is.**
+On Grail `c875e56` editing a class and importing the edited source compiled a
+*different* class, so a default declared afterwards reached only new objects:
 
 ```
 imported Claim             : <class 'brainfreeze.model.Claim'> 1947956
@@ -240,18 +241,16 @@ an existing claim reads it : AttributeError
 a NEW claim reads it       : None
 ```
 
-Instances committed under the old class keep their data, raise `AttributeError`
-for the new field, and are no longer `type(record) is TheClass`. On Grail
-`c875e56` they are not `isinstance(record, TheClass)` either — which is a
-version difference rather than a settled fact, and finding 3 prints what your
-build does. `type(obj).__name__` survives either way, which is why the rule is
-to find records by index rather than by `isinstance` (§5 of
-[`dataset-for-agents.md`](dataset-for-agents.md)).
+That is fixed upstream. On `9a0b0fc` a record committed before the edit keeps
+its identity and reads the field added after it — in a new session
+(`findings/class-identity/migration_{write,read}.py`) and inside a process that
+never stopped (`live_reload.py`). Declaring the default up front is still the
+tidier story to tell, but it is no longer load-bearing.
 
-So a default declared before the first commit costs nothing and one declared
-afterwards reaches only new objects. `docs/prd-corrections.md` correction 5 is
-the long form of this, and it is the correction to make to anyone who reads
-FR-7.2 as "no migration, ever".
+What is still true: this was measured for **adding** a field. Changing what one
+means or removing one is a real migration and nobody here has measured it.
+`docs/prd-corrections.md` correction 5 is the long form of the original
+finding; read it as history now rather than as current behaviour.
 
 **`seed.py` hides this.** Seeding rebuilds every object from the new class, so
 no instance is left holding the old one and a source edit *looks* like it
@@ -529,7 +528,7 @@ Said plainly, because a confident wrong answer here is expensive.
 
 | | what it shows |
 | --- | --- |
-| [`findings/03_class_identity.py`](../findings/03_class_identity.py) | editing a class compiles a different class; run it twice |
+| [`findings/03_class_identity.py`](../findings/03_class_identity.py) | editing a class USED to compile a different class; fixed upstream, run it twice |
 | [`findings/08_script_imports.py`](../findings/08_script_imports.py) | the database keeps a compiled module and serves it forever; the commit is the mechanism |
 | [`findings/02_main_namespace.py`](../findings/02_main_namespace.py) | `__main__` is shared by every script; dispatch is by arity |
 | [`findings/class-identity/`](../findings/class-identity/README.md) | committing after imports is what keeps class identity |

@@ -60,7 +60,7 @@ Grail team should hear it.
 | --- | --- | --- |
 | `01_shim_missing.py` | whether this database can run a web framework at all | **not documented anywhere** |
 | `02_main_namespace.py` | `__main__` is shared by every script, dispatch is by arity | sharper form of their finding 5 |
-| `03_class_identity.py` | editing a class compiles a different class | **contradicts their rule 2** |
+| `03_class_identity.py` | editing a class USED to compile a different class | fixed upstream; their rule 2 was right |
 | `04_dirty_session.py` | running any code dirties the session, so `refresh()` refuses | **partly contradicts their rule 4** |
 | `05_module_monkeypatch.py` | a patched module dirties the session for good | **not documented anywhere** |
 | `06_decimal_money.py` | `decimal` works; the operators around it do not | **corrects our own older note** |

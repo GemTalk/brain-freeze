@@ -618,31 +618,58 @@ class Claim:
     toppings = ()
 ```
 
-**And the honest version of that claim matters.** It works because those
-defaults were on the class *before anything was committed*. A claim written
-without them has no slot of its own and reads the default through the class.
+**Part of why that works is foresight**, and it is worth separating from the
+rest: those defaults were on the class *before anything was committed*. A claim
+written without them has no slot of its own and reads the default through the
+class. That much never needed a migration in any object database.
 
-Adding a field *later* is a different story, and it is worth demonstrating
-because it is what a sceptic will try. Add an attribute to `Claim` now, import
-the edited source and commit, and:
+### What a schema change actually costs here
+
+The question a sceptic asks next is what happens when you add a field *later*,
+to a class already holding data. Three costs, each measured rather than
+asserted, all on Grail `9a0b0fc` / engine 4.0.0.a2 as of 2026-09-24.
+
+**Adding a field to a class already in use: nothing.** Edit the class, import
+it, commit. Records committed under the old definition keep their identity,
+keep their data, and read the new attribute:
 
 ```console
-imported Claim             : <class 'brainfreeze.model.Claim'> 1947956
-persisted claim's class    : <class 'brainfreeze.model.Claim'>  309322
-SAME CLASS OBJECT?         : False
-an existing claim reads it : AttributeError
-a NEW claim reads it       : None
+ISINSTANCE   : True
+TYPE_IS      : True
+DATA_INTACT  : True
+ADDED_LATER  : added after the record was committed
 ```
 
-Editing a class compiles a *different* class. Instances already committed keep
-the one they were created under. So the demo's line is not "edit the model and
-the database just knows" — it is that a schemaless object database lets you
-declare optional fields up front and pay nothing for them later. That is a
-claim about foresight, and it is true.
+**Doing it without a restart: also nothing.** The same holds inside a process
+that is already up and already holding the record — `importlib.reload` and a
+commit, which is what `tools/redeploy.py` does:
 
-See [finding 5](#5-editing-a-class-compiles-a-different-class) and, for the
-same behaviour reached from a model with no class-level defaults, finding 3 in
-the companion document.
+```console
+RECORD ALREADY HELD:
+  type(record) is the reloaded class : True
+  isinstance(record, reloaded)       : True
+  data intact                        : True
+  reads the field added live         : 'added while the process was running'
+```
+
+**Changing or removing a field: not measured, so not claimed.** Everything
+above is about *adding*. Changing what a field means, dropping one, or
+anything that needs the 900 committed records rewritten is a real migration
+and this repo has not measured it. "Adding is free" is not "migration is
+free", and the demo says so out loud rather than letting an evaluator find the
+gap.
+
+Reproduce all of it on your own database:
+`findings/class-identity/migration_write.py` then `migration_read.py` for the
+two-session case, and `findings/class-identity/live_reload.py`, which needs
+only one run.
+
+**This used to be false, and the history is the point.** On Grail `c875e56`
+editing a class compiled a *different* class: `type(record) is TheClass` went
+False, `isinstance` went False, and an existing record raised `AttributeError`
+for the new field. That is what [finding
+5](#5-editing-a-class-compiles-a-different-class) recorded, and the fix landed
+upstream rather than here.
 
 ---
 
@@ -721,12 +748,18 @@ notebook, and why the recipe is `commit()` then `refresh()` rather than
 
 *(Independently found in the companion document, finding 2.)*
 
-### 5. Editing a class compiles a different class
+### 5. Editing a class compiles a different class — fixed upstream
 
-Covered under [CUJ-4](#cuj-4--add-a-field-to-a-live-database). The trap is that
-`seed.py` hides it: seeding rebuilds every object from the new class, so no
-instance is left holding the old one and a source edit *looks* like it
-propagated. It did not; the objects were replaced.
+**No longer reproduces**, as of Grail `9a0b0fc`; see [what a schema change
+actually costs](#what-a-schema-change-actually-costs-here) for the current
+measurement. Kept because the trap it describes is still worth knowing and
+because a reader on an older engine will meet it.
+
+On Grail `c875e56`, editing a class compiled a *different* class and instances
+already committed kept the one they were created under. The trap was that
+`seed.py` hid it: seeding rebuilds every object from the new class, so no
+instance was left holding the old one and a source edit *looked* like it
+propagated. It had not; the objects had been replaced.
 
 ### And one about the sample data
 
