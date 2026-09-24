@@ -264,8 +264,15 @@ as the crash behind finding 6: in each one, the code that exists to explain a
 problem is the code that breaks. It is the single most consistent thing this
 repo has to say about Grail.
 
-Two lines fix it, on `fix/logging-exc-info` in the Grail repository, unmerged.
-`LoggerAdapter.error` in the same file already takes `**kwargs`.
+The fix is written: branch `fix/logging-exc-info` in the Grail repository, one
+commit, unmerged since 2026-09-08 and 907 commits behind their main — though it
+merges cleanly. It is more than the two lines this file used to claim: the
+record carries the traceback, the formatter renders it, and every `Logger`
+method gains `**kwargs`, with tests. `LoggerAdapter.error` in the same file
+already took `**kwargs`, so the module currently disagrees with itself.
+
+A plan to land it is in
+[`docs/grail-logging-exc-info.md`](../docs/grail-logging-exc-info.md).
 
 ## 8. A script's neighbours, and modules the database will not let go of
 
@@ -319,6 +326,13 @@ then execute tests that import from it.
 
 **Put the path lines in each entry point.** Duplication is cheaper than a
 helper that silently does not help.
+
+**It is not only `sys`** (measured 2026-09-24). A deployed module whose body is
+`import sys, os, json, re` hands a fresh session a different `sys`, `os` and
+`json` than the caller has — but the same `re`. So a deployed module's bindings
+look to be resolved once, at commit, and to keep the deploying session's
+instances; `re` behaving differently is the thread to pull. A fix plan is in
+[`docs/grail-deployed-module-bindings.md`](../docs/grail-deployed-module-bindings.md).
 
 ---
 

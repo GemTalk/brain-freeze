@@ -39,6 +39,21 @@ being served stale; this is the same machinery producing a module that is not
 stale at all -- its source is re-read, its constants are correct -- and is
 still not the module you wrote.
 
+IT IS NOT ONLY `sys` (measured 2026-09-24)
+
+A deployed module whose whole body is `import sys, os, json, re`, imported by a
+fresh session:
+
+    sys    helper's is caller's : False
+    os     helper's is caller's : False
+    json   helper's is caller's : False
+    re     helper's is caller's : True
+
+So this is not a quirk of `sys`. A deployed module's bindings appear to be
+resolved once, when it is committed, and to keep whatever instances the
+deploying session had. `re` behaving differently is the thread to pull. A fix
+plan for the Grail side is in docs/grail-deployed-module-bindings.md.
+
 WHAT TO DO INSTEAD
 
 Put the three lines in each entry point. The duplication is cheaper than a
