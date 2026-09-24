@@ -468,10 +468,11 @@ Three more, smaller:
 
 ## Web apps
 
-**Before any of that: a working server prints nothing.** No startup banner, no
-"Running on http://127.0.0.1:5000", no access log, not at startup and not after
-it answers a request. Measured: an app serving correctly wrote **zero bytes**
-to its terminal over thirty-five seconds and a successful request.
+**Before any of that: a server here prints nothing unless you make it.** No
+startup banner, no "Running on http://127.0.0.1:5000", no access log, not at
+startup and not after it answers a request. Measured: an app serving correctly
+wrote **zero bytes** to its terminal over thirty-five seconds and a successful
+request.
 
 **It is not the logging stub, and the obvious guess is wrong.** `logging`
 works — configured the way Werkzeug configures it, `logger.info(...)` prints.
@@ -486,8 +487,26 @@ is a different failure with a different cause.
 
 That matters more than it sounds, because it makes a healthy app and a hung one
 identical from the outside, and the first instinct is to read the silence as a
-failure. It is not something to fix — the stub is Grail's, not yours — it is
-something to know. Ask the server instead of watching it:
+failure. This repo duly ran two apps at once, one of them a corpse holding the
+port, and then edited the port number in tracked source to dodge it.
+
+**Grail's half is not yours to fix; your half is.** The hooks are gone, but
+`print` works, so an app can say these things for itself — and should, because
+a newcomer cannot tell an idle terminal from a broken one. `web/serving.py`
+here does three things, and where each hangs off is the whole lesson:
+
+- **The banner** is printed by `serve()` before the socket opens. Nothing
+  clever; the only reason it did not exist is that nobody wrote it.
+- **The access log** hangs off Flask's `@app.after_request`, **not** the
+  request handler's `log_request`. Overriding `log_request` looks right and is
+  dead code: Grail defines it and never calls it.
+- **A view's traceback** is `print`ed from an `@app.errorhandler(Exception)`,
+  never logged, because `logging` is the thing that breaks (below). That
+  handler must **return** an `HTTPException` rather than re-raise it — see
+  *Debugging a view*.
+
+Ask the server as well as watching it, because a banner proves it started and
+not that it is still answering:
 
 ```sh
 curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5000/

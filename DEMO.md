@@ -70,7 +70,9 @@ looking at yesterday's rehearsal, and the ids below will be wrong.
 gemdb web/app.py
 ```
 
-**A working server prints nothing.** Silence is success. In another terminal:
+It prints a banner naming the address and how to stop it, and then a line per
+request as they arrive. **If it prints nothing, it has not started.** In
+another terminal:
 
 ```sh
 curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5000/

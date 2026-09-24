@@ -96,3 +96,28 @@ def _visible(context):
         return context.page.inner_text("body")
     except Exception:
         return "(no body)"
+
+
+@then('the app said it was running, and logged that request')
+def the_app_spoke_for_itself(context):
+    """The banner and the access log, read out of the run's own evidence.
+
+    A server here prints nothing unless it is made to -- Grail's werkzeug
+    defines `log_request` and never calls it -- and a silent app is
+    indistinguishable from a hung one, which is how this repo once ran two at
+    once. `web/serving.py` prints the banner before the socket opens and hangs
+    the access log off Flask's after_request. If that ever regresses, it
+    regresses quietly, so it is asserted here rather than trusted.
+    """
+    import os
+    from environment import ARTIFACTS, HOST, PORT
+    context.app_log.flush()
+    with open(os.path.join(ARTIFACTS, "app.log"), encoding="utf-8") as handle:
+        said = handle.read()
+    assert "Brain Freeze Insurance is running" in said, (
+        "the app printed no banner:\n%s" % said[:600])
+    assert "http://%s:%d/" % (HOST, PORT) in said, (
+        "the banner does not name the address to open:\n%s" % said[:600])
+    assert "GET" in said, (
+        "no request was logged, so the access log is not reaching the "
+        "terminal:\n%s" % said[:600])

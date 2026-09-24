@@ -1,5 +1,21 @@
 # How the app runs
 
+> **Built 2026-09-24 in `ba6ec76`.** `web/serving.py`, wired into `serve()`,
+> with 16 tests of its own and an acceptance assertion that the banner and the
+> access log reach `artifacts/app.log`.
+>
+> Two departures from what is written below, both for one reason. `werkzeug`
+> and `flask` are imported inside the two functions that need them, so
+> `port_holder`, `preflight` and `banner` stay importable under CPython and
+> their twelve tests run in `python3 -m unittest discover` rather than behind
+> `gemdb`. `CloseAfterResponseHandler` therefore stays in `app.py` instead of
+> moving.
+>
+> The documentation §5 says this invalidates is updated in the same commit:
+> README, DEMO.md and `docs/writing-python-for-gemdb.md` no longer say a
+> working server prints nothing, because it no longer does.
+
+
 Design, 2026-09-17.
 
 The app is a sample built to be demoed, and it has to be runnable by someone

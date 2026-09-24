@@ -240,16 +240,35 @@ exist to catch the app and the dataset drifting apart.
 gemdb web/app.py
 ```
 
-**It will print nothing at all, and that is what success looks like.** No
-startup banner, no "Running on http://127.0.0.1:5000", no access log — not
-while it starts, and not after it serves a request.
+**It says so, and then it says what it is doing:**
 
-That is not the logging stub, which works: Grail ships its **own**
-`werkzeug.serving`, rebuilt on the stdlib `http.server` stack, and in it
-`log_request` is defined as `pass` and there is no banner function at all.
-Measured with `run_simple` on its own, no Flask and no handler of ours: zero
-bytes. A healthy app is a process that sits there saying nothing, which is
-indistinguishable from a hang until you ask it something:
+```
+Brain Freeze Insurance is running.
+
+  Open:  http://127.0.0.1:5000/
+  Stop:  Ctrl-C
+
+Requests appear below as they arrive.
+
+GET   /                                  200
+GET   /api/stats                         200
+GET   /policies/BF-999999                404
+```
+
+It did not always. Grail ships its **own** `werkzeug.serving`, rebuilt on the
+stdlib `http.server` stack, in which `log_request` is defined as `pass` and
+there is no banner function at all — measured with `run_simple` on its own, no
+Flask and no handler of ours: zero bytes. So a healthy app was a process
+sitting there saying nothing, indistinguishable from a hang, and this repo
+duly ran two of them at once with one of them a corpse holding the port.
+
+`web/serving.py` is the answer. The banner is printed before the socket opens,
+and the access log hangs off Flask's `after_request` rather than the handler's
+`log_request`, because that hook is never called here. If a view raises, the
+traceback is **printed** — `logging` is the thing that breaks
+([finding 7](#7-an-exception-in-a-view-is-invisible)).
+
+You can still ask it rather than watch it, and it is still worth doing:
 
 ```sh
 curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5000/    # 200

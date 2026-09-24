@@ -13,3 +13,4 @@ Feature: The demo is up
     Then the page says how many policyholders there are
     And I see "BF-100000"
     And I capture "the customer picker"
+    And the app said it was running, and logged that request
