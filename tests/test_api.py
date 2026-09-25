@@ -43,19 +43,30 @@ from datetime import date
 def ast_is_usable():
     """Whether this runtime's `ast` can be walked the way CPython's can.
 
-    Grail ships an `ast` whose `parse` answers a `_ParsedExpr` with no `body`,
-    so every test here that reads `app.py`'s syntax tree raises
-    `AttributeError` inside the database. Those tests are about the shape of
-    the source and lose nothing by running only under CPython.
+    Grail ships an `ast` that cannot be walked the way CPython's can, so every
+    test here that reads `app.py`'s syntax tree fails inside the database.
+    Those tests are about the shape of the source and lose nothing by running
+    only under CPython.
 
     What must NOT be skipped is the money-on-the-wire half. `wire_usd` does
     Decimal arithmetic, and Decimal is exactly where the two runtimes differ --
     `round(Decimal, 2)` ends the session, `int(Decimal)` floors here and
     truncates there. Serialisation that is only ever checked under CPython is
     checked in the wrong place.
+
+    THE PROBE DOES WHAT THE TESTS DO, rather than checking one attribute.
+    `hasattr(tree, "body")` was enough on Grail 9a0b0fc, where `parse`
+    answered an opaque `_ParsedExpr` with no tree at all. Grail main gives
+    that object a `body` -- an improvement -- while `ast.dump` is still absent
+    and a walk still yields no nodes. The shallow probe therefore answered
+    "usable" on main and five tests ran into a wall instead of skipping.
     """
     try:
-        return hasattr(ast.parse("x = 1"), "body")
+        tree = ast.parse("x = 1")
+        if not getattr(tree, "body", None):
+            return False
+        ast.dump(tree)
+        return any(isinstance(node, ast.Assign) for node in ast.walk(tree))
     except Exception:
         return False
 

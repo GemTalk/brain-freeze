@@ -45,6 +45,12 @@ MODULES = ["test_money", "test_brainfreeze", "test_seed", "test_analysis",
 def load_module_from_file(name, path):
     module = types.ModuleType(name)
     module.__file__ = path
+    #: Grail reads `__cached__` off the module owning the globals it is
+    #: executing into, and `types.ModuleType` does not set one -- so on Grail
+    #: main every module here died with `'module' object has no attribute
+    #: '__cached__'` before a line of it ran. Harmless where it is not needed;
+    #: CPython and Grail 9a0b0fc both ignore it.
+    module.__cached__ = None
     with open(path) as handle:
         source = handle.read()
     exec(compile(source, path, "exec"), module.__dict__)

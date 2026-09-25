@@ -52,10 +52,14 @@ def code_cells():
 def split_off_last_expression(source):
     """(statements, trailing expression or None), as SOURCE TEXT.
 
-    NOT with `ast`. Grail's `ast.parse` does not return a tree at all -- it
-    answers an opaque `_ParsedExpr` whose only attributes are `mode` and
-    `source`, so there is no `body` to walk and no way to rebuild a node.
-    (The syntax-tree tests in `tests/` are all CPython-side for this reason.)
+    NOT with `ast`. On Grail 9a0b0fc -- the build GemDB Code 1.5.0 ships --
+    `ast.parse` does not return a tree at all: it answers an opaque
+    `_ParsedExpr` whose only attributes are `mode` and `source`, so there is
+    no `body` to walk and no way to rebuild a node. Grail main has since given
+    that object a `body`, but `ast.dump` is still absent and a walk still
+    yields no nodes, so neither build can do this with `ast`. (The syntax-tree
+    tests in `tests/` are all CPython-side for the same reason; their probe is
+    `tests/test_api.py:ast_is_usable`.)
 
     So the split is done the one way both runtimes agree on: find where the
     last top-level statement begins, and ask the compiler whether the text
