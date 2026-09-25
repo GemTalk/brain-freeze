@@ -8,7 +8,23 @@ This script is the second session. It needs the app running, and **it will
 stop the app from answering** -- that is what it demonstrates. Nothing in the
 book is written or changed; restart the app and everything is as it was.
 
-Last verified against Grail 9a0b0fc (engine 4.0.0.a2), 2026-09-23.
+Last reproduced on Grail 9a0b0fc (engine 4.0.0.a2), 2026-09-23 -- the build
+GemDB Code 1.5.0 ships, so this is what a stock install does.
+
+FIXED UPSTREAM in Grail #1176, merged 2026-09-25. Verified on `2264a9ae`:
+this script runs clean and the app keeps answering, and so does the notebook
+committing under a live app. Which build you are on:
+
+    gemdb -c 'import contextvars; print(hasattr(contextvars, "_state"))'
+
+True means fixed. The script detects it either way and says which it saw, so
+running it on a fixed build is not a wasted trip -- it is the check.
+
+One wrinkle worth knowing on a freshly installed Grail: the FIRST call of any
+module-level function after an install writes that module instance, so the
+first run after an upgrade can still conflict on `_pydecimal` itself rather
+than on anything here. Grail#1176 documents it; one warm-up commit clears it,
+which is what `gemdb web/app.py` plus a single request already does.
 
 WHY THIS MATTERS
 

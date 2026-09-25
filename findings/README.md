@@ -67,7 +67,7 @@ Grail team should hear it.
 | `07_logging_stub.py` | an exception in a view is invisible | shared with their finding 4 |
 | `08_script_imports.py` | what a script can import, and what the database keeps | **the stale half is ours** |
 | `09_imported_module_sys.py` | a path helper works until something commits | **not documented anywhere** |
-| `10_shared_session_state.py` | stdlib state in the repository stops a running app for good | **not documented anywhere** |
+| `10_shared_session_state.py` | stdlib state in the repository stops a running app for good | **fixed upstream** (Grail#1176), live on the shipped build |
 | `class-identity/` | committing after imports is what keeps class identity | **theirs, and it reproduces here** |
 | `runtime-reinstall/` | a Python runtime reinstall orphans every committed object | **measured 2026-09-24** |
 
@@ -342,10 +342,18 @@ the seam it closes.
 
 ---
 
-## 10. Stdlib state lives in the repository, and it stops a running app
+## 10. Stdlib state lives in the repository, and it stops a running app — fixed upstream
 
-`gemdb findings/10_shared_session_state.py`, with the app running. It will stop
-the app answering; that is the demonstration.
+`gemdb findings/10_shared_session_state.py`, with the app running. On the build
+GemDB Code ships it will stop the app answering; that is the demonstration.
+
+**Fixed in Grail [#1176](https://github.com/GemTalk/Grail/pull/1176)**, merged
+2026-09-25, which moved the current `contextvars` Context into `SessionDict`
+and stopped a committed `SrePattern` writing its recompiled pointer back into
+itself. Verified on `2264a9ae`: this script runs clean and the app survives.
+GemDB Code 1.5.0 bundles `9a0b0fc` from 17 September and does not have it, so
+on a stock install the finding still reproduces. The script says which it saw
+rather than assuming.
 
 A Flask app serving from inside the database takes a new view before every
 request, and `take_new_view()` has to commit first, so between requests it is

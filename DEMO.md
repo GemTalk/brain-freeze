@@ -499,7 +499,7 @@ anyone to believe a transcript.
 
 ## The three traps
 
-### The notebook's commit can stop the app answering
+### The notebook's commit can stop the app answering — on the Grail GemDB ships
 
 Move 2 of beat 5 runs `gemdb.commit()`. If this session and the app have both
 *called* the same function -- and `len(book)` alone is enough -- that commit
@@ -508,8 +508,18 @@ request meets a Write-Write conflict it cannot recover from. It does not slow
 down or return an error. It stops answering, and stays stopped, with nothing
 useful in its terminal (findings 7 and 10).
 
-Beat 6 needs the app. **So after Move 2, before you move on, reload the
-browser.** If the page comes back, carry on. If it hangs, the app is gone:
+**Check which build you are on before you decide whether to worry.** The cause
+was fixed in Grail [#1176](https://github.com/GemTalk/Grail/pull/1176), merged
+2026-09-25 — and GemDB Code 1.5.0 bundles Grail `9a0b0fc` from 17 September,
+which does not have it. So on a stock install the trap is live.
+
+```sh
+gemdb -c 'import contextvars; print("fixed" if hasattr(contextvars, "_state") else "TRAP IS LIVE")'
+```
+
+**If it says TRAP IS LIVE**, beat 6 needs the app, so after Move 2 and before
+you move on, reload the browser. If the page comes back, carry on. If it
+hangs, the app is gone:
 
 ```sh
 gemdb web/app.py                                          # restart it
@@ -517,8 +527,15 @@ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5000/   # warm it
 ```
 
 That is thirty seconds of dead air, which is why you check during the beat
-rather than discovering it in front of the lapse. `gemdb findings/10_shared_session_state.py`
-reproduces it deliberately if you want to see it once before you meet it.
+rather than discovering it in front of the lapse.
+
+**If it says fixed**, the reload is no longer a save, but do it anyway: it
+costs two seconds and it is the one moment in the demo where the app's health
+is cheap to confirm. Measured on Grail `2264a9ae`: the notebook runs all
+twelve cells, commits, and the app keeps answering.
+
+`gemdb findings/10_shared_session_state.py` reproduces it deliberately on a
+build that still has it, and reports the app surviving on one that does not.
 
 ### `abort()` is not your undo
 
