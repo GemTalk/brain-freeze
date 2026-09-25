@@ -368,6 +368,43 @@ reachable from Python.
 `redeploy.py` re-executes modules; what that does to records already committed
 under the old class is the next item, and the answer changed.
 
+### 1b. `exec` into a module you built yourself needs `__cached__`
+
+Building a module and executing source into it is the ordinary way to load
+code into a namespace of your own — a plugin loader, a test collector, a REPL.
+On Grail **main** it fails:
+
+```python
+m = types.ModuleType("probe")
+exec(compile(src, path, "exec"), m.__dict__)
+# AttributeError: 'module' object has no attribute '__cached__'
+```
+
+`exec` into a plain `{}` is fine. Only a module's `__dict__` trips it, and
+`9a0b0fc` does not.
+
+**The absence is deliberate and is not the bug.** In CPython `__cached__` is
+the path of the module's compiled *bytecode file*; Grail has no such file, and
+its own `ModuleCachedAbsentTestCase` pins the decision not to invent one —
+"a wrong answer wearing a familiar name". The accessor even records how to read
+it safely: `getattr(m, '__cached__', None)`. Something on the `exec` path does
+not, which is what to report.
+
+**The workaround answers the question instead of dodging it:**
+
+```python
+module = types.ModuleType(name)
+module.__file__ = path
+module.__cached__ = None        # no cached bytecode, which is simply true
+exec(compile(source, path, "exec"), module.__dict__)
+```
+
+`None` is what CPython puts there for a module with no cached bytecode, which
+is exactly true of one you just compiled from source. It is harmless on builds
+that never ask. `tools/run_db_tests.py` does this, and
+`tests/test_tooling.py` pins it — the line looks removable, and the suite that
+would catch its removal only runs where a database is.
+
 ### 2. Editing a class reuses the class — on current Grail
 
 **This section used to say the opposite, and the reversal is the useful part.**

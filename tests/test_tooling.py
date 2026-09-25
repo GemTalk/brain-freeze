@@ -15,8 +15,10 @@ CPython is whether their bookkeeping still matches the repo.
 """
 
 import ast
+import importlib.util
 import os
 import subprocess
+import tempfile
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -86,6 +88,49 @@ class RedeployKnowsEveryModule(unittest.TestCase):
         self.assertEqual(order[0], "brainfreeze.money",
                          "money has no dependencies inside the package and "
                          "everything that holds money depends on it")
+
+
+class TheModulesTheRunnerBuilds(unittest.TestCase):
+    """`run_db_tests.py` builds a module per test file and execs source into it.
+
+    Grail leaves `module.__cached__` absent on purpose -- in CPython it names
+    the compiled BYTECODE FILE, and Grail has no such file -- but a reader on
+    its `exec` path looks the attribute up without a default, so executing
+    into a module's `__dict__` raises `'module' object has no attribute
+    '__cached__'` and every module dies before a line of it runs.
+
+    The runner answers the question rather than dodging it: `None` is what
+    CPython puts there for a module with no cached bytecode, which is true of
+    every module built here. This pins that, because the line looks removable
+    and the suite that would catch its removal only runs where a database is.
+    """
+
+    def runner(self):
+        """Import `run_db_tests.py` itself. It touches no `gemdb` at module
+        scope, unlike the siblings `module_constant` exists to avoid."""
+        spec = importlib.util.spec_from_file_location(
+            "run_db_tests_under_test", os.path.join(TOOLS, "run_db_tests.py"))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_a_built_module_answers_dunder_cached(self):
+        runner = self.runner()
+        with tempfile.NamedTemporaryFile(
+                "w", suffix=".py", delete=False, encoding="utf-8") as handle:
+            handle.write("VALUE = 1\n")
+            path = handle.name
+        try:
+            module = runner.load_module_from_file("probe_cached", path)
+        finally:
+            os.remove(path)
+        self.assertEqual(module.VALUE, 1)
+        self.assertIsNone(
+            getattr(module, "__cached__", "absent"),
+            "run_db_tests.load_module_from_file must set __cached__ = None; "
+            "without it every in-database module fails on Grail main before "
+            "it runs. See the comment on that line.",
+        )
 
 
 class TheDatabaseRunnerRunsEverything(unittest.TestCase):

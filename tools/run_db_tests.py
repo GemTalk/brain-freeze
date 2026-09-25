@@ -45,11 +45,22 @@ MODULES = ["test_money", "test_brainfreeze", "test_seed", "test_analysis",
 def load_module_from_file(name, path):
     module = types.ModuleType(name)
     module.__file__ = path
-    #: Grail reads `__cached__` off the module owning the globals it is
-    #: executing into, and `types.ModuleType` does not set one -- so on Grail
-    #: main every module here died with `'module' object has no attribute
-    #: '__cached__'` before a line of it ran. Harmless where it is not needed;
-    #: CPython and Grail 9a0b0fc both ignore it.
+    #: WHY THIS LINE IS HERE, AND WHY `None` IS THE HONEST VALUE.
+    #:
+    #: `exec`ing into a module's `__dict__` raises `'module' object has no
+    #: attribute '__cached__'` on Grail main -- every module here died before
+    #: a line of it ran. Grail leaves `__cached__` absent DELIBERATELY: in
+    #: CPython it is the path of the module's compiled BYTECODE FILE, Grail
+    #: has no such file, and inventing one would be, in the words of its own
+    #: `ModuleCachedAbsentTestCase`, "a wrong answer wearing a familiar name".
+    #: That decision is right and is not what breaks. What breaks is a reader
+    #: on the `exec` path that spells the lookup without a default, against
+    #: guidance written on the accessor it calls.
+    #:
+    #: So we answer it rather than work around it. `None` is what CPython puts
+    #: there for a module with no cached bytecode, which is exactly true of
+    #: every module this function builds -- it is compiled from source, here,
+    #: now. Harmless on builds that never ask.
     module.__cached__ = None
     with open(path) as handle:
         source = handle.read()
