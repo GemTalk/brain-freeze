@@ -1,15 +1,22 @@
 # What this demo needs from GemDB Code
 
-> **Not re-audited as of 2026-09-24, and stale in at least two ways.** It is
-> pinned to GemDB `main` at `f61ac65` and a working tree on `feat/mcp-server`,
-> both from 2026-09-08. Its section 4, "Before this repo goes public",
-> describes a gate that is past — the repo is public, and #42 closed it as
-> overtaken by events on 2026-09-24. Issue #65 (the MCP payload omitting
-> `session-lifetime.sh`) is **fixed**, upstream in GemDB_Code `6653ca4`, and
-> no longer blocks the demo's agent beat.
+> **Partially re-audited 2026-09-25.** The list was written 2026-09-08 against
+> GemDB `main` at `f61ac65` and a working tree on `feat/mcp-server`. Items
+> settled since are marked in place; everything unmarked is **still pinned to
+> September 8 and unverified**, for the reason `grail-improvements.md` carries
+> at its own top: an ask that has already landed reads exactly like one that
+> has not.
 >
-> Treat every item here as unverified until re-measured, for the reason the
-> sibling list `grail-improvements.md` now carries at its own top.
+> | Settled since | |
+> | --- | --- |
+> | §1.4 MCP off by default | premise changed again — see the item |
+> | §2.3 redeploy as a command | reason fixed upstream, ask survives |
+> | §3.4 exception in a view is invisible | fixed upstream, not yet shipped |
+> | §4 before this repo goes public | gate past; #42 closed 2026-09-24 |
+> | #65 MCP payload omits `session-lifetime.sh` | fixed in GemDB_Code `6653ca4` |
+>
+> Not re-measured: §1.1, §1.2, §1.3, §2.1, §2.2, §2.4, §2.5, §2.6, §3.1,
+> §3.2, §3.3, §3.5.
 
 
 Building all five CUJs against a real database turned up work that belongs in
@@ -88,8 +95,18 @@ limit and refused even plain `topaz` -- were answered with two sessions and
 four refusals carrying JSON-RPC `-32001` and an explanation. The stone never
 went above four gems. `stop-server.sh` then released all of them and the port.
 
-So the default is now resting on a retired premise, and the setting text
-explains a defect that is fixed. Re-decide it. Note the cap of 3 is *itself* a
+So the default was resting on a retired premise, and the setting text
+explained a defect that is fixed. Re-decide it.
+
+**Re-audited 2026-09-25: the premise changed rather than disappeared.** GemDB
+Code 1.5.0's setting text no longer cites the worker cap. It now says the
+server is off "while a session-accounting limitation is fixed upstream" --
+each connected client gets its own session, and one is not released until the
+client disconnects cleanly or 30 minutes pass, so a client that crashes and
+reconnects can exhaust the budget. That is a different and live reason, so the
+ask is no longer "the premise expired" but "say how close this is to done".
+What has not changed is the consequence for the demo: beat 8 needs a setting
+change a newcomer will not know to make. Note the cap of 3 is *itself* a
 constraint worth stating in the demo, because the router plus three workers is
 four of a ten-session budget the notebook and the app also draw on.
 
@@ -174,6 +191,13 @@ the point" is a thing a demo wants to say.
 `Logger.error(..., exc_info=...)`; Grail's `logging` is a hand-written stub whose
 `error` takes no keyword arguments, so the handler itself raises and the real
 exception is somewhere further up the log. Two-line fix, upstream.
+
+**Fixed upstream 2026-09-24** — GemTalk/Grail#1163, merged as `b8bdeb76`.
+**Not shipped**: GemDB Code bundles Grail `9a0b0fc` from 17 September, which
+predates it, so a stock install still hides every view exception. Tracked as
+GemDB_Code#50. This repo routes around it independently: `web/serving.py`'s
+`install_reporting` prints tracebacks with `print()` and never through
+`logging`, and returns an `HTTPException` rather than re-raising it.
 
 **3.5 No CSV import story.** FR-2.1 through FR-2.4 describe a subsystem the
 product does not have. `seed.py` satisfies them for this dataset; nothing
