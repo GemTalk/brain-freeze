@@ -51,9 +51,18 @@ def main():
 
     # The question the rest of it is really asking.
     #
-    # `from brainfreeze import model`, not `import brainfreeze.model as model`:
-    # the second form does not bind inside a function here, and fails with
-    # "local variable referenced before assignment (received #'model' on nil)".
+    # `from brainfreeze import model`, not `import brainfreeze.model as model`.
+    # Both forms work. They differ in what they say when the module is NOT
+    # found, and this script's whole job is running when things are broken:
+    #
+    #   import brainfreeze.model as model -> UnboundLocalError: local variable
+    #                                        referenced before assignment
+    #   from brainfreeze import model     -> ModuleNotFoundError: No module
+    #                                        named 'brainfreeze'
+    #
+    # The first swallows the ImportError and reports a name that was never
+    # bound, which sent this file's first version chasing a scoping bug that
+    # does not exist. Measured 2026-09-25; see docs/grail-improvements.md.
     from brainfreeze import model
     print("ISINSTANCE_POLICY: %s" % isinstance(policy, model.Policyholder))
     print("TYPE_IS_POLICY: %s" % (type(policy) is model.Policyholder))

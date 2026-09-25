@@ -11,13 +11,14 @@
 > | P0.4 #849 exceptions carry no `__traceback__` | **done** — `e.__traceback__` is present |
 > | P0.5 `round()` half-up vs banker's | **done** — 0.5→0, 1.5→2, 2.5→2, matches CPython |
 > | P1.6 the Decimal cluster | **done** — `quantize`, `as_tuple`, `//`, `%`, `divmod`, `format(spec)` |
-> | P2.10 `import x.y as m` | **done** |
+> | P2.10 `import x.y as m` | **done** — but see P2.13, found while confirming it |
 > | P2.11 no `strptime` | **done** |
 > | P2.12 #861 `os.remove` and `$` | **done** — closed 2026-09-15 by #1001; it now REFUSES such a path with an explanatory `OSError` instead of deleting the shell-expanded one. The error I first read as the bug is the fix. |
 > | P0.1 render throughput | not re-measured |
 > | P0.2 #851 compiling is a repository write | still true (`findings/04`) |
 > | P1.7 module staleness | not re-measured (`findings/08`) |
-> | P1.8 `contextvars` across green threads | not re-measured — `docs/grail-contextvars-session-state.md` is the same area |
+> | P1.8 `contextvars` across green threads | not re-measured — `docs/grail-contextvars-session-state.md` is the same area, and its fix merged as GemTalk/Grail#1176 |
+> | P2.13 `import x.y as m` reports the wrong error when x.y is missing | **new, measured 2026-09-25** — see below |
 >
 > Re-measure before filing anything from this list. An ask that has already
 > landed reads exactly like one that has not.
@@ -303,3 +304,43 @@ are dirty before the user does anything, Flask's logging stub swallowing view
 exceptions, and `sys.path` not containing the script's own directory. That is
 not two teams being careless in the same way. It is the shape of the first week
 of anyone building a Python application on this database.
+
+---
+
+## P2.13 — `import x.y as m` reports the wrong error when `x.y` is missing
+
+**Measured 2026-09-25**, Grail `9a0b0fc` / engine 4.0.0.a2. Found while
+confirming P2.10 was really done. It is: the form binds correctly when the
+module exists. What is wrong is what it says when the module does not.
+
+Inside a function, with nothing on `sys.path` that provides `brainfreeze`:
+
+```python
+def with_as():
+    import brainfreeze.model as model      # UnboundLocalError: local variable
+                                           # referenced before assignment
+def with_from():
+    from brainfreeze import model          # ModuleNotFoundError: No module
+                                           # named 'brainfreeze'
+```
+
+The second is right. The first swallows the `ImportError` and reports a name
+that was never bound, naming neither the module nor the path.
+
+**Why it is worth fixing rather than avoiding.** `import x.y as m` is the
+spelling every entry point in this repository uses, and a missing module is
+this runtime's single most common failure — `sys.path` does not contain the
+script's own directory, so *everything* here starts by fixing the path
+(`findings/09_imported_module_sys.py`). The one error a newcomer is most
+likely to cause is the one reported least usefully. It cost this repository an
+hour: `findings/runtime-reinstall/survives_upgrade.py` shipped with a comment
+explaining a scoping bug that does not exist, because the message described
+one.
+
+`UnboundLocalError` is also arguably correct-by-accident — the binding never
+happened, so the name is unbound — which is how it survives: it is not
+obviously a bug from inside the implementation.
+
+**The ask:** let the `ImportError` propagate out of the `as` form, as the
+`from` form already does. Failing that, chain it, so the real cause is
+somewhere in the message.
