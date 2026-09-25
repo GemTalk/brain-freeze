@@ -3,9 +3,10 @@
 > **Not re-audited as of 2026-09-24, and stale in at least two ways.** It is
 > pinned to GemDB `main` at `f61ac65` and a working tree on `feat/mcp-server`,
 > both from 2026-09-08. Its section 4, "Before this repo goes public",
-> describes a gate that is past — the repo is public. Issue #65 (the MCP
-> payload omitting `session-lifetime.sh`) is still open and still blocks the
-> demo's agent beat.
+> describes a gate that is past — the repo is public, and #42 closed it as
+> overtaken by events on 2026-09-24. Issue #65 (the MCP payload omitting
+> `session-lifetime.sh`) is **fixed**, upstream in GemDB_Code `6653ca4`, and
+> no longer blocks the demo's agent beat.
 >
 > Treat every item here as unverified until re-measured, for the reason the
 > sibling list `grail-improvements.md` now carries at its own top.

@@ -87,9 +87,10 @@ kernel start. Open `brain-freeze.ipynb`, set the kernel to **GemDB**, and run
 code cells 1 and 2 only. Leave it there.
 
 **6. Check the agent can reach the database,** if you are doing beat 8. In the
-Claude Code panel, `/mcp` should show `gemdb` connected. If it does not, see
-"When it goes wrong" — there is a known packaging bug with a one-line fix, and
-you do not want to meet it in front of the room.
+Claude Code panel, `/mcp` should show `gemdb` connected. It is **off by
+default** — `gemdb.mcp.enabled` — so the first time on a machine you will have
+to turn it on and restart the database. If it still does not connect, see
+"When it goes wrong"; you do not want to meet that in front of the room.
 
 ---
 
@@ -476,7 +477,7 @@ Naming the tools is not superstition: without it the agent may read the
 repository's source instead of asking the database, which answers the question
 correctly and shows nothing. You want it calling `eval_python`.
 
-It should land on **Low 0.431, Medium 0.729, High 0.501**.
+It should land on **Low 0.409, Medium 0.729, High 0.501**.
 
 > "The 1.9x loading on the High band over-prices the risk it is pricing for.
 > The customers the underwriter is most worried about are the most profitable,
@@ -486,7 +487,7 @@ It should land on **Low 0.431, Medium 0.729, High 0.501**.
 
 ### 9 — What it cost (2 min)
 
-Close on [`findings/`](findings/). Nine things that cost real time, each
+Close on [`findings/`](findings/). Ten things that cost real time, each
 reduced to a script that reproduces it on your own database rather than asking
 anyone to believe a transcript.
 
@@ -587,13 +588,25 @@ committing first. Run `gemdb.commit()`, then `gemdb.refresh()`.
 **The notebook shows 900 after cell 12.** The app had not committed yet.
 Reload the browser, then re-run cell 12.
 
-**`/mcp` does not show `gemdb` connected.** Known bug, and it is not your
-setup: the payload GemDB assembles omits `session-lifetime.sh`, which
-`run-server.sh` sources unconditionally, so the server exits immediately with
-`./session-lifetime.sh: No such file or directory`. Copy that one file into the
-payload directory by hand and restart the server. Tracked as issue #65. If you
-cannot get it up in the ten minutes before the room, drop beat 8 — it is the
-one beat with no dependency on any other.
+**`/mcp` does not show `gemdb` connected.** First check the setting, because
+it is off by default: `gemdb.mcp.enabled`. Turn it on and restart the
+database.
+
+The packaging bug that used to cause this is **fixed** — GemDB assembled a
+payload missing `session-lifetime.sh`, which `run-server.sh` sources
+unconditionally, so the server exited immediately. That was issue #65, fixed
+upstream in GemDB_Code `6653ca4`, which derives the payload's scripts instead
+of listing them. Confirm with:
+
+```sh
+ls ~/GemDB/mcp/session-lifetime.sh
+```
+
+If that file is there and `/mcp` still does not connect, it is a different
+fault and wants its own issue rather than the old workaround.
+
+Either way, if you cannot get it up in the ten minutes before the room, drop
+beat 8 — it is the one beat with no dependency on any other.
 
 **The app stopped answering after the notebook.** Not a coincidence and not
 your laptop -- see the first trap. Restart it and warm it; nothing in the book

@@ -172,6 +172,86 @@ class TheArithmeticItQuotesIsWhatTheRulesGive(unittest.TestCase):
         self.assertIn('"%s is yours"' % self.figures["paid"], self.text)
 
 
+#: Small enough to spell out, and the documents spell it out rather than
+#: writing a numeral, so the check has to as well.
+IN_WORDS = {8: "eight", 9: "nine", 10: "ten", 11: "eleven", 12: "twelve"}
+
+
+class TheCountOfFindingsItClosesOn(unittest.TestCase):
+    """Beat 9 closes by naming how many findings there are.
+
+    It is the last sentence of the demo, so it is the one a room remembers,
+    and it is a number that goes stale every time someone adds a finding --
+    which is exactly what happened: the script and the README both said nine
+    while `findings/` held ten and `findings/README.md` said so.
+    """
+
+    def setUp(self):
+        self.numbered = [name for name in os.listdir(os.path.join(REPO, "findings"))
+                         if re.match(r"\d\d_.*\.py$", name)]
+
+    def word(self):
+        count = len(self.numbered)
+        self.assertIn(count, IN_WORDS,
+                      "findings/ has %d numbered scripts, which nothing here "
+                      "knows how to spell. Add it to IN_WORDS." % count)
+        return IN_WORDS[count]
+
+    def test_the_demo_script_says_how_many_there_are(self):
+        self.assertTrue(
+            re.search(r"%s things that cost real time" % self.word(),
+                      script(), re.IGNORECASE),
+            "beat 9 does not say there are %s findings, and there are %d."
+            % (self.word(), len(self.numbered)),
+        )
+
+    def test_the_readme_agrees(self):
+        with open(os.path.join(REPO, "README.md"), encoding="utf-8") as handle:
+            readme = handle.read()
+        self.assertTrue(
+            re.search(r"the %s things that cost time" % self.word(),
+                      readme, re.IGNORECASE),
+            "the README's tree does not say there are %s findings, and there "
+            "are %d." % (self.word(), len(self.numbered)),
+        )
+
+
+class TheFiguresTheAgentBeatPromises(unittest.TestCase):
+    """Beat 8 tells the presenter what the agent should land on.
+
+    It is the one beat whose numbers nobody can check while standing in front
+    of the room: the agent computes them live, and the script says in advance
+    what they will be. If the two disagree the presenter reads out a figure the
+    screen contradicts, and the demo's whole argument is that the numbers come
+    from the objects rather than from a story about them.
+
+    Beat 8 shipped saying Low 0.431 when every other surface in the repository
+    -- `tests/test_analysis.py`, `tests/test_api.py`, the README, the MCP
+    answers -- said 0.409, and it had been wrong since the day it was written.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        import seed
+        from brainfreeze import analysis
+        cls.ratios = analysis.loss_ratio_by_tier(seed.load())
+
+    def setUp(self):
+        self.text = script()
+
+    def test_it_promises_the_ratios_the_book_actually_gives(self):
+        for tier in ("Low", "Medium", "High"):
+            promised = "%s %s" % (tier, self.ratios[tier])
+            # assertTrue rather than assertIn: the haystack is the whole
+            # script, and unittest would print all of it.
+            self.assertTrue(
+                promised in self.text,
+                "beat 8 does not say %r. The book gives %s for %s, and a "
+                "presenter reading the script aloud cannot catch the "
+                "difference live." % (promised, self.ratios[tier], tier),
+            )
+
+
 class ThePoliciesItNamesAreFitForTheirBeat(unittest.TestCase):
     """Each beat needs a policy in a particular state, and a regenerated
     dataset moves every one of them."""

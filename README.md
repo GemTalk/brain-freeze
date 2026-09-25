@@ -813,7 +813,7 @@ docs/          the demo as a run of show, the PRD, the questions the demo
                database, what it takes to add a feature to this repo, and the
                column dictionary for the two CSVs
 features/      the acceptance suite -- .venv-acceptance/bin/behave
-findings/      the nine things that cost time, as scripts you can run
+findings/      the ten things that cost time, as scripts you can run
 PLAN.md        the working notes, including what is still open
 ```
 
