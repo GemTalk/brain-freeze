@@ -1,0 +1,58 @@
+name: CI
+
+# The half of the suite that needs no database: the rules, the money, the
+# packaging allowlist, the tidiness checks, and the dataset regenerating
+# byte-identically. The app's tests skip themselves here, as they do on any
+# machine without GemDB (README, "The tests").
+#
+# The other half -- the same tests inside the database, the notebook, and the
+# acceptance suite -- needs an engine, a Grail payload and raised shared
+# memory. That is #81, and it borrows GemDB Code's integration job rather than
+# reinventing it.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  cpython:
+    name: CPython ${{ matrix.python }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.9 is what a Mac's /usr/bin/python3 still is, and so what the README's
+        # `python3 -m unittest discover` most often means. The newest is what
+        # Grail is chasing.
+        python: ["3.9", "3.13"]
+    steps:
+      # Pinned to a commit rather than a tag, as GemDB Code does.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python }}
+
+      # Only the generator needs these; brainfreeze/ is not allowed to.
+      - run: python -m pip install numpy pandas
+
+      - name: Unit tests
+        run: python -m unittest discover
+
+      # If this ever moves, every pinned figure in the tests and the docs is
+      # wrong, so a change to it has to be deliberate and said out loud.
+      - name: The dataset regenerates byte-identically
+        run: |
+          python -m datagen
+          git diff --exit-code -- data/
