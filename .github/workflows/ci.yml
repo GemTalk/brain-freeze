@@ -48,8 +48,10 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
-      # Only the generator needs these; brainfreeze/ is not allowed to.
-      - run: python -m pip install numpy pandas
+      # numpy and pandas are for the generator only; brainfreeze/ is not allowed
+      # them. pyflakes checks the modules CPython cannot import, and without it
+      # two tests skip rather than fail.
+      - run: python -m pip install numpy pandas pyflakes
 
       - name: Unit tests
         run: python -m unittest discover
