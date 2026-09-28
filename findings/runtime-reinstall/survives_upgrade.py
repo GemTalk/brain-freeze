@@ -62,7 +62,7 @@ def main():
     #
     # The first swallows the ImportError and reports a name that was never
     # bound, which sent this file's first version chasing a scoping bug that
-    # does not exist. Measured 2026-09-25; see docs/grail-improvements.md.
+    # does not exist. Measured 2026-09-25; not yet filed upstream (see #82).
     from brainfreeze import model
     print("ISINSTANCE_POLICY: %s" % isinstance(policy, model.Policyholder))
     print("TYPE_IS_POLICY: %s" % (type(policy) is model.Policyholder))

@@ -52,8 +52,8 @@ it explains the *shape* of nearly everything below.
   `compile()` result as source text, so that landed on `str.replace` called by
   keyword, which read past the end of an empty array and ended the session with
   `OffsetError 2003` — no traceback, no line number, uncatchable. *Reporting*
-  the template error was what killed the process. That one is fixed and pinned
-  (`docs/grail-improvements.md`, "This database is no longer stock c875e56").
+  the template error was what killed the process. That one is fixed upstream
+  ([Grail#897](https://github.com/GemTalk/Grail/pull/897)).
 - **A test destroyed what it was measuring.** The obvious way to check that the
   web app commits before it refreshes is to wrap `gemdb.commit` and
   `gemdb.refresh` and record the order. Rebinding an attribute on an imported
@@ -111,8 +111,9 @@ What this repository does instead is enforce a boundary in a test:
 `brainfreeze/` and fails if it imports anything outside the set the database was
 observed to have. That allowlist is a record of one afternoon's measurement, not
 a specification — read it as the current answer, and re-measure rather than
-extend it from memory. `docs/grail-improvements.md` item 13 asks the product for
-a generated manifest so nobody has to keep a private guess at all.
+extend it from memory. The real fix is for the product to publish a generated
+manifest so nobody has to keep a private guess at all; that ask is not filed
+upstream yet (see issue #82).
 
 ---
 
@@ -730,8 +731,8 @@ Said plainly, because guessing here is how a confident wrong answer gets written
 
 - ~~**Whether a script can read its own arguments.**~~ **Settled 2026-09-09: it
   can.** [Grail#850](https://github.com/GemTalk/Grail/issues/850) says
-  `sys.argv` is the host topaz command line and `sys.argv[1]` is `-L`, and
-  `docs/grail-improvements.md` repeated it. Measured on `c875e56`,
+  `sys.argv` is the host topaz command line and `sys.argv[1]` is `-L`, and an
+  earlier note in this repo repeated it. Measured on `c875e56`,
   `gemdb script.py one --two` gives `['/path/to/script.py', 'one', '--two']`.
   The issue was taken on an older sha. `tools/seed.py --dry-run`,
   `tools/run_db_tests.py money seed` and `tools/verify_book.py BF-100539` were
@@ -754,7 +755,8 @@ Said plainly, because guessing here is how a confident wrong answer gets written
 | [`findings/09_imported_module_sys.py`](../findings/09_imported_module_sys.py) | a module cannot fix its importer's `sys.path` once it is committed |
 | [`findings/class-identity/`](../findings/class-identity/README.md) | committing after imports is what keeps class identity |
 
-[`grail-improvements.md`](grail-improvements.md) is the same material addressed
-to the Grail team, prioritised by what it costs and carrying the issue numbers.
-Read it if you want to know whether something here is filed, stale, or about to
-be fixed.
+What has been filed with the Grail team is in
+[their tracker](https://github.com/GemTalk/Grail/issues?q=author%3Asrbaker).
+The list this repo used to keep, including asks not yet filed, is at
+[`77417a6`](https://github.com/GemTalk/brain-freeze/blob/77417a6/docs/grail-improvements.md);
+issue #82 says which of them are still owed.

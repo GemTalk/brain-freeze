@@ -24,7 +24,7 @@ Measured on Grail `c875e56`, 2026-09-09:
     Decimal("170.10") / 12      ->  Decimal("14.175")  exactly
     Decimal("19.99") * 3        ->  Decimal("59.97")   exactly
 
-That last one is worth noting: `docs/grail-improvements.md` recorded it as
+That last one is worth noting: an earlier note in this repo recorded it as
 raising. It does not any more, and the note was stale.
 
 TWO THINGS GRAIL'S DECIMAL DOES NOT DO, BOTH HANDLED HERE
