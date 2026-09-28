@@ -26,7 +26,11 @@ permissions:
 jobs:
   cpython:
     name: CPython ${{ matrix.python }}
-    runs-on: ubuntu-latest
+    # Apple Silicon, not Linux: the dataset is byte-identical only on the
+    # platform that generated it. On x86 Linux numpy's float paths differ in
+    # the last digit of the raw score column, and nothing else. GemDB 1.x is
+    # Apple Silicon too, so this is also the machine the demo runs on.
+    runs-on: macos-15
     timeout-minutes: 10
     strategy:
       fail-fast: false
