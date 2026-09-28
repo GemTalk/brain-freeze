@@ -806,7 +806,6 @@ tools/         every command in this README: seed, redeploy, verify, lapse,
 datagen/       the generator; the only numpy/pandas in the repo
 data/          the two generated CSVs
 tests/         the suite -- python3 -m unittest discover
-mockups/       nine screens, an insurer sketch, and build_c.py that makes them
 docs/          the demo as a run of show, the PRD, the questions the demo
                promises to answer, the dataset description an agent needs to
                ask its own, the rules for writing Python that runs inside the
@@ -814,7 +813,6 @@ docs/          the demo as a run of show, the PRD, the questions the demo
                column dictionary for the two CSVs
 features/      the acceptance suite -- .venv-acceptance/bin/behave
 findings/      the ten things that cost time, as scripts you can run
-PLAN.md        the working notes, including what is still open
 ```
 
 **`web/` has no `__init__.py`, and must not get one.** Grail keeps a committed
@@ -871,5 +869,5 @@ Wrote 4,993 events -> claims.csv
 
 If that output ever stops matching what is committed, either the change was
 wrong or the dataset is being regenerated deliberately — and if it is the
-latter, say so loudly, because every figure in `mockups/` and every number in
-the tests is read out of these two files.
+latter, say so loudly, because every number in the tests and the docs is read out
+of these two files.

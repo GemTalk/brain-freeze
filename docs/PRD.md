@@ -18,6 +18,9 @@
 > beside this file, but a binary is not indexed the way plain text on a public
 > repository page is, and nothing here needs to link to them.
 >
+> The `.docx` beside this file is the signed-off original this copy was
+> taken from, and is kept for that reason.
+>
 > **Where this and reality disagree, `docs/prd-corrections.md` is newer and
 > says why.** Eleven requirements do not match how the platform behaves.
 

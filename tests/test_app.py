@@ -45,8 +45,8 @@ CUJ4 = "BF-100186"            # written by: the flavour/toppings claim
 ORDERING = "BF-100000"
 
 #: Already past its lapse date, and its annual cap is NOT spent, so a claim
-#: filed against it can only be refused for the lapse. BF-100539 -- the policy
-#: the mockups are drawn from -- is no good here: it lapses on 2027-03-10,
+#: filed against it can only be refused for the lapse. BF-100539 -- the README's
+#: example policy -- is no good here: it lapses on 2027-03-10,
 #: which has not happened yet, so it is still in force and would be refused
 #: for the cap instead.
 LAPSED = "BF-100746"
@@ -185,7 +185,7 @@ class TheApp(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertNotIn("sex", r.data.decode().lower())
 
-    #: The five answers the mockups are drawn from: age 11, eats fast,
+    #: The five answers of the example quote: age 11, eats fast,
     #: favourite is a slushie, no headache history. Scores 75.0, High tier,
     #: $171.00 a year on Standard -- all three pinned in test_brainfreeze.
     #:
@@ -193,7 +193,7 @@ class TheApp(unittest.TestCase):
     #: names its fields and how the JSON body names its keys. One vocabulary
     #: end to end: a field named something else here would quietly fall back
     #: to a default and price a different applicant.
-    MOCKUP_ANSWERS = {"age": "11",
+    EXAMPLE_ANSWERS = {"age": "11",
                       "migraine_history": "no",
                       "tension_type_headache_history": "no",
                       "typical_consumption_speed": "fast",
@@ -206,7 +206,7 @@ class TheApp(unittest.TestCase):
         so it answers 303/302 and the screen is a GET of the quote's own
         address. The answers used to come back as hidden fields instead, which is the one place this app kept state in the browser.
         """
-        posted = self.client.post("/quote", data=answers or self.MOCKUP_ANSWERS)
+        posted = self.client.post("/quote", data=answers or self.EXAMPLE_ANSWERS)
         self.assertEqual(posted.status_code, 302)    # POST/redirect/GET
         location = posted.headers["Location"]
         quote_id = location.rstrip("/").split("/")[-1]

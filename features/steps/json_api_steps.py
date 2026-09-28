@@ -27,9 +27,9 @@ if os.path.join(REPO, "web") not in sys.path:
 
 import wire                                  # noqa: E402  (needs the path first)
 
-#: The policy the mockups are drawn from: active, a full history, and a lapse
+#: The README's example policy: active, a full history, and a lapse
 #: date far enough out that it is still in force.
-MOCKUP = "BF-100539"
+EXAMPLE = "BF-100539"
 
 #: What `gemdb tools/seed.py` makes. Scenarios that buy a policy push the live
 #: count above it, so this is a floor and never an equality.
@@ -197,7 +197,7 @@ def policy_carries_history(context):
     payload = last(context)
     events = payload["events"]
     assert events, "a policy with no events cannot answer how often a treat hurt"
-    assert any(e.get("claim") for e in events), "no claims on the mockup policy"
+    assert any(e.get("claim") for e in events), "no claims on the example policy"
     assert any(not e.get("claim") for e in events), (
         "every event was claimed -- the treats that hurt nobody are the "
         "denominator, and a surface that drops them cannot be asked how "

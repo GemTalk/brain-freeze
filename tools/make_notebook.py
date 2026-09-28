@@ -2,8 +2,7 @@
 
     python3 tools/make_notebook.py
 
-The notebook is generated rather than hand-edited for the same reason
-`mockups/build_c.py` generates the screens: a .ipynb is JSON with the source
+The notebook is generated rather than hand-edited because a .ipynb is JSON with the source
 split into per-line strings, and editing that by hand invites exactly the
 drift this repo keeps testing for. Change the cells here.
 

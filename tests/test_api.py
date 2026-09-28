@@ -104,9 +104,9 @@ def read_web(filename):
 #: honest.
 MONEY_KEYS = wire.MONEY_KEYS
 
-#: The policy the mockups are drawn from: active, four approved claims,
+#: The README's example policy: active, four approved claims,
 #: $179.97 paid, lapses 2027-03-10.
-MOCKUP = "BF-100539"
+EXAMPLE = "BF-100539"
 
 
 def walk(value, path=""):
@@ -183,9 +183,9 @@ class Payloads(unittest.TestCase):
                             % (path, value))
 
     def test_a_policy_serialises(self):
-        payload = wire.policy(self.book[MOCKUP], date(2026, 9, 9))
+        payload = wire.policy(self.book[EXAMPLE], date(2026, 9, 9))
         self.assert_wire_safe(payload)
-        self.assertEqual(payload["policy_id"], MOCKUP)
+        self.assertEqual(payload["policy_id"], EXAMPLE)
         self.assertEqual(payload["plan_name"], "Standard")
         self.assertEqual(payload["total_paid"], "179.97")
         self.assertEqual(payload["claim_count"], 8)
@@ -197,14 +197,14 @@ class Payloads(unittest.TestCase):
         # the sentence. policy_status records the policy's fate over the whole
         # term and is not the same question -- this one is stored "Lapsed"
         # while cover is still running.
-        payload = wire.policy(self.book[MOCKUP], date(2026, 9, 9))
+        payload = wire.policy(self.book[EXAMPLE], date(2026, 9, 9))
         self.assertEqual(payload["policy_status"], "Lapsed")
         self.assertTrue(payload["in_force"])
         self.assertIsNone(payload["no_cover_reason"])
         self.assertEqual(payload["policy_lapse_date"], "2027-03-10")
 
     def test_cover_is_answered_as_of_a_date(self):
-        payload = wire.policy(self.book[MOCKUP], date(2027, 6, 1))
+        payload = wire.policy(self.book[EXAMPLE], date(2027, 6, 1))
         self.assertFalse(payload["in_force"])
         self.assertEqual(payload["no_cover_reason"], "Policy lapsed")
         self.assertEqual(payload["as_of"], "2027-06-01")
@@ -212,7 +212,7 @@ class Payloads(unittest.TestCase):
     def test_the_detail_adds_every_event_not_just_the_claims(self):
         # Same argument as the history screen: the treats that hurt nobody are
         # the denominator.
-        policy = self.book[MOCKUP]
+        policy = self.book[EXAMPLE]
         payload = wire.policy_detail(policy, date(2026, 9, 9))
         self.assert_wire_safe(payload)
         self.assertEqual(len(payload["events"]), len(policy.events))
@@ -221,12 +221,12 @@ class Payloads(unittest.TestCase):
         self.assertTrue(unclaimed)
 
     def test_events_keep_the_order_the_model_keeps_them_in(self):
-        payload = wire.policy_detail(self.book[MOCKUP], date(2026, 9, 9))
+        payload = wire.policy_detail(self.book[EXAMPLE], date(2026, 9, 9))
         dates = [e["event_date"] for e in payload["events"]]
         self.assertEqual(dates, sorted(dates))
 
     def test_a_claim_carries_both_figures_and_the_reason(self):
-        policy = self.book[MOCKUP]
+        policy = self.book[EXAMPLE]
         refused = [c for c in policy.claims if not c.is_approved][0]
         payload = wire.claim(refused)
         self.assert_wire_safe(payload)
@@ -236,17 +236,17 @@ class Payloads(unittest.TestCase):
 
     def test_a_claim_from_before_the_new_questions_reads_as_null(self):
         # CUJ-4: the 2,172 seeded claims have no flavour slot of their own.
-        claim = self.book[MOCKUP].claims[0]
+        claim = self.book[EXAMPLE].claims[0]
         payload = wire.claim(claim)
         self.assertIsNone(payload["flavour"])
         self.assertEqual(payload["toppings"], [])
 
     def test_a_claim_detail_names_its_policy_and_the_terms_it_was_judged_by(self):
-        policy = self.book[MOCKUP]
+        policy = self.book[EXAMPLE]
         event = [e for e in policy.events if e.claim is not None][0]
         payload = wire.claim_detail(policy, event)
         self.assert_wire_safe(payload)
-        self.assertEqual(payload["policy_id"], MOCKUP)
+        self.assertEqual(payload["policy_id"], EXAMPLE)
         self.assertEqual(payload["claim"]["claim_id"], event.claim.claim_id)
         self.assertEqual(payload["coverage_limit"], "60.00")
         self.assertEqual(payload["deductible"], "5.00")
@@ -255,7 +255,7 @@ class Payloads(unittest.TestCase):
         self.assertNotIn("claim", payload["event"])
 
     def test_a_quote_serialises_with_its_reasoning(self):
-        # The mockup quote: age 11, eats fast, favourite is a slushie.
+        # The example quote: age 11, eats fast, favourite is a slushie.
         from brainfreeze import quote as price
         payload = wire.quote(price(11, False, False, "fast", "slushie"))
         self.assert_wire_safe(payload)

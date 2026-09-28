@@ -17,8 +17,8 @@ quote and the sample data from drifting into disagreement, and
 
 The output is byte-identical run to run. If it stops being, either something
 is wrong or the dataset is being regenerated deliberately -- and if it is the
-latter, say so loudly: every figure in `mockups/` and every number in the tests
-is read out of these two files.
+latter, say so loudly: every number in the tests and the docs is read out of
+these two files.
 """
 
 from .dataset import main, make_claims, make_policyholders

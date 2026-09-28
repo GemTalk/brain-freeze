@@ -220,7 +220,7 @@ not move, and `claims.csv` is byte-identical.
 Every figure above is a fact about the committed files, not about the code.
 `python3 -m datagen` is seeded and byte-identical run to run, so regenerating
 without changing the generator changes nothing — and changing the generator
-changes all of it at once, including numbers pinned in `tests/`, `mockups/` and
+changes all of it at once, including numbers pinned in `tests/` and
 `docs/mcp-questions.md`. The README says to say so loudly if that happens. The
 column list, the types and the relationship are the parts that should survive;
 the counts and ranges are the parts to re-read.

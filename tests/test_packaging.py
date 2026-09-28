@@ -16,7 +16,7 @@ import unittest
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 #: What `brainfreeze/` is allowed to import. Not "the standard library" --
-#: Grail ships a partial one, and these are the modules PLAN.md records as
+#: Grail ships a partial one, and these are the modules measured as
 #: actually present inside the database. Anything else, third-party or not,
 #: is a module that will import fine here and fail there.
 GRAIL_AVAILABLE = {"csv", "datetime", "decimal", "math", "random",

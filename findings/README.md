@@ -395,11 +395,11 @@ the `ConflictError`. The log shows the reporting failure, not the failure.
 
 **The fix belongs in Grail**, which has done this migration three times already
 — `random`, `secrets`, and `re._cache` all hold per-session state now, and
-`docs/Concurrency.md` states the rule. `contextvars` has not had it. A plan
-written to be handed to someone working in that repository is in
-[`docs/grail-contextvars-session-state.md`](../docs/grail-contextvars-session-state.md).
-Confirmed not fixed on Grail `origin/main` at `1f2f5ed1` (2026-09-23). Tracked
-as issue #83.
+`docs/Concurrency.md` states the rule. `contextvars` has not had it. It has now:
+[GemTalk/Grail#1176](https://github.com/GemTalk/Grail/pull/1176) is merged,
+but is not yet in the Grail that GemDB Code ships
+([GemTalk/GemDB_Code#50](https://github.com/GemTalk/GemDB_Code/issues/50)).
+Tracked here as issue #83.
 
 The acceptance suite works around it — the steps that run something in a
 session of their own check the app afterwards and restart it if it is gone. The

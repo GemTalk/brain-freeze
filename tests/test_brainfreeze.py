@@ -38,7 +38,7 @@ from brainfreeze import (
 
 
 class Underwriting(unittest.TestCase):
-    def test_the_quote_shown_in_the_mockups(self):
+    def test_the_example_quote(self):
         # age 11, eats fast, favourite is a slushie, no headache history
         q = quote(11, False, False, "fast", "slushie")
         self.assertEqual(q.score, 75.0)          # 45 + 18 + 12

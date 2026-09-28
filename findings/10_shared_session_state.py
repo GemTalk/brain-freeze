@@ -90,9 +90,8 @@ compilation, which is not what conflicts.
 WHERE THE FIX BELONGS
 
 Grail, not here: `contextvars` needs the migration `random`, `secrets` and
-`re._cache` have had. A plan written to be handed to someone working in that
-repository is in `docs/grail-contextvars-session-state.md`. Confirmed not
-fixed on Grail origin/main at 1f2f5ed1 (2026-09-23). Tracked as issue #83.
+`re._cache` have had. Fixed upstream by GemTalk/Grail#1176; not yet in the Grail that GemDB Code
+ships (GemTalk/GemDB_Code#50). Tracked here as issue #83.
 
 The acceptance suite works around it: the steps that run something in a
 session of their own check the app afterwards and restart it if it is gone
@@ -193,7 +192,7 @@ def shared_session_state():
         print("  The app survived. Either it had not set those flags when")
         print("  this ran -- ask /api/stats first -- or contextvars has")
         print("  since been moved to per-session storage in Grail, which")
-        print("  is what docs/grail-contextvars-session-state.md asks for.")
+        print("  is what GemTalk/Grail#1176 did.")
 
 
 if __name__ == "__main__":

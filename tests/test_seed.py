@@ -326,7 +326,7 @@ class ThePolicyTerm(unittest.TestCase):
 
 
 class BF100539(unittest.TestCase):
-    """The policy the mockups are drawn from, so the screens stay honest.
+    """The README's example policy, so the screens stay honest.
 
     Chosen because its history runs through every rule in order: four
     approvals, then the annual cap, then the policy lapses and the last two
