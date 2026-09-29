@@ -21,6 +21,35 @@ import socket
 import subprocess
 
 
+#: Not Flask's 5000: on a stock Mac, AirPlay Receiver holds that one.
+DEFAULT_PORT = 5050
+
+#: Set this to serve somewhere else. The acceptance suite reads it through
+#: `configured_port` too, so it probes the port the app will actually open.
+PORT_VARIABLE = "BRAINFREEZE_PORT"
+
+
+def configured_port(environ):
+    """The port to serve on: `BRAINFREEZE_PORT` if it is set, else 5050.
+
+    Raises ValueError, worded for a person, if it is set to something that is
+    not a port -- a typo should stop the app, not quietly serve on 5050 while
+    whoever set it looks somewhere else.
+    """
+    said = environ.get(PORT_VARIABLE, "").strip()
+    if not said:
+        return DEFAULT_PORT
+    try:
+        port = int(said)
+    except ValueError:
+        port = 0
+    if not 0 < port < 65536:
+        raise ValueError("%s=%r is not a port. Use a number from 1 to 65535, "
+                         "or unset it for %d." % (PORT_VARIABLE, said,
+                                                  DEFAULT_PORT))
+    return port
+
+
 class PortBusy(Exception):
     """Something already holds the address we were told to serve on.
 

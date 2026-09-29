@@ -85,6 +85,26 @@ class Preflight(unittest.TestCase):
             probe.close()
 
 
+class ThePort(unittest.TestCase):
+    def test_unset_is_5050(self):
+        self.assertEqual(serving.configured_port({}), 5050)
+
+    def test_blank_is_unset(self):
+        self.assertEqual(serving.configured_port({"BRAINFREEZE_PORT": " "}), 5050)
+
+    def test_it_follows_the_variable(self):
+        self.assertEqual(
+            serving.configured_port({"BRAINFREEZE_PORT": "8080"}), 8080)
+
+    def test_a_typo_stops_the_app_rather_than_serving_on_5050(self):
+        """Falling back would serve somewhere other than where whoever set
+        the variable is looking, and say nothing."""
+        for wrong in ("80a", "0", "65536", "-1"):
+            with self.assertRaises(ValueError) as raised:
+                serving.configured_port({"BRAINFREEZE_PORT": wrong})
+            self.assertIn("BRAINFREEZE_PORT", str(raised.exception))
+
+
 class WhatTheRefusalSays(unittest.TestCase):
     """Formatted apart from the detecting, because the two branches differ in
     the one way that matters and only one of them can be provoked by a test

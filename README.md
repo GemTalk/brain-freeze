@@ -281,6 +281,18 @@ database on the way through, and that is the slowest thing the demo does.
 Then open <http://127.0.0.1:5050/>. **Start it from the project directory** —
 see [finding 3](#3-__main__-is-one-shared-namespace-for-every-script-the-database-has-run).
 
+**It serves on 5050, not Flask's 5000,** because a stock Mac's AirPlay
+Receiver holds 5000. To serve somewhere else, set `BRAINFREEZE_PORT`; the
+acceptance suite reads the same variable, so it follows:
+
+```sh
+BRAINFREEZE_PORT=8080 gemdb web/app.py
+BRAINFREEZE_PORT=8080 .venv-acceptance/bin/behave
+```
+
+A value that is not a port stops the app with a message rather than falling
+back to 5050, so it never serves somewhere other than where you are looking.
+
 Answer the five questions at `/quote` — age 11, eats fast, favourite is a
 slushie, no headache history — and the app prices all three plans:
 

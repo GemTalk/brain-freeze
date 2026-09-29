@@ -40,6 +40,7 @@ import shutil
 import signal
 import socket
 import subprocess
+import sys
 import time
 import urllib.error
 import urllib.parse
@@ -49,7 +50,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 ARTIFACTS = os.path.join(REPO, "artifacts")
 
-HOST, PORT = "127.0.0.1", 5050
+#: The same answer the app will give, from the same function, so the suite
+#: probes and refuses on the port the app is about to open. web/serving.py is
+#: importable here: it defers everything that needs the database.
+sys.path.append(os.path.join(REPO, "web"))
+import serving                               # noqa: E402
+
+HOST, PORT = "127.0.0.1", serving.configured_port(os.environ)
 BASE_URL = "http://%s:%d" % (HOST, PORT)
 
 #: Generous on purpose. Rendering is slow here -- Grail runs each Jinja

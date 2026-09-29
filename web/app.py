@@ -1,6 +1,7 @@
 """Brain Freeze Insurance, as a web app running inside the database.
 
     gemdb web/app.py            # serves on http://127.0.0.1:5050/
+    BRAINFREEZE_PORT=8080 gemdb web/app.py    # or anywhere else
 
 Start it from the project directory. `sys.path[0]` is the script's directory
 -- `web/` -- so the repository is put on the path below, before anything of
@@ -268,7 +269,7 @@ def create_app():
     return app
 
 
-def serve(host="127.0.0.1", port=5050):
+def serve(host="127.0.0.1", port=None):
     """Build the app, take a transaction boundary, then open the socket.
 
     The commit before `run` is not tidiness. Building the app compiles every
@@ -286,7 +287,17 @@ def serve(host="127.0.0.1", port=5050):
 
     Committing here makes the window a request wide instead of a startup
     wide. `take_new_view` closes the rest of it.
+
+    `port` is `BRAINFREEZE_PORT` if that is set, else 5050 -- read here, in the
+    function, because this file's top level does not re-run in a session
+    where it is unchanged (see `restore_template_class`).
     """
+    if port is None:
+        try:
+            port = serving.configured_port(os.environ)
+        except ValueError as wrong:
+            print(wrong)
+            return 1
     try:
         serving.preflight(host, port)
     except serving.PortBusy as busy:
