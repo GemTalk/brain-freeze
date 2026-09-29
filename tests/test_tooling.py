@@ -161,6 +161,7 @@ class TheDatabaseRunnerRunsEverything(unittest.TestCase):
             # cannot be one: run inside the database they would nest.
             "test_class_identity",
             "test_notebook_runs",   # spawns `gemdb tools/run_notebook.py`
+            "test_ctrl_c",          # spawns the app under a terminal
             # And this one needs a session where `numbers` was never
             # imported, which the shared suite session cannot promise.
             "test_decimal_comparison",

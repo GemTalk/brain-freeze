@@ -61,3 +61,20 @@ def cover_state(policy, today):
     if today < policy.policy_start_date:
         return ("Starts %s" % policy.policy_start_date, "tag")
     return ("Term ended %s" % policy.policy_end_date, "no")
+
+
+def refuse(code, message):
+    """Stop the request with `code`, and say `message` to whoever made it.
+
+    What `abort(code, message)` does -- except that Grail's werkzeug is a
+    hand-rolled shim whose `abort` ignores the message, so a reader who sent a
+    bad answer saw only "The browser sent a request that this server could
+    not understand." The message goes on the exception itself, which the
+    shim's response does read, and which real Werkzeug honours too.
+    Remove once Grail's werkzeug `abort` keeps its description.
+    """
+    from werkzeug.exceptions import default_exceptions
+    refusal = default_exceptions[code]()
+    refusal.description = message
+    raise refusal
+

@@ -35,15 +35,23 @@ class Routes:
         return record
 
     def register(self, app):
+        # The module OBJECT, taken now, while `sys.modules` certainly has it.
+        # Not looked up by name per request: a committed module is not
+        # guaranteed to stay in `sys.modules` (a test runner's session lost
+        # `routes_api` from it, and every JSON route answered 500). Holding
+        # the object loses nothing, because a loaded change rebuilds the
+        # module in place -- measured, the object a running app holds shows
+        # the new functions after the next refresh.
+        module = sys.modules[self.module]
         for rule, methods, name in self.table:
-            app.add_url_rule(rule, endpoint=name, view_func=self.dispatcher(name),
+            app.add_url_rule(rule, endpoint=name,
+                             view_func=self.dispatcher(module, name),
                              methods=list(methods))
 
-    def dispatcher(self, name):
-        module = self.module
-
+    @staticmethod
+    def dispatcher(module, name):
         def dispatch(**arguments):
-            return getattr(sys.modules[module], name)(**arguments)
+            return getattr(module, name)(**arguments)
 
         dispatch.__name__ = name
         return dispatch

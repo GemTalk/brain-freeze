@@ -12,9 +12,9 @@ import unittest
 from datetime import date
 from decimal import Decimal
 
-from brainfreeze.money import round_cents, usd
+from brainfreeze.money import round_cents, round_half_up, usd
 
-from brainfreeze.model import Book, Event, Policyholder, SavedQuote
+from brainfreeze.model import Book, Claim, Event, Policyholder, SavedQuote
 
 from brainfreeze import (
     COVERAGE_PLANS,
@@ -434,6 +434,91 @@ class QuotesAreObjects(unittest.TestCase):
         self.assertEqual(book.events, [])
         self.assertEqual(book.claims, [])
         self.assertIs(book.quotes["QTE-000001"], self.saved)
+
+
+def a_policyholder(**overrides):
+    """One policyholder with no history, the way a sale makes them."""
+    fields = dict(
+        policy_id="BF-100900", age=11, sex=None, migraine_history=False,
+        tension_type_headache_history=False, typical_consumption_speed="fast",
+        favourite_trigger="slushie", underwriting_base=45.0,
+        plan_name="Standard", annual_premium=usd("171.00"),
+        policy_start_date=date(2026, 9, 10))
+    fields.update(overrides)
+    return Policyholder(**fields)
+
+
+class WhatTheNotebookShows(unittest.TestCase):
+    """The reprs. Tutorial step 4's cell 2 ends in a bare `book`, so a reader
+    sees `repr(book)` before anything else, and an object at a prompt is
+    read the same way. A repr that raised, or printed an address, would be
+    the notebook's first line."""
+
+    def test_a_claim_says_its_id_status_and_payout(self):
+        claim = Claim("CLM-000001", usd("39.19"), usd("34.19"), "Approved")
+        self.assertEqual(repr(claim), "<Claim CLM-000001 Approved $34.19>")
+
+    def test_an_event_says_what_happened_and_when(self):
+        event = Event("EVT-000001", date(2026, 7, 28), "ice cream", -18, 250,
+                      "fast", True, 12, 6.0, "Temple", "Stabbing")
+        said = repr(event)
+        self.assertTrue(said.startswith("<Event EVT-000001 2026-07-28 ice cream"), said)
+
+    def test_a_policyholder_says_who_on_what_plan(self):
+        self.assertEqual(repr(a_policyholder()),
+                         "<Policyholder BF-100900 age 11 Standard/High 0 events>")
+
+    def test_a_quote_says_its_id_band_and_standard_price(self):
+        offer = quote(11, False, False, "fast", "slushie")
+        saved = SavedQuote("QTE-000001", date(2026, 9, 10), 11, False, False,
+                           "fast", "slushie", offer.score, offer.risk_tier,
+                           offer.breakdown, offer.plans)
+        said = repr(saved)
+        self.assertTrue(said.startswith("<SavedQuote QTE-000001 High"), said)
+        self.assertIn("$171.00", said)
+
+    def test_a_book_says_its_size_and_loss_ratio(self):
+        book = Book()
+        book.add(a_policyholder())
+        self.assertEqual(repr(book), "<Book 1 policies, 0 events, loss ratio 0.0>")
+
+
+class TheEdgesOfTheBook(unittest.TestCase):
+    """What the figures say when there is nothing to divide by."""
+
+    def test_a_policy_with_no_treats_has_no_brain_freeze_rate(self):
+        self.assertIsNone(a_policyholder().brain_freeze_rate)
+
+    def test_a_policy_with_no_premium_has_no_loss_ratio(self):
+        self.assertIsNone(a_policyholder(annual_premium=usd("0.00")).loss_ratio)
+
+    def test_a_quote_can_be_made_knowing_the_policy_it_became(self):
+        offer = quote(11, False, False, "fast", "slushie")
+        saved = SavedQuote("QTE-000001", date(2026, 9, 10), 11, False, False,
+                           "fast", "slushie", offer.score, offer.risk_tier,
+                           offer.breakdown, offer.plans, policy_id="BF-100900")
+        self.assertEqual(saved.policy_id, "BF-100900")
+
+    def test_nothing_rounds_to_nothing(self):
+        self.assertIsNone(round_half_up(None))
+        from brainfreeze import analysis
+        self.assertIsNone(analysis._rounded(None))
+
+    def test_a_treat_is_claimed_only_when_it_carries_a_claim(self):
+        treat = Event("EVT-000001", date(2026, 7, 28), "ice cream", -18, 250,
+                      "fast", True, 12, 6.0, "Temple", "Stabbing")
+        self.assertFalse(treat.claimed)
+        treat.claim = Claim("CLM-000001", usd("39.19"), usd("34.19"), "Approved")
+        self.assertTrue(treat.claimed)
+
+    def test_the_rate_counts_the_treats_that_did_nothing(self):
+        policy = a_policyholder()
+        for number, froze in enumerate((True, False, False, True), 1):
+            policy.add_event(Event("EVT-%06d" % number, date(2026, 7, number),
+                                   "ice cream", -18, 250, "fast", froze,
+                                   12 if froze else 0, 6.0 if froze else 0.0,
+                                   None, None))
+        self.assertEqual(policy.brain_freeze_rate, 0.5)
 
 
 class ThePackagePublishesWhatItImports(unittest.TestCase):

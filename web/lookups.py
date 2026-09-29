@@ -15,6 +15,7 @@ loaded: `gemdb tools/load.py`. See routes.py.
 from flask import abort
 
 import gemdb
+import pages
 
 #: The one key in `gemdb.root` this whole application uses.
 ROOT_KEY = "brainfreeze"
@@ -41,7 +42,7 @@ def quotes(the_book):
     try:
         return the_book.quotes
     except AttributeError:
-        abort(500, "This book was committed before quotes had a class of "
+        pages.refuse(500, "This book was committed before quotes had a class of "
                    "their own. Run `gemdb tools/load.py` to give the database "
                    "the current brainfreeze package, then `gemdb tools/seed.py` to "
                    "rebuild the book under it.")

@@ -88,7 +88,7 @@ def quote_result():
     try:
         answers = forms.answers_from(request.form)
     except ValueError as bad:
-        abort(400, str(bad))
+        pages.refuse(400, str(bad))
     offer = brainfreeze.quote(**answers)
     the_book = lookups.book()
     saved = the_book.add_quote(brainfreeze.SavedQuote(

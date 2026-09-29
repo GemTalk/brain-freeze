@@ -222,7 +222,7 @@ ANSWER_PATHS = ["brainfreeze", "web"]
 
 def answer_diff():
     finished = subprocess.run(
-        ["git", "diff", "HEAD", ANSWER, "--"] + ANSWER_PATHS,
+        ["git", "diff", ANSWER + "^", ANSWER, "--"] + ANSWER_PATHS,
         cwd=REPO, capture_output=True, text=True)
     assert finished.returncode == 0 and finished.stdout, (
         "no answer to apply: %s" % finished.stderr)
@@ -304,3 +304,26 @@ def old_claim_loads(context):
     subtitle = context.page.locator("p.sub").inner_text()
     assert "(" not in subtitle, (
         "a claim filed before the change names a flavour: %r" % subtitle)
+
+
+# -- what steps 2 and 4 of the README say ------------------------------------
+
+@then('the address step 2 of the README says to open is where the app serves')
+def readme_address(context):
+    import serving
+    shown = re.findall(r"<(http://[^>]+)>", readme_step(2))
+    assert shown, "step 2 of the README gives no address to open"
+    if serving.configured_port(os.environ) != serving.DEFAULT_PORT:
+        return                  # a run on another port cannot match the README
+    for address in shown:
+        assert address.rstrip("/") == context.base_url.rstrip("/"), (
+            "the README says to open %s, and the app serves %s"
+            % (address, context.base_url))
+
+
+@then('the call step 4 of the README shows is the one the notebook made')
+def readme_refresh_call(context):
+    shown = re.findall(r"```python\n(.*?)```", readme_step(4), re.S)
+    assert [block.strip() for block in shown] == ["gemdb.refresh()"], (
+        "step 4 of the README shows %r; the notebook session refreshes with "
+        "gemdb.refresh(), so one of them has changed" % shown)

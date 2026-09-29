@@ -7,7 +7,8 @@ Feature: Step 2 -- launch the web app
 
   Scenario: a policy bought and a claim filed are still there after a restart
     When I open the customer picker page
-    Then the page says how many policyholders there are
+    Then the address step 2 of the README says to open is where the app serves
+    And the page says how many policyholders there are
     And I capture "the customers"
 
     When I open the policy BF-100539

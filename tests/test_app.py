@@ -26,6 +26,7 @@ except ImportError:  # plain CPython -- nothing to test against
 if gemdb is not None:
     import app as bf_app
     import forms
+    import lookups
     import routes_html
     import seed
     from brainfreeze.money import ZERO, usd
@@ -100,6 +101,34 @@ class TheApp(unittest.TestCase):
         body = r.data.decode()
         self.assertIn(str(len(self.book())), body)   # the count is the point
         self.assertIn("BF-100000", body)             # first page, first row
+
+    def test_a_bad_answer_on_the_quote_form_names_the_field(self):
+        """The refusal has to reach the page, not just the JSON surface: the
+        form is the one a person fills in."""
+        r = self.client.post("/quote", data={
+            "age": "eleven", "migraine": "no", "tension": "no",
+            "speed": "fast", "trigger": "slushie"})
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("age", r.data.decode().lower())
+        self.assertNotIn("could not understand", r.data.decode())
+
+    def test_a_page_that_is_not_a_number_starts_at_the_beginning(self):
+        r = self.client.get("/?from=abc")
+        self.assertEqual(r.status_code, 200)
+        first = sorted(self.book(), key=lambda p: p.policy_id)[0].policy_id
+        self.assertIn(first, r.data.decode())
+
+    def test_a_book_saved_before_quotes_says_how_to_fix_it(self):
+        """A 500 is a dead end unless it says what to run. This names the
+        command that exists, which it did not when load.py replaced the
+        script it named."""
+        from werkzeug.exceptions import HTTPException
+        with self.app.test_request_context():
+            with self.assertRaises(HTTPException) as raised:
+                lookups.quotes(object())
+        self.assertEqual(raised.exception.code, 500)
+        self.assertIn("gemdb tools/load.py", raised.exception.description)
+        self.assertIn("gemdb tools/seed.py", raised.exception.description)
 
     def test_the_picker_pages_rather_than_rendering_900_rows(self):
         body = self.client.get("/").data.decode()
@@ -518,6 +547,13 @@ class TheJsonApi(unittest.TestCase):
 
     def book(self):
         return gemdb.root["brainfreeze"]
+
+    def test_a_quote_that_is_not_json_is_a_400_that_says_so(self):
+        r = self.client.post("/api/quote", data="age=11",
+                             content_type="application/x-www-form-urlencoded")
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("send a JSON object",
+                      json.loads(r.data.decode())["error"])
 
     def get(self, path, status=200):
         response = self.client.get(path)

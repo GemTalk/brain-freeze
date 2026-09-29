@@ -20,3 +20,4 @@ Feature: Step 4 -- Jupyter
     Then the notebook counts the policies again, and the count has not changed
     When the notebook runs gemdb.refresh()
     Then the notebook counts one more policy
+    And the call step 4 of the README shows is the one the notebook made
