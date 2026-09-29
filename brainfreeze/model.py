@@ -418,7 +418,7 @@ class Book:
         that: a mutable default on the class would be SHARED by every Book
         that fell through to it, which is a worse bug than the AttributeError.
         So this raises on an old book rather than pretending, and the fix is
-        the documented pair -- `gemdb redeploy.py` to give the database the
+        the documented pair -- `gemdb tools/load.py` to give the database the
         new code, then `gemdb tools/seed.py` to rebuild the book under it.
 
         (Until Grail bcedc68a a class-level default could not have reached an

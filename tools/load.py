@@ -40,8 +40,6 @@ for path in (WEB, REPO):
     if path not in sys.path:
         sys.path.insert(0, path)
 
-import gemdb                                    # noqa: E402
-
 
 def modules():
     package = sorted(name[:-3] for name in os.listdir(os.path.join(REPO, "brainfreeze"))
@@ -54,6 +52,8 @@ def modules():
 
 
 def load():
+    import gemdb
+
     for name in modules():
         importlib.import_module(name)
     try:

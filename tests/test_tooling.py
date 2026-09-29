@@ -1,10 +1,10 @@
 """The scripts that hold the demo up, and which nothing tested.
 
-`redeploy.py`, `run_db_tests.py`, `make_notebook.py` and `make_mcp_questions.py`
-had no test naming them. Three of them keep a hand-written list in step with
+`load.py`, `run_db_tests.py`, `make_notebook.py` and `make_mcp_questions.py`
+had no test naming them. Several of them keep a hand-written list in step with
 something else in the repo, and a list that drifts is this project's most
 frequent bug -- the MCP payload that could not start its own server, the module
-`redeploy.py` silently refused to reload, the copy list that had to agree with
+the old redeploy script silently refused to reload, the copy list that had to agree with
 a REQUIRED list. Each was one forgotten name.
 
 So these are the tests that would have caught those: they compare the list to
@@ -18,6 +18,7 @@ import ast
 import importlib.util
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -51,43 +52,42 @@ def package_modules():
                   if f.endswith(".py") and f != "__init__.py")
 
 
-class RedeployKnowsEveryModule(unittest.TestCase):
-    """`redeploy.py` reloads the package in dependency ORDER, which has to be
-    hand-written because no directory listing knows what depends on what.
+class LoadKnowsEveryModule(unittest.TestCase):
+    """`load.py` imports every module, so that a changed one is rebuilt and
+    committed. It lists the directories rather than keeping a list -- a list
+    drifted once, and a module arrived with the JSON API that nothing
+    reloaded -- and this says the listing reaches everything the app runs."""
 
-    A hand-written list drifts. A module arrived with the JSON API
-    and sat unlisted, so anyone editing it and redeploying would have kept
-    running the old compiled copy with nothing to say so -- which is the exact
-    failure that script exists to prevent, reintroduced one module at a time.
-    """
+    def load(self):
+        sys.path.insert(0, os.path.join(REPO, "tools"))
+        try:
+            import load
+        finally:
+            sys.path.pop(0)
+        return load
 
-    def test_order_names_every_module_in_the_package(self):
-        order = set(module_constant("redeploy.py", "ORDER"))
-        missing = [m for m in package_modules() if m not in order]
-        self.assertEqual(
-            missing, [],
-            "redeploy.py's ORDER does not list %s -- editing one of those and "
-            "redeploying would silently keep the old compiled copy"
-            % ", ".join(missing))
+    def test_every_package_module_is_loaded(self):
+        loaded = self.load().modules()
+        missing = [m for m in package_modules() if m not in loaded]
+        self.assertEqual(missing, [], "load.py does not load %s" % ", ".join(missing))
+        self.assertIn("brainfreeze", loaded)
 
-    def test_order_names_nothing_that_does_not_exist(self):
-        order = module_constant("redeploy.py", "ORDER")
-        known = set(package_modules()) | {"brainfreeze"}
-        stale = [m for m in order if m not in known]
-        self.assertEqual(stale, [], "ORDER names modules that are gone: %s"
-                         % ", ".join(stale))
+    def test_every_web_module_but_the_entry_point_is_loaded(self):
+        loaded = self.load().modules()
+        web = sorted(f[:-3] for f in os.listdir(os.path.join(REPO, "web"))
+                     if f.endswith(".py") and f != "app.py")
+        self.assertEqual([m for m in web if m not in loaded], [])
+        self.assertNotIn("app", loaded,
+                         "app.py is the entry point; importing it serves nothing")
 
-    def test_the_package_itself_is_reloaded_last(self):
-        order = module_constant("redeploy.py", "ORDER")
-        self.assertEqual(order[-1], "brainfreeze",
-                         "the package __init__ re-exports its submodules, so "
-                         "it has to be reloaded after them")
-
-    def test_money_is_reloaded_first(self):
-        order = module_constant("redeploy.py", "ORDER")
-        self.assertEqual(order[0], "brainfreeze.money",
-                         "money has no dependencies inside the package and "
-                         "everything that holds money depends on it")
+    def test_submodules_are_named_the_way_grail_rebuilds_them(self):
+        """`brainfreeze.money`, never a bare `money`: `import package.module`
+        is the form that checks the file (GemTalk/Grail#1223)."""
+        bare = {m.split(".", 1)[1] for m in package_modules()}
+        for name in self.load().modules():
+            if name in bare:
+                self.fail("%s would be imported bare, not as brainfreeze.%s"
+                          % (name, name))
 
 
 class TheModulesTheRunnerBuilds(unittest.TestCase):
@@ -161,11 +161,6 @@ class TheDatabaseRunnerRunsEverything(unittest.TestCase):
             # cannot be one: run inside the database they would nest.
             "test_class_identity",
             "test_notebook_runs",   # spawns `gemdb tools/run_notebook.py`
-            # A path calculation, and the database behaviour it defends
-            # against needs a canonical module compiled from a directory
-            # that has since been renamed -- which cannot be staged from
-            # inside a session that is already running out of one.
-            "test_redeploy_path",
             # And this one needs a session where `numbers` was never
             # imported, which the shared suite session cannot promise.
             "test_decimal_comparison",

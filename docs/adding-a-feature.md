@@ -85,7 +85,7 @@ python3 -m unittest discover
 gemdb tools/run_db_tests.py
 ```
 
-Note what did *not* have to happen: no `gemdb tools/redeploy.py`, because no package
+Note what did *not* have to happen: no `gemdb tools/load.py`, because no package
 module changed, and no `gemdb tools/seed.py`, because every existing claim reads the
 default through the class it was made under.
 
@@ -116,7 +116,7 @@ quote had nowhere in the book to live. Giving it somewhere took three commits
 This one paid both costs, and they are separate costs with separate fixes.
 
 **Cost one: `model.py` is inside a package, so the database was still serving
-the old compiled copy.** `gemdb tools/redeploy.py` is the fix — §4.
+the old compiled copy.** `gemdb tools/load.py` is the fix — §4.
 
 **Cost two: `Book.quotes` is a new field on an object that was already
 committed.** The book in `gemdb.root["brainfreeze"]` was built before `quotes`
@@ -134,7 +134,7 @@ The order matters and the app says so out loud. From `app.py`:
             return the_book.quotes
         except AttributeError:
             abort(500, "This book was committed before quotes had a class of "
-                       "their own. Run `gemdb tools/redeploy.py` to give the "
+                       "their own. Run `gemdb tools/load.py` to give the "
                        "database the current brainfreeze package, then "
                        "`gemdb tools/seed.py` to rebuild the book under it.")
 ```
@@ -182,7 +182,7 @@ deliberately and say which one you chose.
 Everything above collapses into these.
 
 **Is the file you edited inside `brainfreeze/`?** Then the database is serving a
-compiled copy of it and your edit is not live. Run `gemdb tools/redeploy.py`.
+compiled copy of it and your edit is not live. Run `gemdb tools/load.py`.
 
 Everything in `web/` and `tools/` is read from disk each time `gemdb` runs it,
 so restarting is enough for those — and that is precisely why neither
@@ -306,7 +306,7 @@ stabilising your classes.
 The escape:
 
 ```sh
-gemdb tools/redeploy.py
+gemdb tools/load.py
 ```
 
 It is `importlib.reload` in dependency order, then a commit. Two details are
@@ -331,7 +331,7 @@ says otherwise, the database is still running older code.
 
 **What redeploy does not do is migrate anything.** Objects already committed keep
 the class they were made with. That is why the pair is two commands and not one:
-`gemdb tools/redeploy.py` changes the rules, `gemdb tools/seed.py` rebuilds the data those
+`gemdb tools/load.py` changes the rules, `gemdb tools/seed.py` rebuilds the data those
 rules made.
 
 **What is still open** is whether there is a recipe that re-binds
@@ -532,7 +532,7 @@ Said plainly, because a confident wrong answer here is expensive.
 | [`findings/08_script_imports.py`](../findings/08_script_imports.py) | the database keeps a compiled module and serves it forever; the commit is the mechanism |
 | [`findings/02_main_namespace.py`](../findings/02_main_namespace.py) | `__main__` is shared by every script; dispatch is by arity |
 | [`findings/class-identity/`](../findings/class-identity/README.md) | committing after imports is what keeps class identity |
-| [`redeploy.py`](../tools/redeploy.py) | the escape, with its reasoning in the module docstring |
+| [`load.py`](../tools/load.py) | the escape, with its reasoning in the module docstring |
 | [`docs/prd-corrections.md`](prd-corrections.md) | correction 5 on FR-7.2, correction 10 on what "redeploy" means |
 
 And the two companions, again, because most of what an agent needs is in one of

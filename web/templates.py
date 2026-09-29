@@ -6,10 +6,8 @@ these are here at all, and it says nothing about which FILE they live in --
 so they live beside the routes that render them rather than swamping them.
 `app.py` was 1,025 lines, 280 of them this.
 
-A top-level module on purpose. Grail keeps a committed PACKAGE module compiled
-in the database and serves that copy forever after; a top-level module is
-recompiled from disk each run. Measured, because it decides whether editing a
-template needs a `redeploy.py`. It does not.
+A top-level module. An edit to a template is live in a running app once it is
+loaded: `gemdb tools/load.py`. See routes.py.
 
 Money never reaches a template raw -- see `render()` in app.py, which puts
 `usd` in every context.

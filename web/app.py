@@ -16,12 +16,12 @@ in `routes_html.py`, the payloads in `routes_api.py`, the markup in
 `lookups.py`, rendering in `pages.py`, and the route table that keeps loaded
 code live in `routes.py`.
 
-None of them is a package, deliberately. Grail keeps a committed PACKAGE
-module compiled in the database and serves that copy forever after, while a
-module in a plain directory on `sys.path` is recompiled from disk each run --
-measured, both ways. It is why editing a template here does not need a
-`redeploy.py` first, and it is why `web/` has no `__init__.py`. Do not add
-one.
+None of them is a package. `from package import module` is the one import
+form Grail still serves stale after an edit (GemTalk/Grail#1223), and it is
+the natural way to import a sibling inside a package, so `web/` has no
+`__init__.py`. An edit to any of them is live in the running app once it is
+loaded -- `gemdb tools/load.py` -- because the routes look everything up by
+name on each request (routes.py).
 
 WHAT IS AND IS NOT HERE
 
@@ -226,7 +226,7 @@ def serve(host="127.0.0.1", port=None):
     template and handler into the database, and until something commits, all
     of that is this session's uncommitted work. If another session commits in
     the meantime -- the notebook's last cell does exactly that, and so does
-    `tools/redeploy.py` -- the app's first `take_new_view()` meets a
+    `tools/load.py` -- the app's first `take_new_view()` meets a
     write-write conflict on it.
 
     That is not a bad request; it is a dead server. The uncommitted work

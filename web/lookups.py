@@ -8,10 +8,8 @@ surface that has to produce it.
 There is no ORM and no session to open. `book()` is the whole data-access
 layer, and it is one dictionary lookup.
 
-A top-level module, deliberately. Grail keeps a committed PACKAGE module
-compiled in the database and serves that copy to every later session; a
-top-level module is recompiled from disk each run. Measured, because it
-decides whether editing this file needs a `redeploy.py` first. It does not.
+A top-level module. An edit to it is live in a running app once it is
+loaded: `gemdb tools/load.py`. See routes.py.
 """
 
 from flask import abort
@@ -44,7 +42,7 @@ def quotes(the_book):
         return the_book.quotes
     except AttributeError:
         abort(500, "This book was committed before quotes had a class of "
-                   "their own. Run `gemdb tools/redeploy.py` to give the database "
+                   "their own. Run `gemdb tools/load.py` to give the database "
                    "the current brainfreeze package, then `gemdb tools/seed.py` to "
                    "rebuild the book under it.")
 

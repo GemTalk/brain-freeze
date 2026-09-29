@@ -172,6 +172,20 @@ def read_promises():
 
 # ----------------------------------------------------------- environment ---
 
+def installed_engine():
+    """The engine GemDB installed, as its own `gemdb` command names it.
+
+    Read rather than spelled out: this said GemStone64Bit3.7.5 for a whole
+    engine release after GemDB moved to 4.0.0.a3, and failed at the first
+    topaz it ran.
+    """
+    with open(os.path.join(GEMDB_ROOT, "bin", "gemdb")) as handle:
+        match = re.search(r'^GEMSTONE="(.*)"$', handle.read(), re.M)
+    if not match:
+        raise SystemExit("cannot tell which engine GemDB installed")
+    return match.group(1)
+
+
 def gemstone_env():
     """What topaz needs, in the shape `~/GemDB/bin/gemdb` proved works.
 
@@ -180,7 +194,7 @@ def gemstone_env():
     for `gs64ldi` while GemDB's is `gemdbldi`, failing with a `getaddrinfo`
     error that reads like DNS.
     """
-    engine = os.path.join(GEMDB_ROOT, "GemStone64Bit3.7.5-arm64.Darwin")
+    engine = installed_engine()
     grail = os.path.join(GEMDB_ROOT, "grail")
     env = dict(os.environ)
     env.update({

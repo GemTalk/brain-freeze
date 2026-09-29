@@ -314,10 +314,10 @@ that you **must** commit after your imports, or instances you write are stranded
 on a class the next session will not recognise. That rule is right. This is its
 price: the same commit that stabilises your classes freezes your code.
 
-**The escape is [`redeploy.py`](../tools/redeploy.py)**, and it is not obvious:
+**The escape is [`load.py`](../tools/load.py)**, and it is not obvious:
 
 ```sh
-gemdb tools/redeploy.py
+gemdb tools/load.py
 ```
 
 It is `importlib.reload` in dependency order, then a commit, and both details are
@@ -348,7 +348,7 @@ GsFile open failed for '.../Brain Freeze Insurance/brainfreeze/money.py'
 ```
 
 This repository hit that: it used to be called `Brain Freeze Insurance`, and
-after the rename `gemdb tools/redeploy.py` failed while **every other command
+after the rename `gemdb tools/load.py` failed while **every other command
 kept working** — the app served, the tests passed, the notebook ran, all of
 them on the code the database had been given before the rename. Nothing pointed
 at the cause, because the only broken thing was the one command whose whole job
