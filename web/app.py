@@ -116,17 +116,6 @@ import jinja2
 from flask import Flask, render_template_string
 from werkzeug.serving import WSGIRequestHandler
 
-# Put back what jinja2 sets at the bottom of its own module. Once Jinja is
-# deployed, every session after the one that deployed it gets an Environment
-# with no `template_class`, so every render_template_string raises
-# AttributeError and every page is a 500 (GemTalk/Grail#1242, first met on
-# GemDB 1.5.2's Grail b86985f). The body only annotates that name, so this
-# store is session-local and writes nothing committed (Grail#1240) -- which
-# is why it has to run in every session, and why this file, recompiled on
-# every run, is the place. Delete it once #1242 ships.
-if not hasattr(jinja2.Environment, "template_class"):
-    jinja2.Environment.template_class = jinja2.Template
-
 import brainfreeze
 import gemdb
 import routes_api
@@ -232,6 +221,26 @@ def cover_state(policy, today):
     return ("Term ended %s" % policy.policy_end_date, "no")
 
 
+def restore_template_class():
+    """Put back what jinja2 sets at the bottom of its own module.
+
+    Once Jinja is deployed, every session after the one that deployed it gets
+    an Environment with no `template_class`, so every render_template_string
+    raises AttributeError and every page is a 500 (GemTalk/Grail#1242, first
+    met on GemDB 1.5.2's Grail b86985f). The class body only annotates that
+    name, so the store is session-local and writes nothing committed
+    (Grail#1240) -- which is why it has to happen in every session.
+
+    A function, not a module-level statement, and that is the whole point.
+    This file is restored WITHOUT re-running its top level whenever it is
+    unchanged since it was last committed, which is #1242 again: a store at
+    module scope here works the first run after an edit and never again.
+    Delete this once #1242 ships.
+    """
+    if not hasattr(jinja2.Environment, "template_class"):
+        jinja2.Environment.template_class = jinja2.Template
+
+
 def create_app():
     """Build the app and hand each surface what it needs.
 
@@ -239,6 +248,7 @@ def create_app():
     `cover_state`, which live here because they are about how THIS app talks
     to Grail rather than about any one page.
     """
+    restore_template_class()
     app = Flask(__name__)
 
     @app.before_request
