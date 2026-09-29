@@ -14,8 +14,7 @@ division on money raises TypeError. `ast.parse` answers an opaque object with
 no tree. A `__repr__` that is fine outside is not necessarily fine in here --
 and cell 2 ends with a bare `book`, so the audience sees that repr.
 
-Beat 5 of DEMO.md is the notebook and it is the longest beat in the demo at
-seven minutes. Until this existed, nothing ran it.
+The notebook is step 4 of the tutorial. Until this existed, nothing ran it.
 
 CPython-side, because it SPAWNS a database session and so cannot be one.
 Skips rather than fails where there is no database to ask.

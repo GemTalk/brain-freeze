@@ -95,9 +95,9 @@ ships (GemTalk/GemDB_Code#50). Tracked here as issue #83.
 
 The acceptance suite works around it: the steps that run something in a
 session of their own check the app afterwards and restart it if it is gone
-(`ensure_app_answering` in `features/environment.py`). The demo has no
-harness, which is why DEMO.md's first trap tells the presenter to reload the
-browser after the notebook beat.
+(`ensure_app_answering` in `features/environment.py`). Someone following the
+tutorial has no harness: on a build without the fix, reload the browser after
+running the notebook.
 
 Still unexplained: the two `SrePattern` objects. `re._cache` is already a
 `SessionDict` in this build, so the cache is not what conflicted -- the

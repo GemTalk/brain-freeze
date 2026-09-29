@@ -3,14 +3,11 @@
     gemdb tools/run_notebook.py          # all of them
     gemdb tools/run_notebook.py 5        # stop after cell 5
 
-Cells are numbered from 1, the way the notebook UI shows them and the way
-`DEMO.md` beat 5 refers to them ("run cell 11 first"). A runner that counted
-from 0 would disagree with the document it exists to protect.
+Cells are numbered from 1, the way the notebook UI shows them.
 
 WHY THIS EXISTS
 
-Beat 5 of `DEMO.md` is the notebook, and at seven minutes it is the longest
-beat in the demo. Nothing ran it. `tests/test_notebook.py` parses every cell
+The notebook is step 4 of the tutorial, and nothing ran it. `tests/test_notebook.py` parses every cell
 and checks the first one puts the repository on the path -- which it added
 after the notebook shipped for weeks unable to import its own model -- but
 parsing is not running, and the interesting failures here are not syntactic.

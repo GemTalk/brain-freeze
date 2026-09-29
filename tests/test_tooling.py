@@ -155,7 +155,6 @@ class TheDatabaseRunnerRunsEverything(unittest.TestCase):
             "test_imports",         # resolves imports without running them
             "test_lint",            # shells out to pyflakes under CPython
             "test_notebook",        # reads the .ipynb and its generator
-            "test_demo_script",     # reads a document, not the database
             "test_datagen",         # numpy does not exist in the database
             "test_tooling",         # this file
             # These DRIVE database sessions with subprocess, so they
@@ -245,9 +244,9 @@ class TheTextFilesAreTidy(unittest.TestCase):
     fixed, and this is what would have said so.
 
     Markdown is the exception, and it is a real one: a line ending in exactly
-    two spaces is a HARD LINE BREAK. `docs/PRD.md` opens with four of them,
-    one per line of metadata, and stripping them would run the status, the
-    owner and the reviewers together into a paragraph. So two spaces are
+    two spaces is a HARD LINE BREAK, and a block of metadata lines relies on
+    them; stripping them would run the lines together into a paragraph. So
+    two spaces are
     allowed in a `.md` and anything else is not -- which also catches the
     three-space near-miss that does nothing at all.
     """

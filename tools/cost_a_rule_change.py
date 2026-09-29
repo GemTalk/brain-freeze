@@ -10,8 +10,8 @@ cap, and reports what moves against today's cap of 4 approvals.
 WHY A SCRIPT RATHER THAN AN ESTIMATE
 
 Every book-wide aggregate in this repository is pinned somewhere -- loss ratio
-by tier alone appears in two test modules, the README three times, the MCP
-answers, the notebook and DEMO.md beat 8. So "a few claims would change" is
+by tier alone appears in two test modules, the MCP answers and the notebook.
+So "a few claims would change" is
 not a small answer: any payout change at all triggers a regeneration across
 about thirty files. Knowing whether the number is 0 or 28 is the whole
 decision, and only the book can say.

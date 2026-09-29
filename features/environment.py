@@ -297,7 +297,7 @@ def ensure_app_answering(context, why):
 
     Checked rather than done unconditionally: a restart costs ten seconds and,
     more importantly, `the app was never restarted` is a real claim that
-    cross_surface.feature and the_demo_as_written.feature make. A harness that
+    cross_surface.feature makes. A harness that
     restarted the app whenever another session ran would make that claim
     untestable, which is worse than the bug.
     """
