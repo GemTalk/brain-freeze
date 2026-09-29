@@ -49,7 +49,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 ARTIFACTS = os.path.join(REPO, "artifacts")
 
-HOST, PORT = "127.0.0.1", 5000
+HOST, PORT = "127.0.0.1", 5050
 BASE_URL = "http://%s:%d" % (HOST, PORT)
 
 #: Generous on purpose. Rendering is slow here -- Grail runs each Jinja

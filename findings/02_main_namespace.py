@@ -19,7 +19,7 @@ Two facts combine to produce that:
    every script this database has run, across sessions.
 
 2. Grail dispatches by argument count, and default values do not
-   disambiguate. A function declared `main(host="...", port=5000)` and called
+   disambiguate. A function declared `main(host="...", port=5050)` and called
    as `main()` is a zero-argument call, and can resolve to a *different*
    script's zero-argument `main`.
 

@@ -91,41 +91,42 @@ class WhatTheRefusalSays(unittest.TestCase):
     holding its own socket."""
 
     def test_one_of_ours_is_named_with_the_command_that_stops_it(self):
-        said = serving.refusal("127.0.0.1", 5000,
+        said = serving.refusal("127.0.0.1", 5050,
                                {"pid": 4242, "command": "topaz"})
         self.assertIn("4242", said)
         self.assertIn("kill 4242", said)
 
     def test_somebody_elses_server_is_named_but_not_killed(self):
         """Telling a newcomer to kill a process they did not start is bad
-        advice, and the likeliest holder of :5000 on a Mac is AirPlay."""
-        said = serving.refusal("127.0.0.1", 5000,
+        advice. (The app left :5000 because macOS's AirPlay Receiver holds it
+        by default; ControlCenter is that process.)"""
+        said = serving.refusal("127.0.0.1", 5050,
                                {"pid": 4821, "command": "ControlCenter"})
         self.assertIn("4821", said)
         self.assertIn("ControlCenter", said)
         self.assertNotIn("kill 4821", said)
 
     def test_an_unnamed_holder_still_refuses_and_says_how_to_look(self):
-        said = serving.refusal("127.0.0.1", 5000,
+        said = serving.refusal("127.0.0.1", 5050,
                                {"pid": None, "command": None})
-        self.assertIn("5000", said)
+        self.assertIn("5050", said)
         self.assertIn("lsof", said)
 
 
 class TheBanner(unittest.TestCase):
     def test_it_names_the_address_a_newcomer_should_open(self):
-        self.assertIn("http://127.0.0.1:5000/", serving.banner("127.0.0.1", 5000))
+        self.assertIn("http://127.0.0.1:5050/", serving.banner("127.0.0.1", 5050))
 
     def test_it_follows_the_port_it_is_given(self):
         self.assertIn("http://127.0.0.1:9090/", serving.banner("127.0.0.1", 9090))
 
     def test_it_says_how_to_stop_it(self):
-        self.assertIn("Ctrl-C", serving.banner("127.0.0.1", 5000))
+        self.assertIn("Ctrl-C", serving.banner("127.0.0.1", 5050))
 
     def test_it_says_requests_will_appear(self):
         """The line that ends 'silence means hang'. A newcomer who is not told
         what to expect reads an idle terminal as a broken one."""
-        self.assertIn("below", serving.banner("127.0.0.1", 5000).lower())
+        self.assertIn("below", serving.banner("127.0.0.1", 5050).lower())
 
 
 @unittest.skipIf(gemdb is None, "needs the database -- run under gemdb")

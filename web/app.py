@@ -1,6 +1,6 @@
 """Brain Freeze Insurance, as a web app running inside the database.
 
-    gemdb web/app.py            # serves on http://127.0.0.1:5000/
+    gemdb web/app.py            # serves on http://127.0.0.1:5050/
 
 Start it from the project directory. `sys.path[0]` is the script's directory
 -- `web/` -- so the repository is put on the path below, before anything of
@@ -246,7 +246,7 @@ def create_app():
     return app
 
 
-def serve(host="127.0.0.1", port=5000):
+def serve(host="127.0.0.1", port=5050):
     """Build the app, take a transaction boundary, then open the socket.
 
     The commit before `run` is not tidiness. Building the app compiles every

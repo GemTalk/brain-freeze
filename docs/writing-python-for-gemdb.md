@@ -445,7 +445,7 @@ script this database has ever run, across sessions and across processes
 ([finding 2](../findings/02_main_namespace.py)).
 
 Combined with the second half: **Grail dispatches by argument count, and default
-values do not disambiguate.** A function declared `main(host="...", port=5000)`
+values do not disambiguate.** A function declared `main(host="...", port=5050)`
 and called as `main()` is a zero-argument call, and can resolve to a *different*
 script's zero-argument `main`.
 
@@ -538,7 +538,7 @@ Three more, smaller:
 ## Web apps
 
 **Before any of that: a server here prints nothing unless you make it.** No
-startup banner, no "Running on http://127.0.0.1:5000", no access log, not at
+startup banner, no "Running on http://127.0.0.1:5050", no access log, not at
 startup and not after it answers a request. Measured: an app serving correctly
 wrote **zero bytes** to its terminal over thirty-five seconds and a successful
 request.
@@ -578,8 +578,8 @@ Ask the server as well as watching it, because a banner proves it started and
 not that it is still answering:
 
 ```sh
-curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5000/
-lsof -nP -iTCP:5000 -sTCP:LISTEN
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5050/
+lsof -nP -iTCP:5050 -sTCP:LISTEN
 ```
 
 A genuine failure to start does print, because it raises rather than logging.

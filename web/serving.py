@@ -88,9 +88,7 @@ def refusal(host, port, holder):
                   "    kill %d" % pid]
     else:
         lines += ["  PID %d   %s" % (pid, command or "?"), "",
-                  "That isn't Brain Freeze, so don't kill it without looking.",
-                  "On macOS, AirPlay Receiver uses port 5000 --",
-                  "System Settings > General > AirDrop & Handoff."]
+                  "That isn't Brain Freeze, so don't kill it without looking."]
     return "\n".join(lines)
 
 

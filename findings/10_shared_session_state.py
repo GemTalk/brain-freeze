@@ -116,7 +116,7 @@ TITLE = ("Finding 10: shared stdlib state, and the app that never answers "
          "again.")
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BASE = "http://127.0.0.1:5000"
+BASE = "http://127.0.0.1:5050"
 
 
 def _status(path):

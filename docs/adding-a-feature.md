@@ -351,7 +351,7 @@ script this database has ever run — across sessions and across processes
 ([finding 2](../findings/02_main_namespace.py)).
 
 Combined with the second half: **Grail dispatches by argument count, and default
-values do not disambiguate.** A function declared `main(host="...", port=5000)`
+values do not disambiguate.** A function declared `main(host="...", port=5050)`
 and called as `main()` is a zero-argument call, and can resolve to a *different*
 script's zero-argument `main`. That is not hypothetical — `gemdb web/app.py` once
 failed with `name 'PREAMBLE' is not defined`, a global belonging to
@@ -420,10 +420,10 @@ python3 -m venv .venv-acceptance
 ```
 
 It owns its whole environment: it reseeds the book, starts `gemdb web/app.py`, runs
-the scenarios, stops the app, and **fails the run if port 5000 is still open
+the scenarios, stops the app, and **fails the run if port 5050 is still open
 afterwards**. Three things follow for anyone adding a feature.
 
-- It refuses to start if something is already listening on 5000 rather than
+- It refuses to start if something is already listening on 5050 rather than
   reusing it, so **stop your own app first**. A run that silently tested a stale
   server would be worse than no run.
 - A leaked app is a leaked GemStone session and the stone allows ten. Do not

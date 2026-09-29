@@ -245,7 +245,7 @@ gemdb web/app.py
 ```
 Brain Freeze Insurance is running.
 
-  Open:  http://127.0.0.1:5000/
+  Open:  http://127.0.0.1:5050/
   Stop:  Ctrl-C
 
 Requests appear below as they arrive.
@@ -271,14 +271,14 @@ traceback is **printed** — `logging` is the thing that breaks
 You can still ask it rather than watch it, and it is still worth doing:
 
 ```sh
-curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5000/    # 200
-lsof -nP -iTCP:5000 -sTCP:LISTEN                                   # one listener
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5050/    # 200
+lsof -nP -iTCP:5050 -sTCP:LISTEN                                   # one listener
 ```
 
 Give the first request up to a minute. It compiles every template into the
 database on the way through, and that is the slowest thing the demo does.
 
-Then open <http://127.0.0.1:5000/>. **Start it from the project directory** —
+Then open <http://127.0.0.1:5050/>. **Start it from the project directory** —
 see [finding 3](#3-__main__-is-one-shared-namespace-for-every-script-the-database-has-run).
 
 Answer the five questions at `/quote` — age 11, eats fast, favourite is a
@@ -346,7 +346,7 @@ GET  /api/stats            book-level aggregates
 ```
 
 ```console
-$ curl -s localhost:5000/api/stats
+$ curl -s localhost:5050/api/stats
 {"policy_count": 900, "event_count": 4993, "claim_count": 2172,
  "approved_claim_count": 1691, "premium": "92081.22", "paid": "54671.44",
  "loss_ratio": 0.594, "claim_approval_rate": 0.7785,
@@ -365,7 +365,7 @@ money into text for a payload, and `wire.py` is the only place that builds
 one.
 
 ```console
-$ curl -s localhost:5000/api/quote -H 'Content-Type: application/json' \
+$ curl -s localhost:5050/api/quote -H 'Content-Type: application/json' \
        -d '{"age": 11, "typical_consumption_speed": "fast",
             "favourite_trigger": "slushie"}'
 {"answers": {...},

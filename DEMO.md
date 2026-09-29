@@ -75,7 +75,7 @@ request as they arrive. **If it prints nothing, it has not started.** In
 another terminal:
 
 ```sh
-curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5000/
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5050/
 ```
 
 `200`. **Do not skip this.** The warm-up is not superstition: the first
@@ -103,7 +103,7 @@ cells adrift.
 
 ### 1 — An insurance company (1 min)
 
-**Do this.** Open <http://127.0.0.1:5000/> in Simple Browser and drag the tab
+**Do this.** Open <http://127.0.0.1:5050/> in Simple Browser and drag the tab
 to the right half of the window so a terminal can sit beside it.
 
 A table of policy ids, plan, risk band, status, claims and what each has been
@@ -523,7 +523,7 @@ hangs, the app is gone:
 
 ```sh
 gemdb web/app.py                                          # restart it
-curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5000/   # warm it
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5050/   # warm it
 ```
 
 That is thirty seconds of dead air, which is why you check during the beat
@@ -572,7 +572,7 @@ killing the wrapper leaves the process it started.
 Before you present, and after:
 
 ```sh
-lsof -nP -iTCP:5000 -sTCP:LISTEN
+lsof -nP -iTCP:5050 -sTCP:LISTEN
 ```
 
 Empty is what you want. If it is not, kill the whole process group rather than
@@ -638,5 +638,5 @@ gemdb tools" off the front. Say it again with the phrase.
 
 ```sh
 gemdb tools/seed.py          # leave a clean book for the next person
-lsof -nP -iTCP:5000 -sTCP:LISTEN   # and leave no sessions behind
+lsof -nP -iTCP:5050 -sTCP:LISTEN   # and leave no sessions behind
 ```
