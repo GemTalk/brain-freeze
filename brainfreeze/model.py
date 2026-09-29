@@ -29,17 +29,10 @@ from .underwriting import COVERAGE_PLANS, risk_score, risk_tier
 class Claim:
     """A claim filed against one cold-treat event."""
 
-    #: Added in CUJ-4, after the sample data was already committed. They are
-    #: class attributes as well as instance ones on purpose: a claim written
-    #: before the fields existed has no flavour slot of its own, and without a
-    #: default here reading `claim.flavour` on one of those raises
-    #: AttributeError. This one line is the whole migration.
-    flavour = None
-    toppings = ()
-
     #: Which rule refused this claim, as a stable identifier, alongside
-    #: the sentence in `reason`. Same class-attribute default and the same
-    #: reason for it.
+    #: the sentence in `reason`. A class attribute as well as an instance one:
+    #: a claim written before the field existed has no slot of its own, and
+    #: reads the default through the class.
     #:
     #: Read it as `getattr(claim, "rule", None)` across the whole book, the way
     #: `analysis.denial_rules` does. The original reason for that was that a
@@ -51,7 +44,7 @@ class Claim:
     rule = None
 
     def __init__(self, claim_id, requested, approved, status, reason=None,
-                 flavour=None, toppings=None, rule=None):
+                 rule=None):
         self.claim_id = claim_id
         #: Through `usd`, which refuses a float outright. Money enters the
         #: model here and at Policyholder, and nowhere else, so those two
@@ -62,10 +55,6 @@ class Claim:
         self.reason = reason
         if rule is not None:
             self.rule = rule
-        if flavour is not None:
-            self.flavour = flavour
-        if toppings is not None:
-            self.toppings = tuple(toppings)
 
     @property
     def is_approved(self):

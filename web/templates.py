@@ -258,17 +258,6 @@ CLAIM_FORM = _STYLE + """
     {% for q in qualities %}
     <label class="opt"><input type="radio" name="quality" value="{{ q }}"
       {% if loop.first %}checked{% endif %}> {{ q }}</label>{% endfor %}</fieldset>
-  <fieldset><legend>Which flavour? <span class="tag">new</span></legend>
-    {% for f in flavours %}
-    <label class="opt"><input type="radio" name="flavour" value="{{ f }}"
-      {% if loop.first %}checked{% endif %}> {{ f }}</label>{% endfor %}</fieldset>
-  <fieldset><legend>Anything on top? <span class="tag">new</span></legend>
-    {% for top in toppings %}
-    <label class="opt"><input type="checkbox" name="toppings"
-      value="{{ top }}"> {{ top }}</label>{% endfor %}
-    <div class="muted">These two questions went in after 900 policies and
-      4,993 episodes were already committed. No migration, nothing rewritten
-      &mdash; older claims simply have no flavour.</div></fieldset>
   <button type="submit">Send the claim</button>
 </form>
 """
@@ -280,8 +269,6 @@ DECISION = _STYLE + """
 <h1>Not this time</h1>
 {% endif %}
 <p class="sub num">{{ c.claim_id }} &middot; {{ e.trigger }}
-  {%- if c.flavour %} ({{ c.flavour }}{% if c.toppings %},
-    {{ c.toppings|join(', ')|lower }}{% endif %}){% endif %}
   &middot; {{ e.event_date }}</p>
 
 <div class="card">

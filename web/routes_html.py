@@ -191,7 +191,7 @@ def register(app, render, cover_state):
             CLAIM_FORM, p=policy, triggers=forms.TRIGGERS, colds=forms.COLD_BANDS,
             portions=forms.PORTION_BANDS, speeds=forms.SPEED_BANDS,
             durations=forms.DURATION_BANDS, locations=forms.PAIN_LOCATIONS,
-            qualities=forms.PAIN_QUALITIES, flavours=forms.FLAVOURS, toppings=forms.TOPPINGS,
+            qualities=forms.PAIN_QUALITIES,
             warnings=_warnings(policy, date.today()))
 
 
@@ -223,9 +223,7 @@ def register(app, render, cover_state):
             approved=decision.amount,
             status=decision.status,
             reason=decision.reason,
-            rule=decision.rule,
-            flavour=request.form.get("flavour") or None,
-            toppings=request.form.getlist("toppings") or None)
+            rule=decision.rule)
         policy.add_event(Event(
             event_id=next_id([e.event_id for e in the_book.events],
                               "EVT", 6, 1),

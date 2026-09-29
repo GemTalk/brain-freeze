@@ -168,9 +168,8 @@ def nothing_warns(context):
 
 # -- describing the episode ------------------------------------------------
 
-@when('I report {trigger}, {flavour}, topped with {toppings}, pain {pain:d}, '
-      'lasting {duration}')
-def report_an_episode(context, trigger, flavour, toppings, pain, duration):
+@when('I report {trigger}, pain {pain:d}, lasting {duration}')
+def report_an_episode(context, trigger, pain, duration):
     """Answer the questions the way a claimant would and send the claim.
 
     Only the answers this scenario is about are given. Everything else --
@@ -180,8 +179,6 @@ def report_an_episode(context, trigger, flavour, toppings, pain, duration):
     click script.
     """
     page = context.page
-    context.toppings = [t.strip() for t in toppings.split(" and ")]
-    context.flavour = flavour
     context.trigger = trigger
     context.pain = pain
     assert duration in DURATION_SECONDS, (
@@ -191,9 +188,6 @@ def report_an_episode(context, trigger, flavour, toppings, pain, duration):
 
     page.check('input[name="trigger"][value="%s"]' % trigger)
     page.check('input[name="duration"][value="%s"]' % duration)
-    page.check('input[name="flavour"][value="%s"]' % flavour)
-    for topping in context.toppings:
-        page.check('input[name="toppings"][value="%s"]' % topping)
     page.fill('input[name="pain"]', str(pain))
 
     page.click('button[type="submit"]')
@@ -229,20 +223,9 @@ def shown_a_decision(context):
         "the claim is dated %s and today is %s" % (context.claim_date, date.today()))
 
 
-@then('the decision names the flavour and the toppings')
-def decision_names_flavour_and_toppings(context):
-    """CUJ-4's two questions, captured and shown.
-
-    The page writes the toppings lowercased and joined, so each is checked on
-    its own rather than as one string -- an assertion on the joined phrase
-    would be an assertion about the punctuation between them.
-    """
+@then('the decision names what was eaten')
+def decision_names_what_was_eaten(context):
     subtitle = context.page.locator("p.sub").inner_text()
-    assert context.flavour in subtitle, (
-        "the decision does not say the flavour was %r: %r" % (context.flavour, subtitle))
-    for topping in context.toppings:
-        assert topping.lower() in subtitle.lower(), (
-            "the decision does not mention %r: %r" % (topping, subtitle))
     assert context.trigger in subtitle, (
         "the decision does not say what was eaten: %r" % subtitle)
 

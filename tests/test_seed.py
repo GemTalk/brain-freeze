@@ -391,12 +391,6 @@ class BF100539(unittest.TestCase):
     def test_this_policy_loses_money(self):
         self.assertGreater(self.policy.loss_ratio, 1.5)
 
-    def test_old_claims_read_cleanly_without_the_cuj4_fields(self):
-        # Nothing in the CSVs has a flavour. Reading one must not raise.
-        for claim in self.policy.claims:
-            self.assertIsNone(claim.flavour)
-            self.assertEqual(claim.toppings, ())
-
 
 def scrambled(rows):
     """Deal alternately off the back and the front of the list.

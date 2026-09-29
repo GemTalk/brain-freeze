@@ -19,8 +19,8 @@ is the pinned expectation.
 This file is for **reading** the data over MCP. Changing the Python that
 defines it is a different job with a different toolset — not MCP's — and
 [`adding-a-feature.md`](adding-a-feature.md) is that one: where a new field
-goes, which commands make it live, and why `Claim.rule` has to be read through
-`getattr` while `Claim.flavour` does not.
+goes, which commands make it live, and why `Claim.rule` is read through
+`getattr`.
 
 Everything here was read out of `brainfreeze/`, `tools/seed.py`, `data/*.csv` and
 the findings scripts. Where a figure is date-dependent or was measured on one
@@ -211,15 +211,7 @@ stored; `claimed` is the only property.
 | `status` | `str` | `"Approved"` or `"Denied"` — nothing else reaches an object |
 | `reason` | `str` or `None` | why it was refused, in English; `None` when approved |
 | `rule` | `str` or `None` | which rule refused it, as an identifier; `None` when approved |
-| `flavour` | `str` or `None` | class default `None` |
-| `toppings` | `tuple` | class default `()` |
 | `is_approved` | property | `status == "Approved"` |
-
-`flavour` and `toppings` were added in CUJ-4, after the sample data was
-committed. They are **class** attributes as well as instance ones on purpose: a
-claim written before the fields existed has no slot of its own and reads the
-default through the class. Reading them on a seeded claim is safe and gives
-`None` and `()`; 2,172 of them do.
 
 `rule` was added later still. Read it as `getattr(claim, "rule", None)`, never
 `claim.rule`, and fall back to `adjudication.rule_for_reason(claim.reason)` for

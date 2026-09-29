@@ -234,13 +234,6 @@ class Payloads(unittest.TestCase):
         self.assertEqual(payload["approved"], "0.00")
         self.assertEqual(payload["reason"], "Exceeded annual claim limit")
 
-    def test_a_claim_from_before_the_new_questions_reads_as_null(self):
-        # CUJ-4: the 2,172 seeded claims have no flavour slot of their own.
-        claim = self.book[EXAMPLE].claims[0]
-        payload = wire.claim(claim)
-        self.assertIsNone(payload["flavour"])
-        self.assertEqual(payload["toppings"], [])
-
     def test_a_claim_detail_names_its_policy_and_the_terms_it_was_judged_by(self):
         policy = self.book[EXAMPLE]
         event = [e for e in policy.events if e.claim is not None][0]

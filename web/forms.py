@@ -39,15 +39,6 @@ DURATION_BANDS = [
 PAIN_LOCATIONS = ["Forehead", "Temple", "Back of the head", "All over"]
 PAIN_QUALITIES = ["Stabbing", "Pulling", "Dull and pressing"]
 
-#: CUJ-4. Added after 900 policies and 4,993 episodes were already committed.
-#: Nothing was migrated and nothing was rewritten: `Claim.flavour` and
-#: `Claim.toppings` are class attributes with defaults, so the 2,172 claims
-#: filed before these questions existed have no slot of their own and read
-#: None and () through the class. That is the entire migration.
-FLAVOURS = ["Vanilla", "Chocolate", "Strawberry", "Mint choc chip",
-            "Cookie dough", "Something else"]
-TOPPINGS = ["Sprinkles", "Hot fudge", "Whipped cream", "Nuts", "Cherry"]
-
 #: Labels for the speeds the RISK MODEL defines, rather than a second list of
 #: speeds. app.py used to spell these out -- "slow", "moderate", "fast" --
 #: three lines below importing TRIGGER_TYPES from the package for the

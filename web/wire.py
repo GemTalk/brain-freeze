@@ -84,10 +84,6 @@ def claim(a_claim):
         # The reason is the point of CUJ-2: an agent can only explain a
         # refusal from the reason that actually refused it.
         "reason": a_claim.reason,
-        # CUJ-4. A claim written before these fields existed reads None and
-        # () through the class, and publishes as null and [].
-        "flavour": a_claim.flavour,
-        "toppings": list(a_claim.toppings),
     }
 
 
