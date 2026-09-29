@@ -39,9 +39,11 @@ DOC = os.path.join(REPO, "docs", "mcp-questions.md")
 #: then quietly inject `brainfreeze` on top, so the preamble a reader was told
 #: to paste could not run question 6. If a question needs a name, it goes
 #: here where the reader can see it.
+#: The analysis import is written `import brainfreeze.analysis as analysis`,
+#: not `from brainfreeze import analysis`: see #86.
 PREAMBLE = """import gemdb
 import brainfreeze
-from brainfreeze import analysis
+import brainfreeze.analysis as analysis
 book = gemdb.root["brainfreeze"]"""
 
 QUESTIONS = [

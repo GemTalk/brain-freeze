@@ -41,7 +41,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if REPO not in sys.path:
     sys.path.insert(0, REPO)
 
-from brainfreeze import analysis
+import brainfreeze.analysis as analysis  # not `from brainfreeze import`: #86
 from brainfreeze.money import format_usd, usd
 
 #: What a freshly seeded book holds. These are the same figures

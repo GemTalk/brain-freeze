@@ -30,7 +30,7 @@ for _path in (REPO, os.path.join(REPO, "tools")):
         sys.path.insert(0, _path)
 
 import seed
-from brainfreeze import adjudication as adj
+import brainfreeze.adjudication as adj  # not `from brainfreeze import`: #86
 from brainfreeze.underwriting import COVERAGE_PLANS
 from brainfreeze.money import ZERO
 

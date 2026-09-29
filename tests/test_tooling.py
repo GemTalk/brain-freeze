@@ -203,16 +203,15 @@ class ThePublishedQuestionsAreExecutable(unittest.TestCase):
         preamble = refresh_mcp.published_preamble(text)
         self.assertIsNotNone(preamble, "the document publishes no preamble")
 
+        # Parsed, not split on spaces: `import a.b as c` binds `c`, not `a`.
         bound = set()
-        for line in preamble.splitlines():
-            line = line.strip()
-            if line.startswith("import "):
-                bound.update(p.strip().split(".")[0]
-                             for p in line[len("import "):].split(","))
-            elif line.startswith("from ") and " import " in line:
-                bound.update(p.strip() for p in line.split(" import ")[1].split(","))
-            elif "=" in line:
-                bound.add(line.split("=")[0].strip())
+        for node in ast.walk(ast.parse(preamble)):
+            if isinstance(node, ast.Import):
+                bound.update(a.asname or a.name.split(".")[0] for a in node.names)
+            elif isinstance(node, ast.ImportFrom):
+                bound.update(a.asname or a.name for a in node.names)
+            elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+                bound.add(node.id)
 
         used, locally_bound = set(), set()
         for promise in refresh_mcp.promises(text):

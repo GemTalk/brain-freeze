@@ -34,7 +34,7 @@ particular build, it says so.
 import sys
 sys.path.insert(0, "/path/to/brain-freeze")   # the repository checkout
 import gemdb, brainfreeze
-from brainfreeze import analysis
+import brainfreeze.analysis as analysis
 book = gemdb.root["brainfreeze"]
 ```
 

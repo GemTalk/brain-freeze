@@ -17,7 +17,7 @@ Each snippet assumes this preamble:
 ```python
 import gemdb
 import brainfreeze
-from brainfreeze import analysis
+import brainfreeze.analysis as analysis
 book = gemdb.root["brainfreeze"]
 ```
 

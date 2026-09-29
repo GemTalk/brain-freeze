@@ -152,7 +152,7 @@ map by asking the objects, so it cannot go stale the way a written one would.
    your own from the objects; reach for these when the question already has a
    name."""),
 
-    (PY, """from brainfreeze import analysis
+    (PY, """import brainfreeze.analysis as analysis
 
 print("one lookup, then ordinary Python")
 print()
@@ -177,7 +177,7 @@ The helpers live in `brainfreeze.analysis` so that the notebook, the web app
 and an agent over MCP all answer these the same way. Deriving them inline is
 easy to get subtly wrong — see the notes on weighting and on `min_events`."""),
 
-    (PY, """from brainfreeze import analysis
+    (PY, """import brainfreeze.analysis as analysis
 
 analysis.book_summary(book)"""),
 
