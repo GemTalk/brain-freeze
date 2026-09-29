@@ -83,17 +83,28 @@ class Claim:
     toppings = ()
 ```
 
-Then show them in the app: add the two questions to the claim form in
-[`web/forms.py`](web/forms.py), and the two lines to the claim page in
-[`web/templates.py`](web/templates.py).
+Then show them in the app: the choices go in [`web/forms.py`](web/forms.py),
+the two questions and the line on the claim page in
+[`web/templates.py`](web/templates.py), and the answers into the new `Claim`
+where [`web/routes_html.py`](web/routes_html.py) files it.
+
+Now load what you changed into the database:
+
+```sh
+gemdb tools/load.py
+```
+
+```console
+Reload the page: the running app serves what you loaded.
+```
 
 Reload your browser. The form asks the new questions, and a claim you file now
 records the answers. Open any of the 2,172 claims filed before you started:
 they still load, and read as no flavour and no toppings.
 
-No migration, no reseed, and the app never stopped. The 2,172 old claims were
-committed as instances of `Claim`, they are still instances of `Claim`, and
-`Claim` now has the new fields.
+No migration, no reseed, and the app never stopped: loading is the deploy. The
+2,172 old claims were committed as instances of `Claim`, they are still
+instances of `Claim`, and `Claim` now has the new fields.
 
 ## 4. Jupyter
 

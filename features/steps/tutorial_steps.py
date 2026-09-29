@@ -209,3 +209,98 @@ def one_more_policy(context):
     assert after == context.notebook_before + 1, (
         "expected %d policies after refresh(), the notebook counted %d"
         % (context.notebook_before + 1, after))
+
+
+# -- step 3 -----------------------------------------------------------------
+
+#: The answer to step 3 -- the change the README asks for -- is the branch
+#: `tutorial-step-3`. Only the application's files are applied: the branch also
+#: carries the tests of the finished feature, and those are not the reader's.
+ANSWER = "tutorial-step-3"
+ANSWER_PATHS = ["brainfreeze", "web"]
+
+
+def answer_diff():
+    finished = subprocess.run(
+        ["git", "diff", "HEAD", ANSWER, "--"] + ANSWER_PATHS,
+        cwd=REPO, capture_output=True, text=True)
+    assert finished.returncode == 0 and finished.stdout, (
+        "no answer to apply: %s" % finished.stderr)
+    return finished.stdout
+
+
+def put_the_code_back(context):
+    """Always, so a failed run cannot leave the reader's change in the tree
+    -- or its compiled form in the database for the next scenario."""
+    subprocess.run(["git", "apply", "-R", "-"], input=context.step3_diff,
+                   cwd=REPO, capture_output=True, text=True)
+    subprocess.run(["gemdb", "tools/load.py"], cwd=REPO, env=gemdb_env(),
+                   capture_output=True, text=True)
+
+
+@when('I make the change step 3 of the README describes')
+def make_the_change(context):
+    context.step3_diff = answer_diff()
+    applied = subprocess.run(["git", "apply", "-"], input=context.step3_diff,
+                             cwd=REPO, capture_output=True, text=True)
+    assert applied.returncode == 0, (
+        "the answer does not apply to this checkout:\n%s" % applied.stderr)
+    context.add_cleanup(put_the_code_back, context)
+    keep(context, "the change, as a diff", context.step3_diff, extension="txt")
+
+
+def form_asks_about_flavour(context):
+    return context.page.locator('input[name="flavour"]').count() > 0
+
+
+@then('the form does not ask which flavour it was')
+def form_does_not_ask(context):
+    assert not form_asks_about_flavour(context), (
+        "the claim form already asks which flavour, before step 3")
+
+
+@then('the form asks which flavour it was, and what was on top')
+def form_asks(context):
+    assert form_asks_about_flavour(context), (
+        "after loading, the running app's claim form still does not ask "
+        "which flavour: the change did not reach it")
+    assert context.page.locator('input[name="toppings"]').count() > 0
+
+
+@when('I file a claim for {flavour}, topped with {toppings}, pain {pain:d}, lasting {duration}')
+def report_with_flavour(context, flavour, toppings, pain, duration):
+    context.flavour = flavour
+    context.toppings = [t.strip() for t in toppings.split(" and ")]
+    context.trigger = "ice cream"
+    page = context.page
+    page.check('input[name="trigger"][value="ice cream"]')
+    page.check('input[name="duration"][value="%s"]' % duration)
+    page.check('input[name="flavour"][value="%s"]' % flavour)
+    for topping in context.toppings:
+        page.check('input[name="toppings"][value="%s"]' % topping)
+    page.fill('input[name="pain"]', str(pain))
+    page.click('button[type="submit"]')
+    page.wait_for_load_state("load")
+
+
+@then('the decision names the flavour and the toppings')
+def decision_names_flavour(context):
+    subtitle = context.page.locator("p.sub").inner_text()
+    assert context.flavour in subtitle, (
+        "the decision does not say the flavour was %r: %r" % (context.flavour, subtitle))
+    for topping in context.toppings:
+        assert topping.lower() in subtitle.lower(), (
+            "the decision does not mention %r: %r" % (topping, subtitle))
+
+
+@when('I open claim {claim_id} on {policy_id}, filed before the change')
+def open_an_old_claim(context, claim_id, policy_id):
+    context.page.goto("%s/policies/%s/claims/%s"
+                      % (context.base_url, policy_id, claim_id), wait_until="load")
+
+
+@then('it still loads, and names no flavour')
+def old_claim_loads(context):
+    subtitle = context.page.locator("p.sub").inner_text()
+    assert "(" not in subtitle, (
+        "a claim filed before the change names a flavour: %r" % subtitle)
