@@ -103,7 +103,7 @@ The notebook works on the same objects as the app: loss ratio by risk tier,
 what an approved claim is worth, where the payouts cluster. No export, no
 connection string.
 
-Keep it open, file a claim in the browser, and run the policy-count cell again.
+Keep it open, buy a policy in the browser, and run the policy-count cell again.
 It has not changed: the notebook sees the database as of its last transaction,
 so an analysis does not shift under you halfway through. Run
 

@@ -10,11 +10,18 @@ sure it stopped.
 
 WHAT A RUN DOES
 
-1. Re-seeds the book, so scenarios start from the figures everything else
-   pins. Nine seconds, once, not per scenario.
-2. Starts `gemdb web/app.py` and waits for the port.
-3. Runs the scenarios, each with a fresh browser page.
-4. Stops the app, and **fails the run if the port is still open**.
+1. Builds a brand-new database (`tools/fresh_database.sh`): the engine's
+   empty extent with GemDB's Grail installed and nothing of ours committed --
+   what a reader has before step 1 of the tutorial. Every `gemdb` the suite
+   runs goes to it, and it is thrown away at the end.
+2. Runs the features in tutorial order, `1_` to `5_`, then the rest. Step 1
+   loads the data the way a reader does. A feature run on its own gets the
+   book loaded first, and the app started, by `before_feature`.
+3. Stops the app, and **fails the run if the port is still open**.
+
+`BRAINFREEZE_DB=existing` runs against ~/GemDB instead, reseeding it: faster,
+and exactly the kind of database that has hidden bugs, so not the real run.
+`BRAINFREEZE_KEEP_DB=1` leaves the fresh database behind to look at.
 
 WHY NOT RE-SEED PER SCENARIO
 
@@ -41,6 +48,7 @@ import signal
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.parse
@@ -182,9 +190,17 @@ def undriven_routes(driven):
                        for seen_method, seen_path in driven)]
 
 
+#: Where the `gemdb` this run uses lives. An environment variable rather than
+#: a module global, because a steps module that says `from environment import`
+#: gets its own copy of this file (see `new_app_state`), and the process
+#: environment is the one thing both copies share.
+GEMDB_BIN = "BRAINFREEZE_GEMDB_BIN"
+
+
 def gemdb_env():
     env = dict(os.environ)
-    env["PATH"] = os.path.expanduser("~/GemDB/bin") + os.pathsep + env.get("PATH", "")
+    bin_dir = env.get(GEMDB_BIN) or os.path.expanduser("~/GemDB/bin")
+    env["PATH"] = bin_dir + os.pathsep + env.get("PATH", "")
     return env
 
 
@@ -224,7 +240,27 @@ def run_gemdb(script, *args):
 #: already killed. MUTATING a dict that `before_all` put there is neither, and
 #: both failures above were paid for once each before this comment existed.
 def new_app_state():
-    return {"process": None, "restarts": 0}
+    return {"process": None, "restarts": 0, "seeded": False}
+
+
+def seed_book(context):
+    """Step 1 of the tutorial, as a reader runs it. Returns what it printed."""
+    output = run_gemdb("tools/seed.py")
+    context.app_state["seeded"] = True
+    return output
+
+
+def ensure_ready(context, feature):
+    """Load the book and start the app, unless this feature is the one that
+    does it -- so any feature can be run on its own against a fresh database.
+    """
+    if "no-seed" not in feature.tags and not context.app_state["seeded"]:
+        print("  loading the book ...", flush=True)
+        seed_book(context)
+    if "no-app" not in feature.tags and context.app_state["process"] is None:
+        print("  starting the app ...", flush=True)
+        start_app(context)
+        print("  serving on %s" % BASE_URL, flush=True)
 
 
 def start_app(context):
@@ -334,14 +370,24 @@ def before_all(context):
     #: meaningful when all of them did -- see `after_all`.
     context.features_run = set()
 
-    print("  seeding the book ...", flush=True)
-    run_gemdb("tools/seed.py")
-
-    print("  starting the app ...", flush=True)
     context.app_state = new_app_state()
     context.app_log = open(os.path.join(ARTIFACTS, "app.log"), "w")
-    start_app(context)
-    print("  serving on %s" % BASE_URL, flush=True)
+    context.fresh_db = None
+
+    if os.environ.get("BRAINFREEZE_DB", "fresh") == "existing":
+        print("  using ~/GemDB, reseeding it ...", flush=True)
+        seed_book(context)
+    else:
+        context.fresh_db = tempfile.mkdtemp(prefix="bf-fresh-db-")
+        print("  building a brand-new database in %s ..." % context.fresh_db,
+              flush=True)
+        built = subprocess.run(
+            [os.path.join(REPO, "tools", "fresh_database.sh"), "create",
+             context.fresh_db], capture_output=True, text=True)
+        if built.returncode != 0:
+            raise RuntimeError("could not build a fresh database:\n%s%s"
+                               % (built.stdout[-2000:], built.stderr[-2000:]))
+        os.environ[GEMDB_BIN] = os.path.join(context.fresh_db, "bin")
 
     from playwright.sync_api import sync_playwright
     context.playwright = sync_playwright().start()
@@ -364,6 +410,13 @@ def after_all(context):
         stop_process_group(app)
     if getattr(context, "app_log", None):
         context.app_log.close()
+
+    if context.fresh_db:
+        if os.environ.get("BRAINFREEZE_KEEP_DB"):
+            print("\n  kept the fresh database in %s" % context.fresh_db, flush=True)
+        else:
+            subprocess.run([os.path.join(REPO, "tools", "fresh_database.sh"),
+                            "destroy", context.fresh_db], capture_output=True)
 
     # The check that matters. A leaked listener is a leaked GemStone session,
     # and ten is all there are.
@@ -426,6 +479,7 @@ def slug(name):
 
 def before_feature(context, feature):
     context.features_run.add(os.path.basename(feature.filename))
+    ensure_ready(context, feature)
     context.feature_dir = os.path.join(ARTIFACTS, slug(feature.name))
 
     # Behave pops everything a scenario hook sets, so a counter incremented
