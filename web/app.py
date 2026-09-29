@@ -112,8 +112,20 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if REPO not in sys.path:
     sys.path.insert(0, REPO)
 
+import jinja2
 from flask import Flask, render_template_string
 from werkzeug.serving import WSGIRequestHandler
+
+# Put back what jinja2 sets at the bottom of its own module. Once Jinja is
+# deployed, every session after the one that deployed it gets an Environment
+# with no `template_class`, so every render_template_string raises
+# AttributeError and every page is a 500 (GemTalk/Grail#1242, first met on
+# GemDB 1.5.2's Grail b86985f). The body only annotates that name, so this
+# store is session-local and writes nothing committed (Grail#1240) -- which
+# is why it has to run in every session, and why this file, recompiled on
+# every run, is the place. Delete it once #1242 ships.
+if not hasattr(jinja2.Environment, "template_class"):
+    jinja2.Environment.template_class = jinja2.Template
 
 import brainfreeze
 import gemdb
