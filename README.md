@@ -135,8 +135,8 @@ payloads and three transcripts.
 notebook while the app was serving, before the app had answered anything,
 left the app dead: its whole startup was uncommitted work, the notebook's
 commit collided with it, and the collision repeated on every request after.
-Nothing reached the browser, because Flask's logging stub cannot report an
-exception here. `serve()` now takes a transaction boundary before it opens
+Nothing reached the browser, because Flask's logging could not report an
+exception on that build. `serve()` now takes a transaction boundary before it opens
 the socket, and `tests/test_refresh.py` will not let that go away.
 
 **The feature files are the record.** They describe the demo and cite nothing
@@ -265,8 +265,9 @@ duly ran two of them at once with one of them a corpse holding the port.
 `web/serving.py` is the answer. The banner is printed before the socket opens,
 and the access log hangs off Flask's `after_request` rather than the handler's
 `log_request`, because that hook is never called here. If a view raises, the
-traceback is **printed** — `logging` is the thing that breaks
-([finding 7](#7-an-exception-in-a-view-is-invisible)).
+traceback is **printed** rather than trusted to `logging`, which could not
+report it before GemDB 1.5.2
+([finding 2](#2-an-exception-in-a-view-was-invisible--fixed-upstream)).
 
 You can still ask it rather than watch it, and it is still worth doing:
 
@@ -279,7 +280,7 @@ Give the first request up to a minute. It compiles every template into the
 database on the way through, and that is the slowest thing the demo does.
 
 Then open <http://127.0.0.1:5050/>. **Start it from the project directory** —
-see [finding 3](#3-__main__-is-one-shared-namespace-for-every-script-the-database-has-run).
+see [finding 3](#3-__main__-was-one-shared-namespace-for-every-script--fixed-upstream).
 
 **It serves on 5050, not Flask's 5000,** because a stock Mac's AirPlay
 Receiver holds 5000. To serve somewhere else, set `BRAINFREEZE_PORT`; the
@@ -592,20 +593,25 @@ This is the one thing about sharing a database across three surfaces that is
 1. Run the cell that prints the policy and event counts.
 2. Leave the notebook open. Go to the web app and file a claim.
 3. Run the same cell again. **Nothing has changed.**
-4. Run `gemdb.commit()` then `gemdb.refresh()`, and run it again. Now it has.
+4. Run `gemdb.refresh()`, and run the cell again. Now it has.
 
 Each surface gets its own gem and its own transaction, and a GemStone session
 sees the repository as of its last transaction boundary. Your analysis does not
 shift under you mid-cell — which is a feature, and will look like a bug the
 first time it bites.
 
-**Why `commit()` first.** `gemdb.refresh()` alone will usually refuse here,
-with *"refresh() would discard uncommitted changes"* — not because you changed
-data, but because Grail compiles your code into the database, so merely having
-run the cells above leaves `gemdb.needs_commit()` returning `True`.
+**`refresh()` alone is enough on GemDB 1.5.2.** Running the cells above
+leaves `gemdb.needs_commit()` False, so nothing is in its way (measured
+2026-09-29, Grail `b86985f`). It can still refuse, with *"refresh() would
+discard uncommitted changes"*, straight after a cell imports a module for the
+first time — a cold import compiles it into the database — and the message
+names the import. Then `commit()` first. On earlier builds it refused after
+merely running code, which is why the notebook's last cell, and the app, still
+`commit()` before they `refresh()`; see
+[finding 4](#4-a-read-only-session-was-not-clean--fixed-upstream).
 `gemdb.abort()` also takes a new view and is the wrong tool: it discards this
 session's uncommitted work, **including the functions defined in earlier
-cells**. See [finding 4](#4-a-read-only-session-is-not-clean).
+cells**.
 
 **The web app does this for you, on every request.** Its `take_new_view()`
 runs the same `commit()` then `refresh()` before each handler, so the browser
@@ -684,16 +690,22 @@ One command, and it is not a restart:
 gemdb tools/redeploy.py
 ```
 
-Restarting the app process is *not* a redeploy. Grail compiles modules into
-the database and keeps them, so a brand-new session importing `brainfreeze`
-gets what the database compiled, not what the file says. A restarted app runs
-last week's rules and says nothing about it.
+Restarting the app process is still *not* a redeploy, for a narrower reason
+than it used to be. Grail compiles modules into the database and keeps them.
+On Grail `b86985f` (GemDB 1.5.2) a fresh session's `import brainfreeze.money`
+notices that the file changed and rebuilds it — but `from brainfreeze import
+money`, the form this repo uses eleven times, still gets the copy the database
+last committed, with no warning
+([Grail#1223](https://github.com/GemTalk/Grail/issues/1223)), and a rebuild is
+kept only once something commits. So a restarted app can still run last
+week's rules and say nothing about it. Measured on a scratch package,
+2026-09-29.
 
 | | what it reaches |
 | --- | --- |
 | **`gemdb tools/redeploy.py`** | the CODE: `importlib.reload` in dependency order, then a commit. Records already committed see fields it adds to their class, without a restart. |
 | **`gemdb tools/seed.py`** | the DATA: rebuilds all 900 policies from the current code. Needed when objects must be *reshaped*, not merely read through a new class. |
-| **restarting the app** | neither. It picks up an edited `web/` file, because `web/` is a plain directory and is recompiled from disk each run. It does nothing for `brainfreeze/`. |
+| **restarting the app** | neither, reliably. It picks up an edited `web/` file, because a changed file is recompiled on import. It cannot be trusted with `brainfreeze/`, for the reason above. |
 
 So: adding a field needs the first. Changing what one means needs the first
 and then the second. Editing a page needs neither.
@@ -702,14 +714,18 @@ and then the second. Editing a page needs neither.
 editing a class compiled a *different* class: `type(record) is TheClass` went
 False, `isinstance` went False, and an existing record raised `AttributeError`
 for the new field. That is what [finding
-5](#5-editing-a-class-compiles-a-different-class) recorded, and the fix landed
+5](#5-editing-a-class-compiles-a-different-class--fixed-upstream) recorded, and the fix landed
 upstream rather than here.
 
 ---
 
 ## What this cost us
 
-Five things that were not in any documentation, in the order they cost time.
+Six things that were not in any documentation, in the order they cost time.
+Four have since been fixed upstream. They stay, marked, because a reader on an
+older build will meet them — and because the fixed ones are evidence the
+reports were worth making. Re-checked against GemDB 1.5.2 (Grail `b86985f`) on
+2026-09-29.
 
 ### 1. A database can be installed without the regex engine
 
@@ -739,18 +755,31 @@ System commit.
 The seeded book survived it. A reinstall would have recreated the Python
 runtime classes with new identity and orphaned everything.
 
-### 2. An exception in a view is invisible
+**Still true of GemDB 1.5.2's installer**, which blanks the variable and
+carries on exactly as before. What changed is packaging: a release `.vsix` now
+refuses to build without the shim, so a stock install is less likely to meet
+this.
 
-When a route raises, Flask's error path calls `Logger.error(..., exc_info=...)`
-and Grail's `Logger` has no `exc_info`, so the console ends with
+### 2. An exception in a view was invisible — fixed upstream
+
+**No longer reproduces** on GemDB 1.5.2: Grail's `Logger` takes `exc_info`
+now ([Grail#1163](https://github.com/GemTalk/Grail/pull/1163)), and logs the
+traceback. `web/serving.py` still prints it itself.
+
+When a route raised, Flask's error path calls `Logger.error(..., exc_info=...)`
+and Grail's `Logger` had no `exc_info`, so the console ended with
 `TypeError: Logger.error() got an unexpected keyword argument 'exc_info'` and
-the actual exception is further up the log. Scroll past the last traceback.
+the actual exception was further up the log.
 
 *(Independently found in the companion document, finding 4.)*
 
-### 3. `__main__` is one shared namespace for every script the database has run
+### 3. `__main__` was one shared namespace for every script — fixed upstream
 
-A brand-new script, before defining anything:
+**No longer reproduces** on GemDB 1.5.2: each script starts with a clean
+`__main__`, on a database that has run every script here
+(`findings/02_main_namespace.py`). The advice below still costs nothing.
+
+On earlier builds, a brand-new script, before defining anything:
 
 ```console
 __name__ is: __main__
@@ -768,17 +797,23 @@ reached another script's zero-argument `main` and failed inside it.
 
 Relatedly, `gemdb file.py` puts the *script's* directory on `sys.path`, not the
 working directory, and a module already compiled into the database can be
-served stale in preference to an edited file on disk — `run_db_tests.py` reads
-and execs its test module rather than importing it for exactly that reason.
+served stale in preference to an edited file on disk. That is narrower now —
+on 1.5.2 it is `from package import module` that stays stale (Grail#1223) — but
+`run_db_tests.py` still reads and execs its test module rather than importing
+it, for exactly that reason.
 
 *(The companion document's finding 5 is the same family.)*
 
-### 4. A read-only session is not clean
+### 4. A read-only session was not clean — fixed upstream
 
-`gemdb.needs_commit()` returns `True` after merely running code, because Grail
-compiles what you run into the database. That is why `refresh()` refuses in a
-notebook, and why the recipe is `commit()` then `refresh()` rather than
-`refresh()` or `abort()`.
+**No longer reproduces** on GemDB 1.5.2, apart from a first import: running
+code and calling functions leaves `gemdb.needs_commit()` False, so `refresh()`
+alone works (see [the refresh beat](#the-refresh-beat)).
+
+On earlier builds `gemdb.needs_commit()` returned `True` after merely running
+code, because Grail compiled what you ran into the database. That is why
+`refresh()` refused in a notebook, and why the recipe was `commit()` then
+`refresh()` rather than `refresh()` or `abort()`.
 
 *(Independently found in the companion document, finding 2.)*
 
@@ -794,6 +829,26 @@ already committed kept the one they were created under. The trap was that
 `seed.py` hid it: seeding rebuilds every object from the new class, so no
 instance was left holding the old one and a source edit *looked* like it
 propagated. It had not; the objects had been replaced.
+
+### 6. A committed module's top level stops running
+
+**New on GemDB 1.5.2, and live.** Once a module has been committed, a later
+session whose copy of the file is *unchanged* gets the module back without
+running its top level. Anything that top level did to a class is gone. Jinja2
+sets `Environment.template_class` exactly that way, after the class body, so on
+1.5.2 every session after the one that committed Jinja rendered every page as
+a 500:
+
+```console
+AttributeError: 'Environment' object has no attribute 'template_class'
+```
+
+It is [Grail#1242](https://github.com/GemTalk/Grail/issues/1242), and it is not
+only vendored packages: the app's own `web/app.py` does the same. The
+workaround, `restore_template_class()` in `web/app.py`, went in at module scope
+first, worked once, and never again — the file was unchanged the next run. It
+lives in `create_app()` now, because a function body runs every time. **Put
+anything that has to happen every session in a function, not at module scope.**
 
 ### And one about the sample data
 
@@ -827,12 +882,14 @@ features/      the acceptance suite -- .venv-acceptance/bin/behave
 findings/      the ten things that cost time, as scripts you can run
 ```
 
-**`web/` has no `__init__.py`, and must not get one.** Grail keeps a committed
-*package* module compiled in the database and serves that copy forever after,
-while a module in a plain directory on `sys.path` is recompiled from disk each
-run. Both were measured. That difference is why editing a template takes effect
-on the next restart, and why the app is a directory of siblings rather than a
-package.
+**`web/` has no `__init__.py`, and should not get one.** When this was
+written, Grail served a committed *package* module forever while recompiling a
+plain module from disk each run, and that is why the app is a directory of
+siblings. On Grail `b86985f` both rebuild when their file changes — except
+`from package import module`, the natural way to import a sibling inside a
+package, which still gets the committed copy (Grail#1223). And both share
+[finding 6](#6-a-committed-modules-top-level-stops-running): an *unchanged*
+committed module does not re-run its top level.
 
 Each entry point in `web/` and `tools/` puts the repository on `sys.path`
 itself, in three lines it does not share with the others. That is not an
@@ -850,8 +907,7 @@ for asking questions of the objects once they are in the database.
 counterpart for the code itself, and is the one to read first if you are about
 to write Python that runs in here. Claude writes good Python; it writes good
 *CPython*, and this is not that. Money that ends the session rather than
-raising, a `__main__` shared by every script the database has ever run, a
-committed module the database then serves forever — with the through-line that
+raising, a committed module whose top level quietly stops running — with the through-line that
 in most of these, **the code that exists to report a problem is the code that
 breaks.** The evidence is [`findings/`](findings/README.md), summarised
 [below](#what-this-cost-us).
