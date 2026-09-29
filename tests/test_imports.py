@@ -10,8 +10,9 @@ them a misspelled import is invisible. One was: `routes_html` asked
 was the in-database suite failing to start, with no line number.
 
 So the import graph is checked without being executed. For every
-`from <sibling> import a, b, c` in a top-level module, the names are looked up
-in that sibling's syntax tree. Nothing is imported, nothing is run, and it
+`from <sibling> import a, b, c` in a top-level module, and every `sibling.name`
+it reads -- the form the routes use, so a loaded change is live (routes.py) --
+the names are looked up in that sibling's syntax tree. Nothing is imported, nothing is run, and it
 catches the whole class of typo in under a second.
 
 It is deliberately syntactic. A name bound in a way this cannot see -- inside
@@ -31,7 +32,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 #: database forever, while a top-level module is recompiled from disk each
 #: run, which is why the app was split into siblings rather than a package.
 SURFACE = ("app.py", "routes_html.py", "routes_api.py", "templates.py",
-           "forms.py", "lookups.py", "wire.py")
+           "forms.py", "lookups.py", "wire.py", "pages.py", "routes.py")
 
 WEB = os.path.join(REPO, "web")
 
@@ -68,15 +69,25 @@ class EveryCrossModuleImportResolves(unittest.TestCase):
                         for name, tree in self.trees.items()}
 
     def imports(self):
-        """(importer, module, name) for each name taken from a sibling."""
+        """(importer, module, name) for each name taken from a sibling,
+        whether by `from sibling import name` or by reading `sibling.name`."""
         for filename, tree in self.trees.items():
+            siblings = set()
             for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    siblings.update(a.name for a in node.names
+                                    if a.name in self.exports and not a.asname)
                 if not isinstance(node, ast.ImportFrom) or node.level:
                     continue
                 if node.module not in self.exports:
                     continue        # stdlib, flask, gemdb, brainfreeze
                 for alias in node.names:
                     yield filename, node.module, alias.name
+            for node in ast.walk(tree):
+                if (isinstance(node, ast.Attribute)
+                        and isinstance(node.value, ast.Name)
+                        and node.value.id in siblings):
+                    yield filename, node.value.id, node.attr
 
     def test_every_imported_name_is_defined_where_it_is_taken_from(self):
         missing = ["%s imports %s from %s, which does not define it"

@@ -142,7 +142,6 @@ class MoneyOnTheWire(unittest.TestCase):
         wrappers. What the test means is that the serialiser uses the money
         module's wire format rather than a second spelling of it, and that
         survives being asked in a way both runtimes can answer."""
-        self.assertEqual(getattr(wire.money, "__name__", None), "wire_usd")
         for figure in ("92081.22", "0.00", "171.00"):
             self.assertEqual(wire.money(usd(figure)), wire_usd(usd(figure)))
 

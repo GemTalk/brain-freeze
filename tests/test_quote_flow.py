@@ -132,7 +132,7 @@ class TheQuoteFlowKeepsItsStateInTheDatabase(unittest.TestCase):
 
     def test_posting_the_answers_stores_the_quote(self):
         made = calls(self.handler("/quote", "POST"))
-        self.assertIn("SavedQuote", made,
+        self.assertIn("brainfreeze.SavedQuote", made,
                       "POST /quote prices a quote without keeping it")
         self.assertIn("gemdb.commit", made,
                       "a quote that is not committed is not in the database")
@@ -149,7 +149,7 @@ class TheQuoteFlowKeepsItsStateInTheDatabase(unittest.TestCase):
             "brainfreeze.quote", made,
             "accepting re-prices instead of reading what was quoted, which "
             "is the round-trip again with the hidden fields taken out")
-        self.assertIn("Policyholder", made)
+        self.assertIn("brainfreeze.Policyholder", made)
         self.assertIn("gemdb.commit", made)
 
 

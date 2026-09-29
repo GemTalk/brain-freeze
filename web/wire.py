@@ -37,17 +37,17 @@ which `tests/test_api.py` does.
 
 from datetime import date
 
-from brainfreeze.analysis import (
-    book_summary,
-    claim_approval_rate,
-    denial_reasons,
-    loss_ratio_by_plan,
-    loss_ratio_by_tier,
-)
-from brainfreeze.money import wire_usd
+import brainfreeze.analysis as analysis
+import brainfreeze.money
 
-#: Money, for a JSON body. The single door every Decimal leaves by.
-money = wire_usd
+
+def money(value):
+    """Money, for a JSON body. The single door every Decimal leaves by.
+
+    A function rather than `money = wire_usd`, which would be a copy of the
+    function this module had when it loaded -- see routes.py.
+    """
+    return brainfreeze.money.wire_usd(value)
 
 
 def _date(value):
@@ -224,7 +224,7 @@ def stats(book):
     in JSON: `approved` is money on a claim and a count here, and `events` is
     a list on a policy. `_count` throughout, so a reader never has to ask.
     """
-    summary = book_summary(book)
+    summary = analysis.book_summary(book)
     return {
         "policy_count": summary["policies"],
         "event_count": summary["events"],
@@ -234,9 +234,9 @@ def stats(book):
         "premium": money(summary["premium"]),
         "paid": money(summary["paid"]),
         "loss_ratio": summary["loss_ratio"],
-        "claim_approval_rate": claim_approval_rate(book),
-        "loss_ratio_by_tier": loss_ratio_by_tier(book),
-        "loss_ratio_by_plan": loss_ratio_by_plan(book),
+        "claim_approval_rate": analysis.claim_approval_rate(book),
+        "loss_ratio_by_tier": analysis.loss_ratio_by_tier(book),
+        "loss_ratio_by_plan": analysis.loss_ratio_by_plan(book),
         "denial_reasons": [{"reason": reason, "claims": count}
-                           for reason, count in denial_reasons(book)],
+                           for reason, count in analysis.denial_reasons(book)],
     }

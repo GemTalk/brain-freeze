@@ -12,8 +12,9 @@ HOW THIS IS LAID OUT
 
 This file is the factory and the entry point, and nothing else. The pages are
 in `routes_html.py`, the payloads in `routes_api.py`, the markup in
-`templates.py`, the questionnaire in `forms.py`, and finding an object in
-`lookups.py`.
+`templates.py`, the questionnaire in `forms.py`, finding an object in
+`lookups.py`, rendering in `pages.py`, and the route table that keeps loaded
+code live in `routes.py`.
 
 None of them is a package, deliberately. Grail keeps a committed PACKAGE
 module compiled in the database and serves that copy forever after, while a
@@ -114,15 +115,13 @@ if REPO not in sys.path:
     sys.path.insert(0, REPO)
 
 import jinja2
-from flask import Flask, render_template_string
+from flask import Flask
 from werkzeug.serving import WSGIRequestHandler
 
-import brainfreeze
 import gemdb
 import routes_api
 import routes_html
 import serving
-from brainfreeze.money import format_usd
 
 
 class CloseAfterResponseHandler(WSGIRequestHandler):
@@ -141,32 +140,6 @@ class CloseAfterResponseHandler(WSGIRequestHandler):
             return
         self.close_connection = True
         self.run_wsgi()
-
-def render(template, **context):
-    """Render, with `usd` available to every template to format money.
-
-    Money is Decimal, and `str()` on one drops the trailing zero, so `$170.10`
-    would print as `170.1`. (`'%.2f'|format` would have handled that -- printf
-    on a Decimal works here, contrary to what this docstring claimed for a
-    while. `format(x, '.2f')` is the spelling that raises.) `format_usd` is
-    used instead because it is the only one that also copes with `None`.
-
-    It arrives in the CONTEXT rather than as a Jinja filter or global, and
-    that part IS measured. `app.jinja_env.filters["usd"] = ...` does not work,
-    for a reason that has nothing to do with money: Flask's `jinja_env` is a
-    `cached_property`, and Grail realises cached_property WITHOUT caching, so
-    `app.jinja_env is app.jinja_env` is False. Every read builds a fresh
-    Environment and the registration is written to one that is discarded.
-    `jinja_env.globals` is lost the same way, which is why it appears to be
-    silently ignored.
-
-    Until Grail#895 that also KILLED THE GEM rather than merely failing: the
-    unknown filter raised, and jinja2's error reporting called
-    `code.replace(co_name=...)` on a `compile()` result that Grail answers as
-    source text, landing on `str.replace` called by keyword, which read past
-    the end of an empty array. Reporting the error was what ended the session.
-    """
-    return render_template_string(template, usd=format_usd, **context)
 
 def take_new_view():
     """Commit this session's compiled code, then take the latest view.
@@ -198,30 +171,6 @@ def take_new_view():
     gemdb.commit()
     gemdb.refresh()
 
-def cover_state(policy, today):
-    """How to describe this policy's cover, as of a date.
-
-    `policy_status` records the fate of a policy over its whole term, and the
-    sample book's terms run either side of the present -- of 217 policies
-    marked Lapsed, only 53 have actually reached their lapse date. So a screen
-    that reads the stored status calls a policy lapsed while it is still
-    paying claims. Compare against the date instead and say which it is.
-
-    The term counts too, at both ends: 147 of the 900 policies have not
-    started yet today, and calling those "Active" says cover is running when
-    a claim filed against them would be refused.
-    """
-    if policy.is_in_force_on(today):
-        if policy.policy_lapse_date is None:
-            return ("Active", "ok")
-        return ("Lapses %s" % policy.policy_lapse_date, "tag")
-    if policy.no_cover_reason_on(today) == brainfreeze.REASON_POLICY_LAPSED:
-        return ("Lapsed %s" % policy.policy_lapse_date, "no")
-    if today < policy.policy_start_date:
-        return ("Starts %s" % policy.policy_start_date, "tag")
-    return ("Term ended %s" % policy.policy_end_date, "no")
-
-
 def restore_template_class():
     """Put back what jinja2 sets at the bottom of its own module.
 
@@ -243,11 +192,12 @@ def restore_template_class():
 
 
 def create_app():
-    """Build the app and hand each surface what it needs.
+    """Build the app and register both surfaces onto it.
 
-    Both `register` calls take `app`; the HTML one also takes `render` and
-    `cover_state`, which live here because they are about how THIS app talks
-    to Grail rather than about any one page.
+    The routes are dispatched by name on every request (routes.py), so a
+    loaded and committed change to a page, a template or the model is live
+    on the next request. This file is the exception: it is the entry point,
+    and a change to it needs a restart.
     """
     restore_template_class()
     app = Flask(__name__)
@@ -263,7 +213,7 @@ def create_app():
         """
         take_new_view()
 
-    routes_html.register(app, render, cover_state)
+    routes_html.register(app)
     routes_api.register(app)
     serving.install_reporting(app)
     return app
