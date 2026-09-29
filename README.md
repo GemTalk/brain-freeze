@@ -1,634 +1,81 @@
 # Brain Freeze Insurance
 
-A small insurance company that covers the cold-stimulus headache, living
-entirely inside the database. It exists to answer the question an evaluator
-asks once the rabbit is out of the hat: *fine, but can I build an application
-on this?*
+A GemDB tutorial. You will build on a small insurance company — it covers
+ice-cream headaches — and along the way see what GemDB is for:
 
-Three surfaces over one dataset — a Flask app running **inside** GemDB, a
-Jupyter notebook, and an MCP server an agent talks to. The point is not the
-three surfaces. It is that none of them has a persistence layer: no ORM, no
-schema, no migration, no serializer. A handler assigns to an object and
-commits.
+- **Python runs inside the database.** Your classes, your rules, a Flask app.
+- **Persistence is built in.** No tables, no ORM, no mapping layer.
+- **Schema changes are easy.** Add a field to a class full of live data, and
+  the data comes along.
+- **Every tool sees the same objects.** The app, a notebook and an AI agent,
+  all at once.
 
-Every command and every line of output below was run on **2026-09-08** against
-a real GemStone/S 3.7.5 stone carrying Grail `c875e56`. Where something
-surprised us it is written down rather than tidied away — the
-[findings](#what-this-cost-us) cost more time than the code did.
-
-> **A companion document.** [the parallel demo](https://github.com/GemTalk/GemDB_Code/blob/c9c261ac017fd7831cd29aa71b79da4ee8c1ed9b/docs/demo/brain-freeze/) (pinned at `c9c261a`) is a separate,
-> earlier walkthrough of the same idea, built independently against Grail
-> `5e8fc42`. It covers the quote and claims flows in more narrative detail and
-> is worth reading beside this. Where its findings and ours overlap they are
-> cross-referenced below; two people hitting the same walls from different code
-> is the strongest evidence those walls are real.
-
----
+It takes about half an hour.
 
 ## Before you start
 
-A terminal opened in VS Code already has `gemdb` on its PATH. Anywhere else:
+Install [GemDB Code](https://github.com/GemTalk/GemDB_Code) in VS Code and
+follow its setup; it creates your database and puts `gemdb` on your terminal's
+path. Then:
 
 ```sh
-export PATH="$HOME/GemDB/bin:$PATH"      # not needed in a VS Code terminal
-cd ~/GemTalk/brain-freeze
+git clone https://github.com/GemTalk/brain-freeze
+cd brain-freeze
 ```
 
-**Check the database can run a web framework**, because the failure mode is
-otherwise baffling:
-
-```sh
-gemdb -c 'import re; print("re works:", bool(re.match(r"a+", "aaa")))'
-```
-
-```console
-re works: True
-```
-
-If that says `No module named '_sre'`, stop: the extent has no CPython shim
-recorded, and nothing web-shaped will import — not Flask, not Jinja2, not
-Werkzeug. The fix is one assignment, not a reinstall; see
-[finding 1](#1-a-database-can-be-installed-without-the-regex-engine).
-
-Running the generator additionally needs numpy and pandas, which the model
-deliberately does not — `python3 -m pip install --user numpy pandas`. Nothing
-else does.
-
-**If you are about to show this to someone**, read
-[`DEMO.md`](DEMO.md) instead of this file. It is the same material ordered as a
-run of show — twenty-eight minutes, nine beats, what to say while each one
-happens, and what to do when one goes wrong, with a twenty-minute cut named at
-the top. This file is the walkthrough it is built on, and carries every command
-with its real output.
+Every command below runs from this directory, in a VS Code terminal.
 
 ---
 
-## CUJ-0 — Clone and seed
+## 1. Load data
 
 ```sh
 gemdb tools/seed.py
 ```
 
 ```console
-Loaded 900 policyholders and 4993 cold-treat events.
-
-  brain freeze in            3730 of 4993 events (74.7%)
-  claims filed               2172
-  approved                   1691
-  refused                    481
-  premium collected          $92081.22
-  paid out                   $54671.44
-  loss ratio                 0.59
-
-  by tier:
-    Low     137 policies   premium $  7564.28   paid $  3094.43   loss ratio 0.41
-    Medium  497 policies   premium $ 40456.87   paid $ 29498.98   loss ratio 0.73
-    High    266 policies   premium $ 44060.07   paid $ 22078.03   loss ratio 0.50
-
-  BF-100539: 9 events, 8 claims, 4 approved, $179.97 paid, cap 4 of 4 used
-Replaced gemdb.root["brainfreeze"]. Committed.
+Wrote gemdb.root["brainfreeze"]. Committed.
 ```
 
-That is the whole import story. Two CSVs become ordinary Python objects, one
-of them goes in `gemdb.root`, and the session commits. There is no import tool,
-no schema to declare and no mapping file.
-
-Quit, start a new session, and the objects are still there:
+That is 900 policyholders and 2,172 claims, read from `data/*.csv` and stored
+as ordinary Python objects — the classes in
+[`brainfreeze/model.py`](brainfreeze/model.py). Ask for one back:
 
 ```sh
-gemdb -c 'import gemdb; b = gemdb.root["brainfreeze"]; print(len(b), "policies |", b["BF-100539"].total_paid, "paid |", b.loss_ratio, "loss ratio")'
+gemdb -c 'import gemdb; p = gemdb.root["brainfreeze"]["BF-100539"]; print(p.plan_name, p.total_paid)'
 ```
 
 ```console
-900 policies | 179.97 paid | 0.594 loss ratio
+Standard 179.97
 ```
 
-**Re-running `gemdb tools/seed.py` is the reset.** It replaces
-`gemdb.root["brainfreeze"]` wholesale rather than merging, so a second run
-leaves one book of 900 policies, not two. Every step below can be started over
-that way, and takes about nine seconds.
+There is no schema file and no save method. `gemdb.root` is a dictionary that
+persists, and `gemdb.commit()` is the only call that writes.
 
-### The acceptance suite
-
-Everything above asserts against objects. None of it says a person can use the
-demo. That is what `features/` is for: Gherkin scenarios that drive the real
-app in a real browser and leave screenshots behind as evidence.
-
-```sh
-.venv-acceptance/bin/behave
-```
-
-```console
-8 features passed, 0 failed, 0 skipped
-15 scenarios passed, 0 failed, 0 skipped
-180 steps passed, 0 failed, 0 skipped
-Took 1min 30.067s
-```
-
-Eight journeys: the app is up; finding one customer among nine hundred; quote
-to policy; filing a claim to a decision; the four refusals; the same policies
-over `curl`; a policy changed from a shell while the browser watches; and
-every surface answering with the same book. Twenty-six screenshots, seven
-payloads and three transcripts.
-
-**The last of those is the one that found a real defect.** Running the
-notebook while the app was serving, before the app had answered anything,
-left the app dead: its whole startup was uncommitted work, the notebook's
-commit collided with it, and the collision repeated on every request after.
-Nothing reached the browser, because Flask's logging could not report an
-exception on that build. `serve()` now takes a transaction boundary before it opens
-the socket, and `tests/test_refresh.py` will not let that go away.
-
-**The feature files are the record.** They describe the demo and cite nothing
-outside it — no issue numbers, no tracker references. A tracker is private and
-impermanent; `features/` is the durable description of what this thing does,
-and has to be readable by someone who has never seen the project board. Write
-the reason, not the reference.
-
-**Everything gets an acceptance test.** Not only the web journeys this started
-with. When something is built or fixed, what its acceptance test says is part
-of the work.
-
-**And the suite proves that about itself rather than promising it.** A full
-run records every request it drives — the browser's navigations and form
-posts, and the calls the steps make to the JSON surface — and fails at the end
-if any route the app declares was never reached. That is why it is not a list
-of URLs in the feature files: most of these pages are reached by clicking, so
-a check that grepped for addresses would call the quote you accepted
-uncovered, and a scenario that merely mentioned an address covered. Running
-one feature file skips the check, because a run told to drive one feature has
-not failed to drive the others.
-
-**Every scenario ends in evidence, and the suite fails if one does not.** A
-scenario that passes and leaves nothing behind cannot be checked by a reader
-afterwards, which is half of what this suite is for.
-
-**Each scenario was checked by breaking the thing it exists to catch.** Disable
-the app's per-request refresh and the cross-surface scenario fails; tell a
-policy that never lapsed that it lapsed and the refusals fail; show what was
-requested instead of what was approved and the claim scenario fails. A green
-run that has never been made to go red is not evidence.
-
-It seeds the book, starts `gemdb web/app.py`, drives it, stops it, and **fails the
-run if the port is still open afterwards** — a leaked app is a leaked GemStone
-session, and the stone allows ten.
-
-Evidence lands in `artifacts/`, which is gitignored, one directory per
-feature and one inside that per scenario, numbered in the order they ran:
-
-```
-artifacts/the-same-policies-over-curl/
-  1-a-script-reads-the-questions--answers-them--and-is-quoted/
-    01-the-questions-a-script-is-given.json
-    02-the-quote-that-came-back.json
-    03-a-refusal-a-script-can-read.json
-```
-
-Screenshots for the pages, payloads for the JSON surface, which has nothing to
-photograph and where the exact bytes are what a reader wants anyway.
-
-It is evidence of a run, not documentation: the app renders today's date, so
-identical passing runs differ tomorrow. **The feature files are the
-documentation** — they are committed, readable, and written in the language of
-insurance rather than of clicking.
-
-Setting it up once, because it carries a browser:
-
-```sh
-python3 -m venv .venv-acceptance
-.venv-acceptance/bin/pip install behave playwright
-.venv-acceptance/bin/playwright install chromium
-```
-
-### The tests
-
-```sh
-python3 -m unittest discover        # everything, under CPython
-gemdb tools/run_db_tests.py               # the same tests, inside the database
-gemdb tools/run_notebook_check.py         # every notebook cell, in order
-```
-
-```console
-Ran 318 tests in 1.198s
-OK (skipped=57)
-
-Ran 233 tests
-OK
-
-All 12 code cells ran.
-```
-
-**Running the same suite twice is the demo's central claim reduced to a
-check.** One set of rules, two runtimes, identical answers. It matters most
-for money: `round()` is half-up inside the database and banker's outside it,
-`round(Decimal, 2)` brings the VM down, and `int(Decimal)` floors here and
-truncates there. `brainfreeze/money.py` exists so none of that can reach a
-premium, and the second run is what proves it.
-
-The 57 skips are the app's tests, HTML and JSON alike: they need a database,
-so under plain CPython
-the module skips itself and `unittest discover` stays green.
-
-Every figure in those tests was read out of `data/*.csv`, not invented. They
-exist to catch the app and the dataset drifting apart.
-
----
-
-## CUJ-1 — Take out a policy, file a claim
+## 2. Launch the web app
 
 ```sh
 gemdb web/app.py
 ```
 
-**It says so, and then it says what it is doing:**
+Open <http://127.0.0.1:5050/>.
 
-```
-Brain Freeze Insurance is running.
+Pick a policyholder and look at their history. Get a quote at `/quote`, buy
+the policy, and file a claim against it: say how bad it was and how long it
+lasted, and the rules decide what it pays.
 
-  Open:  http://127.0.0.1:5050/
-  Stop:  Ctrl-C
+Now stop the app (Ctrl-C) and start it again. The policy you bought and the
+claim you filed are still there. Nothing was saved, because nothing needed to
+be.
 
-Requests appear below as they arrive.
+The app is plain Flask, and the insurance rules are plain Python. They run
+where the data lives, so there is no query layer between them.
 
-GET   /                                  200
-GET   /api/stats                         200
-GET   /policies/BF-999999                404
-```
+## 3. Change the schema
 
-It did not always. Grail ships its **own** `werkzeug.serving`, rebuilt on the
-stdlib `http.server` stack, in which `log_request` is defined as `pass` and
-there is no banner function at all — measured with `run_simple` on its own, no
-Flask and no handler of ours: zero bytes. So a healthy app was a process
-sitting there saying nothing, indistinguishable from a hang, and this repo
-duly ran two of them at once with one of them a corpse holding the port.
+Claims should record *which* ice cream did it. Leave the app running.
 
-`web/serving.py` is the answer. The banner is printed before the socket opens,
-and the access log hangs off Flask's `after_request` rather than the handler's
-`log_request`, because that hook is never called here. If a view raises, the
-traceback is **printed** rather than trusted to `logging`, which could not
-report it before GemDB 1.5.2
-([finding 2](#2-an-exception-in-a-view-was-invisible--fixed-upstream)).
-
-You can still ask it rather than watch it, and it is still worth doing:
-
-```sh
-curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5050/    # 200
-lsof -nP -iTCP:5050 -sTCP:LISTEN                                   # one listener
-```
-
-Give the first request up to a minute. It compiles every template into the
-database on the way through, and that is the slowest thing the demo does.
-
-Then open <http://127.0.0.1:5050/>. **Start it from the project directory** —
-see [finding 3](#3-__main__-was-one-shared-namespace-for-every-script--fixed-upstream).
-
-**It serves on 5050, not Flask's 5000,** because a stock Mac's AirPlay
-Receiver holds 5000. To serve somewhere else, set `BRAINFREEZE_PORT`; the
-acceptance suite reads the same variable, so it follows:
-
-```sh
-BRAINFREEZE_PORT=8080 gemdb web/app.py
-BRAINFREEZE_PORT=8080 .venv-acceptance/bin/behave
-```
-
-A value that is not a port stops the app with a message rather than falling
-back to 5050, so it never serves somewhere other than where you are looking.
-
-Answer the five questions at `/quote` — age 11, eats fast, favourite is a
-slushie, no headache history — and the app prices all three plans:
-
-```console
-Risk band High
-scored 75.0
-$85.50    Basic
-$171.00   Standard
-$342.00   Premium
-```
-
-Those numbers come from `brainfreeze.quote()`, the same function that priced
-the 900 policies in the CSVs. The screen also shows `score_breakdown()`, so the
-price explains itself rather than asserting itself.
-
-Note the address of that screen: `/quote/QTE-000001`. The quote is an object in
-the book — the five answers, the score, the reasoning and all three prices —
-so it can be closed, mailed to somebody and re-opened, and there is no hidden
-form field anywhere in the app. It used to post the answers back through the
-browser, because a quote had nowhere else to live.
-
-Take out a plan and the app creates BF-100900 and commits it, at the price the
-quote quoted rather than at one worked out a second time. That handler is four
-lines: build a `Policyholder` from `quote.answers`, `book.add(...)`,
-`gemdb.commit()`, redirect. Re-open the quote afterwards and it says which
-policy it became.
-
-Now file a claim on **BF-100092** (Active, three of four approvals used):
-
-```console
-$55.00 is yours
-CLM-002173 · ice cream (Mint choc chip, sprinkles, hot fudge) · 2026-09-08
-  What we worked it out at          $67.00
-  Trimmed to your $60.00 episode cap -$7.00
-  Your deductible                    -$5.00
-  Paid to you                        $55.00
-```
-
-The claimant never types an amount. `assess_amount()` derives it from the
-episode, so two people describing the same headache get the same figure, and
-`adjudicate()` applies the rules in order: cover, then the annual cap, then the
-per-incident limit, then the deductible.
-
-File a second claim on the same policy and it is refused for the cap. File one
-on **BF-100746**, which lapsed on 2026-07-12, and it is refused for the lapse —
-and the form says so *before* you fill it in. Cover is bounded by the term as
-well as by the lapse, and a claim outside the term is refused for that and told
-so in those words, because a policy that never lapsed cannot be refused for
-lapsing.
-
-### The same objects over `curl`
-
-Six JSON endpoints sit beside the HTML routes, so a demo can show one object
-through a browser and through a shell without a notebook or MCP in the way:
-
-```
-GET  /api/questions        the quote questionnaire, as data
-POST /api/quote            price a set of answers
-GET  /api/policies         the whole book
-GET  /api/policy/<id>      one policy and every event under it
-GET  /api/claim/<id>       one claim, by claim id alone
-GET  /api/stats            book-level aggregates
-```
-
-```console
-$ curl -s localhost:5050/api/stats
-{"policy_count": 900, "event_count": 4993, "claim_count": 2172,
- "approved_claim_count": 1691, "premium": "92081.22", "paid": "54671.44",
- "loss_ratio": 0.594, "claim_approval_rate": 0.7785,
- "loss_ratio_by_tier": {"Low": 0.409, "Medium": 0.729, "High": 0.501}, ...}
-```
-
-**Money is an exact decimal string.** `json.dumps` cannot serialise a
-`Decimal` at all, so the wire format had to be decided rather than inherited,
-and `"92081.22"` is the decision — two places always, no symbol, no grouping,
-`null` where no money was recorded. Not a float, which would put back the two
-answers the move to `Decimal` removed; not integer cents, which would be exact
-but would make every reader divide by a hundred.
-A string is the same text `money.usd()` already reads, so a figure goes back
-into the model unchanged. `money.wire_usd` is the only function that turns
-money into text for a payload, and `wire.py` is the only place that builds
-one.
-
-```console
-$ curl -s localhost:5050/api/quote -H 'Content-Type: application/json' \
-       -d '{"age": 11, "typical_consumption_speed": "fast",
-            "favourite_trigger": "slushie"}'
-{"answers": {...},
- "quote": {"score": 75.0, "risk_tier": "High", "breakdown": [...],
-           "plans": {"Basic":    {"annual": "85.50",  "monthly": "7.13", ...},
-                     "Standard": {"annual": "171.00", "monthly": "14.25", ...},
-                     "Premium":  {"annual": "342.00", "monthly": "28.50", ...}}}}
-```
-
-`"171.00"` is the point of it: `str()` on a Decimal inside the database drops
-the trailing zero, so the naive spelling would publish `171.0` there and
-`171.00` here — one figure, two answers, which is the failure the whole demo
-argues against. `"7.13"` is `85.50 / 12` rounded half-up, by the same rule the
-screen and the notebook use.
-
-The JSON surface is **read-only**. `/api/quote` is a POST because it carries a
-body; it prices answers and commits nothing. Taking out a policy and filing a
-claim stay POSTs from a form, where the redirect after the write is what stops
-a refresh re-submitting them.
-
----
-
-## CUJ-2 — Ask an agent
-
-GemDB's MCP surface is code-level, not data-level: `eval_python`,
-`execute_code`, `commit`/`abort`/`refresh`, browsing and search. **There is no
-tool that knows what a policyholder is.** An agent answers questions by writing
-Python that runs inside the database.
-
-The endpoint is `http://127.0.0.1:50390/mcp` (Streamable HTTP, loopback, no
-auth), and `gemdb.mcp.enabled` turns it on.
-
-### Getting a GemDB that has it
-
-**No released GemDB ships the MCP server.** It is on `main` — v1.4.0 is the
-newest tag, `package.json` on `main` still says 1.4.0, and the repository has
-published no releases at all — so today you build the extension yourself:
-
-```sh
-cd GemDB_Code
-npm run package                                  # gemdb-<target>-1.4.0.vsix
-codium --install-extension gemdb-darwin-arm64-1.4.0.vsix --force
-```
-
-**Set `gemdb.reinstallPythonOnUpdate` to `false` before you install it**, and
-this is not optional if you have data you care about. A build from `main`
-bundles a newer Grail than v1.4.0 does, the extension reinstalls Python when
-that happens, and reinstalling Python recreates the runtime classes and
-**orphans every object already committed** — see `findings/03_class_identity.py`
-for the mechanism. The setting defaults to `true`.
-
-Then set `gemdb.mcp.enabled` to `true` and reload the window.
-
-### Connecting Claude Code
-
-```sh
-claude mcp add --transport http gemdb http://127.0.0.1:50390/mcp
-claude mcp list
-```
-
-```
-gemdb: http://127.0.0.1:50390/mcp (HTTP) - ✔ Connected
-```
-
-No shim, no wrapper: Claude Code speaks Streamable HTTP to a loopback endpoint
-directly. GemDB deliberately configures no client outside VS Code — its
-**GemDB: Connect an AI Agent to GemDB** command hands you the command and
-stops.
-
-**Watch the session budget.** Each connected client costs a worker gem, the
-router caps itself at three (`MCP_MAX_SESSIONS`), and a Community Edition
-stone allows ten in total — shared with the app, the notebook and any shell.
-
-### Or drive the server directly
-
-You do not need the extension at all. This repo installs and checks the server
-by itself, which is also how it stays current:
-
-```sh
-python3 tools/refresh_mcp.py                    # upstream vs staged vs installed
-python3 tools/refresh_mcp.py --install          # move to the current server
-python3 tools/refresh_mcp.py --install --verify # ...and re-ask every promise
-```
-
-The server is its own repository on its own schedule, so it moves under this
-demo without a line here changing. That is why updating and checking are one
-command: `--verify` starts the router, replays every snippet in
-`docs/mcp-questions.md` over MCP, compares against the answer printed beneath
-it, and stops the router. Nine of nine kept on `0280593`.
-
-It opens exactly **one** session. Each client costs a worker gem, the router
-caps them at three, and the stone allows ten.
-
-[`docs/mcp-questions.md`](docs/mcp-questions.md) is the list of questions this
-demo promises to answer, with the Python for each. It is **generated by running
-them** — `gemdb tools/make_mcp_questions.py` re-seeds, executes every snippet and
-writes down what came back — so the answers cannot be typed in wrong, and
-regenerating after a change is how the promises get caught drifting.
-
-That file is the answers. [`docs/dataset-for-agents.md`](docs/dataset-for-agents.md)
-is the map an agent needs to write its own questions: the object model with the
-real field names, why records are found by index rather than by `isinstance`,
-the two aggregation traps `analysis.py` exists to avoid, and the `sys.path` line
-a worker gem needs and a notebook does not.
-
-The two that carry the demo:
-
-**"Why was CLM-001291 refused?"**
-
-```
-[('CLM-001291', 'Policy lapsed', date(2027, 4, 20), date(2027, 3, 10), False)]
-```
-
-The reason, the event date, the lapse date and the in-force test. The agent can
-*check* the refusal rather than repeat a stored string.
-
-**"What is the loss ratio by risk tier?"**
-
-```
-{'Low': 0.409, 'Medium': 0.729, 'High': 0.501}
-```
-
-Read that twice. The 1.9× loading on High over-prices the risk it prices for,
-so the customers the underwriter worries about most are the most profitable,
-and the middle of the book is where the money leaks.
-
----
-
-### Change a policy while the app is serving it
-
-The same beat on the surface an evaluator is actually looking at. Leave the app
-running, open a policy, and in another terminal:
-
-```sh
-gemdb tools/lapse.py BF-100184              # lapse it, as of yesterday
-gemdb tools/lapse.py BF-100184 --reinstate  # put it back
-```
-
-Reload the page. It changes:
-
-```
-Active                    ->  Lapsed 2026-09-08
-(claim form)              ->  Cover on this policy ended on 2026-09-08.
-                              Anything filed now is refused.
-```
-
-No restart, no reload of the app, no polling — and `lapse.py` does not know the
-app exists. It opens the same objects from a session of its own and commits.
-The app takes a new view before each request, so it sees the next one.
-
-It goes back as easily as it goes forward, which is what makes it worth doing
-in front of people rather than once.
-
-**This did not work until recently**, and the reason is the interesting part. A
-GemStone session sees the repository as of its last transaction boundary, so
-the app served whatever it read at startup until it was restarted. It was the
-one surface of three that could not see the others' writes. `take_new_view()`
-in `app.py` is the fix and this is its payoff.
-
-## CUJ-3 — The notebook, and the beat worth slowing down for
-
-Open [`brain-freeze.ipynb`](brain-freeze.ipynb) and pick **GemDB** in the
-kernel picker. That is the entire connection step.
-
-The cell worth stopping on asks a policyholder what it knows about itself:
-
-```console
-class            : Policyholder from brainfreeze.model
-answers to       : 33 public names
-actually stored  : 15
-```
-
-`risk_tier`, `total_paid` and `loss_ratio` are not columns that could drift out
-of step with the data. They are questions the object answers.
-
-The cell after it is there so that nobody has to leave the notebook to write
-their own question. It prints the whole map — one lookup, what the containers
-hold, and the aggregates that already have a name — by asking the objects
-rather than by reciting a list, so it cannot go stale:
-
-```console
-one lookup, then ordinary Python
-
-  gemdb.root['brainfreeze']  -> Book
-  for p in book              -> Policyholder
-  book['BF-100539']          -> Policyholder
-  policy.events              -> list of Event (oldest first)
-  event.claim                -> a Claim, or None if it hurt nobody
-```
-
-That is the whole API. There is no query language to learn, which is why the
-guide to writing one is four facts and a `for` loop rather than a manual.
-[`docs/dataset-for-agents.md`](docs/dataset-for-agents.md) goes deeper for an
-agent composing questions over MCP; the notebook does not depend on it.
-
-There is no plotting library — Grail has no matplotlib and the kernel renders
-`text/plain` — so the chart is ten lines of Python in a cell:
-
-```console
-Loss ratio by risk band  (paid / premium)
-
-Low    ███████████████████████████                      0.409
-Medium ████████████████████████████████████████████████ 0.729
-High   ████████████████████████████████                 0.501
-```
-
-### The refresh beat
-
-This is the one thing about sharing a database across three surfaces that is
-**not** automatic, so do it deliberately.
-
-1. Run the cell that prints the policy and event counts.
-2. Leave the notebook open. Go to the web app and file a claim.
-3. Run the same cell again. **Nothing has changed.**
-4. Run `gemdb.refresh()`, and run the cell again. Now it has.
-
-Each surface gets its own gem and its own transaction, and a GemStone session
-sees the repository as of its last transaction boundary. Your analysis does not
-shift under you mid-cell — which is a feature, and will look like a bug the
-first time it bites.
-
-**`refresh()` alone is enough on GemDB 1.5.2.** Running the cells above
-leaves `gemdb.needs_commit()` False, so nothing is in its way (measured
-2026-09-29, Grail `b86985f`). It can still refuse, with *"refresh() would
-discard uncommitted changes"*, straight after a cell imports a module for the
-first time — a cold import compiles it into the database — and the message
-names the import. Then `commit()` first. On earlier builds it refused after
-merely running code, which is why the notebook's last cell, and the app, still
-`commit()` before they `refresh()`; see
-[finding 4](#4-a-read-only-session-was-not-clean--fixed-upstream).
-`gemdb.abort()` also takes a new view and is the wrong tool: it discards this
-session's uncommitted work, **including the functions defined in earlier
-cells**.
-
-**The web app does this for you, on every request.** Its `take_new_view()`
-runs the same `commit()` then `refresh()` before each handler, so the browser
-needs no beat of its own: commit a change from a notebook cell or a `gemdb -c`
-one-liner, reload the page, and it is there. Nothing to restart. The notebook
-is deliberately not wired that way — an analysis that shifted under you
-mid-cell would be worse than one that waits to be told.
-
----
-
-## CUJ-4 — Add a field to a live database
-
-The claim form now asks which flavour it was and what was on top. New claims
-carry both. The 2,172 claims that came out of the CSVs read `None` and `()`.
-Nothing was migrated, nothing was rewritten, and no downtime was needed.
-
-The entire migration is two lines in `brainfreeze/model.py`:
+In [`brainfreeze/model.py`](brainfreeze/model.py), give `Claim` two fields:
 
 ```python
 class Claim:
@@ -636,306 +83,57 @@ class Claim:
     toppings = ()
 ```
 
-**Part of why that works is foresight**, and it is worth separating from the
-rest: those defaults were on the class *before anything was committed*. A claim
-written without them has no slot of its own and reads the default through the
-class. That much never needed a migration in any object database.
+Then show them in the app: add the two questions to the claim form in
+[`web/forms.py`](web/forms.py), and the two lines to the claim page in
+[`web/templates.py`](web/templates.py).
 
-### What a schema change actually costs here
+Reload your browser. The form asks the new questions, and a claim you file now
+records the answers. Open any of the 2,172 claims filed before you started:
+they still load, and read as no flavour and no toppings.
 
-The question a sceptic asks next is what happens when you add a field *later*,
-to a class already holding data. Three costs, each measured rather than
-asserted, all on Grail `9a0b0fc` / engine 4.0.0.a2 as of 2026-09-24.
+No migration, no reseed, and the app never stopped. The 2,172 old claims were
+committed as instances of `Claim`, they are still instances of `Claim`, and
+`Claim` now has the new fields.
 
-**Adding a field to a class already in use: nothing.** Edit the class, import
-it, commit. Records committed under the old definition keep their identity,
-keep their data, and read the new attribute:
+## 4. Jupyter
 
-```console
-ISINSTANCE   : True
-TYPE_IS      : True
-DATA_INTACT  : True
-ADDED_LATER  : added after the record was committed
+Open [`brain-freeze.ipynb`](brain-freeze.ipynb) in VS Code and run the cells.
+
+The notebook works on the same objects as the app: loss ratio by risk tier,
+what an approved claim is worth, where the payouts cluster. No export, no
+connection string.
+
+Keep it open, file a claim in the browser, and run the policy-count cell again.
+It has not changed: the notebook sees the database as of its last transaction,
+so an analysis does not shift under you halfway through. Run
+
+```python
+gemdb.refresh()
 ```
 
-**Doing it without a restart: also nothing.** The same holds inside a process
-that is already up and already holding the record — `importlib.reload` and a
-commit, which is what `tools/redeploy.py` does:
+and run the cell again. Now it has.
 
-```console
-RECORD ALREADY HELD:
-  type(record) is the reloaded class : True
-  isinstance(record, reloaded)       : True
-  data intact                        : True
-  reads the field added live         : 'added while the process was running'
-```
+## 5. MCP
 
-**Changing or removing a field: not measured, so not claimed.** Everything
-above is about *adding*. Changing what a field means, dropping one, or
-anything that needs the 900 committed records rewritten is a real migration
-and this repo has not measured it. "Adding is free" is not "migration is
-free", and the demo says so out loud rather than letting an evaluator find the
-gap.
+Turn on GemDB's MCP server and connect Claude Code to it. Then ask:
 
-Reproduce all of it on your own database:
-`findings/class-identity/migration_write.py` then `migration_read.py` for the
-two-session case, and `findings/class-identity/live_reload.py`, which needs
-only one run.
+> Which plan is losing money?
 
-### What a redeploy is, exactly
+The agent answers by running Python against the live book: the same objects,
+through the same `brainfreeze` code. It needs no export, no API and no
+description of your schema.
 
-One command, and it is not a restart:
-
-```console
-gemdb tools/redeploy.py
-```
-
-Restarting the app process is still *not* a redeploy, for a narrower reason
-than it used to be. Grail compiles modules into the database and keeps them.
-On Grail `b86985f` (GemDB 1.5.2) a fresh session's `import brainfreeze.money`
-notices that the file changed and rebuilds it — but `from brainfreeze import
-money`, the form this repo uses eleven times, still gets the copy the database
-last committed, with no warning
-([Grail#1223](https://github.com/GemTalk/Grail/issues/1223)), and a rebuild is
-kept only once something commits. So a restarted app can still run last
-week's rules and say nothing about it. Measured on a scratch package,
-2026-09-29.
-
-| | what it reaches |
-| --- | --- |
-| **`gemdb tools/redeploy.py`** | the CODE: `importlib.reload` in dependency order, then a commit. Records already committed see fields it adds to their class, without a restart. |
-| **`gemdb tools/seed.py`** | the DATA: rebuilds all 900 policies from the current code. Needed when objects must be *reshaped*, not merely read through a new class. |
-| **restarting the app** | neither, reliably. It picks up an edited `web/` file, because a changed file is recompiled on import. It cannot be trusted with `brainfreeze/`, for the reason above. |
-
-So: adding a field needs the first. Changing what one means needs the first
-and then the second. Editing a page needs neither.
-
-**This used to be false, and the history is the point.** On Grail `c875e56`
-editing a class compiled a *different* class: `type(record) is TheClass` went
-False, `isinstance` went False, and an existing record raised `AttributeError`
-for the new field. That is what [finding
-5](#5-editing-a-class-compiles-a-different-class--fixed-upstream) recorded, and the fix landed
-upstream rather than here.
-
----
-
-## What this cost us
-
-Six things that were not in any documentation, in the order they cost time.
-Four have since been fixed upstream. They stay, marked, because a reader on an
-older build will meet them — and because the fixed ones are evidence the
-reports were worth making. Re-checked against GemDB 1.5.2 (Grail `b86985f`) on
-2026-09-29.
-
-### 1. A database can be installed without the regex engine
-
-`import flask` failed with `No module named '_sre'`, and so did `import re` —
-which is the real problem, since Werkzeug's routing, Jinja2's lexer and header
-parsing all need it. The database started, ran Python, seeded and passed every
-test, because `brainfreeze/` is standard-library only and never touches `re`.
-
-Nothing was missing from disk. `install.gs` records the shim path only when
-`SHIM_LIB_PATH` is non-empty, and `install-grail.sh` blanks that variable when
-the file is not there at the moment it looks, then installs anyway with a
-warning to a log. Asked directly, the extent said so:
-
-```console
-topaz> CPythonShim libraryPath
-ERROR 2318 ... reason:halt, CPythonShim library path not configured.
-```
-
-The fix is one assignment and a commit, not a reinstall — `install.gs` only
-ever records the path, because the shim's built-ins resolve lazily per gem:
-
-```smalltalk
-CPythonShim libraryPath: '<GRAIL_DIR>/src/c/shim/libcpython_ua.dylib'.
-System commit.
-```
-
-The seeded book survived it. A reinstall would have recreated the Python
-runtime classes with new identity and orphaned everything.
-
-**Still true of GemDB 1.5.2's installer**, which blanks the variable and
-carries on exactly as before. What changed is packaging: a release `.vsix` now
-refuses to build without the shim, so a stock install is less likely to meet
-this.
-
-### 2. An exception in a view was invisible — fixed upstream
-
-**No longer reproduces** on GemDB 1.5.2: Grail's `Logger` takes `exc_info`
-now ([Grail#1163](https://github.com/GemTalk/Grail/pull/1163)), and logs the
-traceback. `web/serving.py` still prints it itself.
-
-When a route raised, Flask's error path calls `Logger.error(..., exc_info=...)`
-and Grail's `Logger` had no `exc_info`, so the console ended with
-`TypeError: Logger.error() got an unexpected keyword argument 'exc_info'` and
-the actual exception was further up the log.
-
-*(Independently found in the companion document, finding 4.)*
-
-### 3. `__main__` was one shared namespace for every script — fixed upstream
-
-**No longer reproduces** on GemDB 1.5.2: each script starts with a clean
-`__main__`, on a database that has run every script here
-(`findings/02_main_namespace.py`). The advice below still costs nothing.
-
-On earlier builds, a brand-new script, before defining anything:
-
-```console
-__name__ is: __main__
-globals before I define anything: ['_band', '_bool', '_date', ..., 'create_app',
- 'load', 'main', 'my_cell_helper', 'read_policyholders', 'report', 'run', 'wrap']
-```
-
-`create_app` from `app.py`, `load` and `report` from `seed.py`, `run` and
-`wrap` from `make_mcp_questions.py` — accumulated in the database across
-sessions. Dispatch is by argument count and defaults do not disambiguate, so
-`app.py`'s `main()` — declared `main(host=..., port=...)`, called with none —
-reached another script's zero-argument `main` and failed inside it.
-
-**Do not name a script's entry point `main`.** This app's is `serve()`.
-
-Relatedly, `gemdb file.py` puts the *script's* directory on `sys.path`, not the
-working directory, and a module already compiled into the database can be
-served stale in preference to an edited file on disk. That is narrower now —
-on 1.5.2 it is `from package import module` that stays stale (Grail#1223) — but
-`run_db_tests.py` still reads and execs its test module rather than importing
-it, for exactly that reason.
-
-*(The companion document's finding 5 is the same family.)*
-
-### 4. A read-only session was not clean — fixed upstream
-
-**No longer reproduces** on GemDB 1.5.2, apart from a first import: running
-code and calling functions leaves `gemdb.needs_commit()` False, so `refresh()`
-alone works (see [the refresh beat](#the-refresh-beat)).
-
-On earlier builds `gemdb.needs_commit()` returned `True` after merely running
-code, because Grail compiled what you ran into the database. That is why
-`refresh()` refused in a notebook, and why the recipe was `commit()` then
-`refresh()` rather than `refresh()` or `abort()`.
-
-*(Independently found in the companion document, finding 2.)*
-
-### 5. Editing a class compiles a different class — fixed upstream
-
-**No longer reproduces**, as of Grail `9a0b0fc`; see [what a schema change
-actually costs](#what-a-schema-change-actually-costs-here) for the current
-measurement. Kept because the trap it describes is still worth knowing and
-because a reader on an older engine will meet it.
-
-On Grail `c875e56`, editing a class compiled a *different* class and instances
-already committed kept the one they were created under. The trap was that
-`seed.py` hid it: seeding rebuilds every object from the new class, so no
-instance was left holding the old one and a source edit *looked* like it
-propagated. It had not; the objects had been replaced.
-
-### 6. A committed module's top level stops running
-
-**New on GemDB 1.5.2, and live.** Once a module has been committed, a later
-session whose copy of the file is *unchanged* gets the module back without
-running its top level. Anything that top level did to a class is gone. Jinja2
-sets `Environment.template_class` exactly that way, after the class body, so on
-1.5.2 every session after the one that committed Jinja rendered every page as
-a 500:
-
-```console
-AttributeError: 'Environment' object has no attribute 'template_class'
-```
-
-It is [Grail#1242](https://github.com/GemTalk/Grail/issues/1242), and it is not
-only vendored packages: the app's own `web/app.py` does the same. The
-workaround, `restore_template_class()` in `web/app.py`, went in at module scope
-first, worked once, and never again — the file was unchanged the next run. It
-lives in `create_app()` now, because a function body runs every time. **Put
-anything that has to happen every session in a function, not at module scope.**
-
-### And one about the sample data
-
-`policy_status` records a policy's fate over its whole term, not whether there
-is cover today. The book's terms run either side of the present: of 217
-policies marked `Lapsed`, only 53 have actually reached their lapse date, and
-147 policies have not started yet. Any screen reading the stored status calls a
-policy lapsed while it is still paying claims, so the app compares against the
-date and says "Active", "Lapses 2027-03-10", "Lapsed 2026-07-12", "Starts
-2026-10-04" or "Term ended 2027-05-30".
+Ask it to make the change from step 3 for you, and watch it edit the class, the
+form and the page — while the app keeps serving.
 
 ---
 
 ## What is in here
 
 ```
-brainfreeze/   the model and the rules; standard library only, runs in the DB
-web/           the web app -- the factory, the routes, the templates, and the
-               JSON serialiser. NOT a package, deliberately; see below
-tools/         every command in this README: seed, redeploy, verify, lapse,
-               the two test runners, and the two generators
-datagen/       the generator; the only numpy/pandas in the repo
-data/          the two generated CSVs
-tests/         the suite -- python3 -m unittest discover
-docs/          the demo as a run of show, the PRD, the questions the demo
-               promises to answer, the dataset description an agent needs to
-               ask its own, the rules for writing Python that runs inside the
-               database, what it takes to add a feature to this repo, and the
-               column dictionary for the two CSVs
-features/      the acceptance suite -- .venv-acceptance/bin/behave
-findings/      the ten things that cost time, as scripts you can run
+brainfreeze/         the model and the rules
+web/                 the web app
+tools/               seed.py, and the other commands above
+data/                the sample book, as CSV
+brain-freeze.ipynb   the notebook
 ```
-
-**`web/` has no `__init__.py`, and should not get one.** When this was
-written, Grail served a committed *package* module forever while recompiling a
-plain module from disk each run, and that is why the app is a directory of
-siblings. On Grail `b86985f` both rebuild when their file changes — except
-`from package import module`, the natural way to import a sibling inside a
-package, which still gets the committed copy (Grail#1223). And both share
-[finding 6](#6-a-committed-modules-top-level-stops-running): an *unchanged*
-committed module does not re-run its top level.
-
-Each entry point in `web/` and `tools/` puts the repository on `sys.path`
-itself, in three lines it does not share with the others. That is not an
-oversight — see [finding 9](findings/README.md).
-
-[`docs/csv-schema.md`](docs/csv-schema.md) is that column dictionary: every
-column in `data/*.csv`, its type, whether it can be empty, what it means, and
-which attribute it becomes when `seed.py` loads it — plus the `policy_id`
-relationship and the six columns that are derived and therefore never loaded.
-It is the reference to check a mapping against;
-[`docs/dataset-for-agents.md`](docs/dataset-for-agents.md) is the orientation
-for asking questions of the objects once they are in the database.
-
-[`docs/writing-python-for-gemdb.md`](docs/writing-python-for-gemdb.md) is its
-counterpart for the code itself, and is the one to read first if you are about
-to write Python that runs in here. Claude writes good Python; it writes good
-*CPython*, and this is not that. Money that ends the session rather than
-raising, a committed module whose top level quietly stops running — with the through-line that
-in most of these, **the code that exists to report a problem is the code that
-breaks.** The evidence is [`findings/`](findings/README.md), summarised
-[below](#what-this-cost-us).
-
-[`docs/adding-a-feature.md`](docs/adding-a-feature.md) is the third of that set
-and the one to read before **changing** anything in here. The demo's line is "I
-didn't write any code — I told the agent to add toppings and flavours", and
-this is what makes that a conversation rather than a guess: where a new field
-goes, that a change to `brainfreeze/` is not live until `gemdb
-tools/redeploy.py`, when a reseed is needed as well, both test commands and why
-there are two, and the surfaces that have to stay in agreement. It is a worked example rather than a list of rules —
-`flavour`/`toppings` cost nothing and `SavedQuote` cost a redeploy and a reseed,
-and the difference between them is the whole lesson.
-
-`brainfreeze/` imports nothing outside the standard library and is not allowed
-to — it is compiled and run inside the database, where numpy and pandas do not
-exist. `tests/test_packaging.py` fails if anything in it reaches for a module
-Grail does not ship.
-
-The dataset is regenerated with `python3 -m datagen`, whose output is
-byte-identical run to run:
-
-```console
-Wrote 900 policyholders -> policyholders.csv
-Wrote 4,993 events -> claims.csv
-```
-
-If that output ever stops matching what is committed, either the change was
-wrong or the dataset is being regenerated deliberately — and if it is the
-latter, say so loudly, because every number in the tests and the docs is read out
-of these two files.

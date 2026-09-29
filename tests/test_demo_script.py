@@ -205,16 +205,6 @@ class TheCountOfFindingsItClosesOn(unittest.TestCase):
             % (self.word(), len(self.numbered)),
         )
 
-    def test_the_readme_agrees(self):
-        with open(os.path.join(REPO, "README.md"), encoding="utf-8") as handle:
-            readme = handle.read()
-        self.assertTrue(
-            re.search(r"the %s things that cost time" % self.word(),
-                      readme, re.IGNORECASE),
-            "the README's tree does not say there are %s findings, and there "
-            "are %d." % (self.word(), len(self.numbered)),
-        )
-
 
 class TheFiguresTheAgentBeatPromises(unittest.TestCase):
     """Beat 8 tells the presenter what the agent should land on.
