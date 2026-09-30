@@ -67,3 +67,93 @@ jobs:
         run: |
           python -m datagen
           git diff --exit-code -- data/
+
+  # The half that needs a database: GemDB set up the way a reader sets it up,
+  # then the in-database suite, the notebook, and the tutorial from step 1 on
+  # a brand-new database (#81).
+  tutorial:
+    name: Tutorial, on GemDB ${{ matrix.gemdb }}
+    runs-on: macos-15
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        # The GemDB Code release a reader installs. Its engine is pinned by
+        # the release, so this is also the engine cache's key.
+        gemdb: ["1.5.2"]
+    env:
+      VSIX: gemdb-darwin-arm64-${{ matrix.gemdb }}.vsix
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      # Node for the setup harness (ci/setup-gemdb), which drives VS Code.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: ci/setup-gemdb/package-lock.json
+
+      - name: Download GemDB Code ${{ matrix.gemdb }}
+        run: gh release download "v${{ matrix.gemdb }}" -R GemTalk/GemDB_Code -p "$VSIX" -D "$RUNNER_TEMP"
+
+      # The engine is the one part of setup that is the same on every run, so
+      # it is primed rather than downloaded: GemDB's setup finds it installed
+      # and goes straight to creating the database. A new GemDB release is a
+      # new key, one download, and a primed cache again.
+      - name: Restore the database engine
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/GemDB/GemStone64Bit*
+          key: gemdb-engine-${{ matrix.gemdb }}-arm64.Darwin
+
+      # What GemDB's setup asks a reader to run with sudo. Run first, so setup
+      # finds it done and asks nothing.
+      - name: Raise shared memory
+        run: |
+          unzip -p "$RUNNER_TEMP/$VSIX" extension/resources/setSharedMemoryDarwin.sh > "$RUNNER_TEMP/shm.sh"
+          sudo bash "$RUNNER_TEMP/shm.sh"
+
+      - name: Set up GemDB, as a reader does
+        working-directory: ci/setup-gemdb
+        run: |
+          npm ci --no-audit --no-fund
+          node run.js "$RUNNER_TEMP/$VSIX"
+          echo "$HOME/GemDB/bin" >> "$GITHUB_PATH"
+
+      - name: The acceptance suite's browser
+        run: |
+          python -m venv .venv-acceptance
+          .venv-acceptance/bin/pip install behave playwright
+          .venv-acceptance/bin/playwright install chromium
+
+      - name: Load the book, then the tests inside the database
+        run: |
+          gemdb tools/seed.py
+          gemdb tools/run_db_tests.py
+          gemdb tools/run_notebook_check.py
+
+      # Builds its own brand-new database from the GemDB just set up, and
+      # walks the README's five steps before the rest.
+      - name: The tutorial, from a brand-new database
+        run: .venv-acceptance/bin/behave
+
+      - name: Keep the screenshots
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: tutorial-screenshots
+          path: artifacts/
+          if-no-files-found: ignore
+      - name: Keep GemDB's logs
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: gemdb-logs
+          path: |
+            ~/GemDB/db/log/
+            ci/setup-gemdb/.vscode-test/user-data/logs/
+          if-no-files-found: ignore

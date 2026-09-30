@@ -33,3 +33,8 @@ _published_snippet.py
 # What finding 9 leaves between its two runs, if a cycle is interrupted.
 findings/.finding09_ran
 findings/_finding09_helper_*.py
+
+# The CI harness that runs GemDB setup in a headless editor (ci/setup-gemdb):
+# its npm packages and the editor it downloads.
+ci/setup-gemdb/node_modules/
+ci/setup-gemdb/.vscode-test/

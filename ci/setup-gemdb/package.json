@@ -1,0 +1,11 @@
+{
+  "name": "brain-freeze-setup-gemdb",
+  "private": true,
+  "description": "Run GemDB Code's own setup in a headless editor, the way a reader does -- for CI.",
+  "scripts": {
+    "setup-gemdb": "node run.js"
+  },
+  "devDependencies": {
+    "@vscode/test-electron": "^3.1.0"
+  }
+}
