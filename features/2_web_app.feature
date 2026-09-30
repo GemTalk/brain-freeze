@@ -10,6 +10,7 @@ Feature: Step 2 -- launch the web app
     Then the address step 2 of the README says to open is where the app serves
     And the page says how many policyholders there are
     And I capture "the customers"
+    And the app said it was running, and logged that request
 
     When I open the policy BF-100539
     Then I am shown a policy
