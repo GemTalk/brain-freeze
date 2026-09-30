@@ -3,16 +3,12 @@
     gemdb tests/class_identity/migration_write.py
     gemdb tests/class_identity/migration_read.py     # the answer is there
 
-Two processes, because a genuine re-import needs a genuine new session.
-Compiling the edited source with `exec` in this one would land in a different
-module and prove nothing -- the same reason `03_class_identity.py` is written
-in two runs.
+Two processes, because a genuine re-import needs a genuine new session:
+compiling the edited source with `exec` in this one would land in a different
+module and prove nothing.
 
-This arm does the ordinary thing a schema change does: a class is written,
-instances of it are committed, and only THEN does someone add a class
-attribute to it. `commit_write.py` next door already establishes that an
-UNEDITED class keeps its identity across sessions, so anything this pair
-measures is caused by the edit alone.
+This arm does what a schema change does: a class is written, an instance of
+it is committed, and only THEN is a class attribute added to it.
 
 It writes a throwaway package under tests/class_identity/tmp_migration/ and
 one throwaway key in `gemdb.root`. `migration_read.py` removes both.
@@ -55,10 +51,9 @@ def main():
     sys.path.insert(0, HERE)
     from tmp_migration.subject import Subject
 
-    # Committing after the import is what keeps the compiled class -- their
-    # rule 1, and the precondition for this check meaning anything. Without
-    # it the class is a throwaway and the next session recompiles it for
-    # reasons that have nothing to do with the edit.
+    # Committing after the import is what keeps the compiled class. Without
+    # it the next session recompiles the class for reasons that have nothing
+    # to do with the edit, and the check means nothing.
     gemdb.commit()
 
     gemdb.root[ROOT_KEY] = Subject("written before the edit")

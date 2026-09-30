@@ -1,20 +1,12 @@
 """The pages a person clicks through.
 
-Registered onto an app rather than defined inside a factory. `create_app` was
-349 lines holding all fifteen routes and twenty-one helpers, which meant
-nothing in it could be imported, read, or tested on its own -- and is why the
-tests for this surface had to resort to parsing the file's own syntax tree.
-
 `register(app)` rather than a Flask blueprint: a blueprint would prefix every
 endpoint name, and the templates call `url_for('history')` and friends by the
-bare name. Blueprints would be the idiom in a larger application; here they
-would buy nothing and break every template.
+bare name.
 
 Declared with `ROUTES.route`, and every template, lookup and helper reached
-through its module, so a running app picks up this file once it is loaded and
-committed. See routes.py.
-
-A top-level module, so Grail recompiles it from disk each run. See lookups.py.
+through its module, so a running app picks up a loaded change to this file.
+See routes.py.
 """
 
 from datetime import date
@@ -32,18 +24,15 @@ from routes import Routes
 
 ROUTES = Routes(__name__)
 
-#: How many policyholders the picker renders at once. Grail runs each Jinja
-#: template in a forked green thread, and 900 of them takes the best part of
-#: a minute; a page is what makes the front door feel like a web page.
+#: How many policyholders the picker renders at once. Rendering all 900
+#: takes several seconds under Grail, which autoescapes each value slowly.
 PAGE = 50
 
 
 @ROUTES.route("/")
 def index():
-    # A page at a time. Rendering all 900 takes the best part of a minute
-    # -- Grail runs each Jinja template in a forked green thread, and 900
-    # rows of it is not what that is for. The count is the point, not the
-    # scroll, so the total is stated and the table is a window onto it.
+    # A page at a time (see PAGE); the total is stated and the table is a
+    # window onto it.
     today = date.today()
     everyone = sorted(lookups.book(), key=lambda p: p.policy_id)
 
@@ -77,13 +66,9 @@ def quote_form():
 def quote_result():
     """Price a quote, keep it, and send the browser to its address.
 
-    A write like any other here, so it commits and redirects: refreshing
-    the result re-opens the quote instead of minting a second one, and the
-    quote's id is in the address bar where a person can copy it.
-
-    The answers come back through the same reader the JSON surface uses,
-    so a value the form should not have been able to send is a 400 that
-    names the field rather than a KeyError inside the risk model.
+    Commits and redirects like any write, so a refresh re-opens the quote
+    instead of minting a second one. The answers go through the same reader
+    as the JSON surface, so a bad value is a 400 naming the field.
     """
     try:
         answers = forms.answers_from(request.form)
@@ -112,10 +97,8 @@ def saved_quote(quote_id):
 def accept_quote(quote_id):
     """Turn a quote into a policy, at the price the quote quoted.
 
-    Note what is NOT here: a second call to `brainfreeze.quote`. The
-    answers and the three prices were stored when the quote was given, and
-    a customer is sold what they were shown. Re-pricing at this point
-    would be the old round-trip with the hidden fields taken out.
+    No second call to `brainfreeze.quote`: the answers and prices were
+    stored with the quote, and a customer is sold what they were shown.
     """
     saved = lookups.quote_or_404(quote_id)
     plan_name = request.form.get("plan", "Standard")
@@ -152,12 +135,9 @@ def history(policy_id):
 def warnings_for(policy, today):
     """What the form should say before anyone fills it in.
 
-    Both of these would otherwise only be discovered by filing and being
-    refused, and the lapse is the more confusing one to receive silently.
-
-    Which absence of cover it is comes from the model, so the warning on
-    the form and the reason on the refusal cannot disagree -- and so a
-    policy that has not started yet is not told it lapsed on None.
+    Otherwise these are only discovered by filing and being refused. Which
+    absence of cover it is comes from the model, so the warning and the
+    refusal's reason cannot disagree.
     """
     notes = []
     no_cover = policy.no_cover_reason_on(today)
@@ -249,10 +229,7 @@ def decision(policy_id, claim_id):
     for event in policy.events:
         if event.claim is not None and event.claim.claim_id == claim_id:
             claim = event.claim
-            # Worked out here rather than in the template. Handlers do the
-            # sums; templates print them. A conditional expression over
-            # Decimals inside `{{ }}` is more Grail-compiled Jinja than
-            # this needs to be.
+            # Handlers do the sums; templates print them.
             trimmed = claim.requested - claim.approved - policy.deductible
             return pages.render(templates.DECISION, p=policy, e=event, c=claim,
                           trimmed=max(money.ZERO, trimmed))

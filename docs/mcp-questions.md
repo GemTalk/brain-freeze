@@ -1,4 +1,4 @@
-# Questions this demo promises to answer
+# Questions an agent can answer
 
 GemDB's MCP surface is code-level, not data-level: it offers `eval_python`,
 `execute_code`, `commit`/`abort`/`refresh`, browsing and search. **There is
@@ -6,11 +6,11 @@ no tool that knows what a policyholder is.** An agent answers these by
 writing Python that runs inside the database.
 
 Every answer below was produced by running the snippet beside it, not typed
-in, against a **freshly seeded** database -- the state CUJ-0 starts from and
-the figures `tests/test_seed.py` pins. Regenerate with `gemdb
+in, against a **freshly seeded** database: the book step 1 of the tutorial
+loads, and the figures `tests/test_seed.py` pins. Regenerate with `gemdb
 tools/make_mcp_questions.py` after any change to the data or the rules; if
-an answer moves, either the change was wrong or this file is the record of
-what the demo now promises.
+an answer moves, either the change was wrong or this file should change with
+it.
 
 Each snippet assumes this preamble:
 
@@ -38,9 +38,9 @@ analysis.book_summary(book)
 
 ## 2. What is the loss ratio by risk tier?
 
-The demo's punchline. The 1.9x loading on High over-prices the risk, so the
-customers the underwriter fears most are the most profitable, and the middle
-of the book is where the money leaks.
+The finding worth asking for. The 1.9x loading on High over-prices the risk,
+so the customers the underwriter fears most are the most profitable, and the
+middle of the book is where the money leaks.
 
 ```python
 analysis.loss_ratio_by_tier(book)
@@ -77,9 +77,9 @@ this answer and the claim screen cannot disagree.
 
 ## 5. Why was CLM-001291 refused?
 
-CUJ-2. The refusal is not a stored string an agent has to trust -- the event
-date, the lapse date and the in-force test are all there, so the reason can
-be checked rather than repeated.
+The refusal is not a stored string an agent has to trust -- the event date,
+the lapse date and the in-force test are all there, so the reason can be
+checked rather than repeated.
 
 ```python
 [(e.claim.claim_id, e.claim.reason, e.event_date, p.policy_lapse_date, p.is_in_force_on(e.event_date))
@@ -93,9 +93,8 @@ be checked rather than repeated.
 
 ## 6. Why is BF-100539 in the Medium band?
 
-Only answerable because the drawn base is recorded. Before that column
-existed the score could not be reproduced from the answers beside it, and
-this question had no honest answer.
+Only answerable because the drawn base is recorded: without it the score
+could not be reproduced from the answers beside it.
 
 ```python
 brainfreeze.score_breakdown(

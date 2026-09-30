@@ -1,19 +1,10 @@
-"""The questions the demo asks, and the one place an answer is read.
+"""The questions the app asks, and the one place an answer is read.
 
-WHY THIS IS ITS OWN MODULE
+`answers_from(mapping)` is the single reader for both surfaces: it takes
+anything with `.get`, which a Flask form and a decoded JSON body both are.
 
-There were two readers for the same five answers. The HTML form coerced with
-`request.form.get(..., default)` and validated nothing, so an unknown
-consumption speed became a `KeyError` deep inside the risk model. The JSON
-endpoint validated properly and raised a `ValueError` naming the field at
-fault. Two surfaces, one questionnaire, two standards of care -- and the
-sloppier one was the surface a person actually uses.
-
-There is one reader now. `answers_from(mapping)` takes anything that answers
-`.get`, which a Flask form and a decoded JSON body both already do.
-
-The vocabulary lives here too, and the parts the risk model owns are IMPORTED
-rather than restated. This module supplies only the labels a person reads.
+The vocabulary the risk model owns is imported rather than restated; this
+module supplies only the labels a person reads.
 """
 
 from brainfreeze import CONSUMPTION_SPEEDS, TRIGGER_TYPES
@@ -39,10 +30,7 @@ DURATION_BANDS = [
 PAIN_LOCATIONS = ["Forehead", "Temple", "Back of the head", "All over"]
 PAIN_QUALITIES = ["Stabbing", "Pulling", "Dull and pressing"]
 
-#: Labels for the speeds the RISK MODEL defines, rather than a second list of
-#: speeds. app.py used to spell these out -- "slow", "moderate", "fast" --
-#: three lines below importing TRIGGER_TYPES from the package for the
-#: neighbouring question. One vocabulary shared, the other copied, adjacent.
+#: Labels for the speeds the risk model defines, not a second list of speeds.
 SPEED_LABELS = {"slow": "Slowly", "moderate": "About normal",
                 "fast": "All at once"}
 SPEED_BANDS = [(SPEED_LABELS[speed], speed) for speed in CONSUMPTION_SPEEDS]
@@ -73,16 +61,11 @@ def quote_questions():
     """The five quote questions as data, for `/api/questions`.
 
     Built from the same constants the HTML form loops over, so the two
-    surfaces cannot drift into asking different things -- and so the answers
-    a caller reads out of here are exactly the ones `/api/quote` accepts.
+    surfaces ask the same things and a caller reads exactly the answers
+    `/api/quote` accepts.
 
-    A function rather than a module constant to keep import time doing
-    nothing but binding names; this file is executed top to bottom by
-    `gemdb web/app.py`.
-
-    Sex is absent for the reason it is absent from the form: FR-5.2 asks for
-    it, the risk model gives it no weight, and a question that changes
-    nothing is worse than one not asked.
+    Sex is not asked, here or on the form: the risk model gives it no
+    weight.
     """
     return [
         {"name": "age", "prompt": "How old are they?",
@@ -113,17 +96,9 @@ def _flag(value):
 def answers_from(data):
     """The five answers out of anything with `.get`, or a ValueError.
 
-    A Flask form and a decoded JSON body both answer `.get`, so both surfaces
-    read their answers through here. That is the point of the function: there
-    used to be two readers and the HTML one validated nothing.
-
-    Checked here rather than handed to `quote()`, which would meet an unknown
-    trigger as a KeyError deep inside the risk model -- and neither a scripted
-    caller nor a person filling in a form should be shown that.
-
-    The form sends "yes"/"no" where JSON sends true/false, and `_flag` takes
-    either, which is what lets one reader serve two surfaces without either
-    knowing about the other.
+    Checked here rather than left to `quote()`, which would meet an unknown
+    trigger as a KeyError deep inside the risk model. The form sends
+    "yes"/"no" where JSON sends true/false; `_flag` takes either.
     """
     try:
         age = int(data.get("age", 11))

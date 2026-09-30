@@ -1,14 +1,8 @@
-"""The scripts that hold the demo up, and which nothing tested.
+"""The scripts in `tools/` that the tutorial runs.
 
-`load.py`, `run_db_tests.py`, `make_notebook.py` and `make_mcp_questions.py`
-had no test naming them. Several of them keep a hand-written list in step with
-something else in the repo, and a list that drifts is this project's most
-frequent bug -- the MCP payload that could not start its own server, the module
-the old redeploy script silently refused to reload, the copy list that had to agree with
-a REQUIRED list. Each was one forgotten name.
-
-So these are the tests that would have caught those: they compare the list to
-the thing it is supposed to describe.
+Several of them keep a list in step with something else in the repo, and a
+list that drifts fails silently, one forgotten name at a time. So these
+compare each list to the thing it is supposed to describe.
 
 Nothing here runs a script. They all need the database; what is checkable under
 CPython is whether their bookkeeping still matches the repo.
@@ -54,9 +48,8 @@ def package_modules():
 
 class LoadKnowsEveryModule(unittest.TestCase):
     """`load.py` imports every module, so that a changed one is rebuilt and
-    committed. It lists the directories rather than keeping a list -- a list
-    drifted once, and a module arrived with the JSON API that nothing
-    reloaded -- and this says the listing reaches everything the app runs."""
+    committed. It lists the directories rather than keeping a list, and this
+    says the listing reaches everything the app runs."""
 
     def load(self):
         sys.path.insert(0, os.path.join(REPO, "tools"))
@@ -128,8 +121,8 @@ class TheModulesTheRunnerBuilds(unittest.TestCase):
         self.assertIsNone(
             getattr(module, "__cached__", "absent"),
             "run_db_tests.load_module_from_file must set __cached__ = None; "
-            "without it every in-database module fails on Grail main before "
-            "it runs. See the comment on that line.",
+            "without it every in-database module fails on Grail before it "
+            "runs. See the comment on that line.",
         )
 
 
@@ -188,8 +181,8 @@ class TheDatabaseRunnerRunsEverything(unittest.TestCase):
 
 class ThePublishedQuestionsAreExecutable(unittest.TestCase):
     """`make_mcp_questions.py` publishes a preamble and then runs the snippets
-    beneath it. Those were once two different things, so the document told a
-    reader to paste three lines that could not run its own question six."""
+    beneath it, so the preamble a reader pastes has to be able to run every
+    question."""
 
     def test_the_preamble_binds_every_name_the_snippets_use(self):
         import mcp_questions
@@ -231,24 +224,19 @@ class ThePublishedQuestionsAreExecutable(unittest.TestCase):
 class TheTextFilesAreTidy(unittest.TestCase):
     """No trailing whitespace, and no tabs in Python.
 
-    WHY THIS IS NOT JUST FUSSINESS ABOUT SPACES
+    Trailing whitespace is invisible, so it is only noticed when someone next
+    runs a linter -- everywhere at once, buried in a diff with real changes.
+    Several files here are generated, so this also catches a generator that
+    emits it.
 
-    Trailing whitespace is invisible, so it is only ever noticed by whoever
-    next runs a linter, and then it is noticed everywhere at once and buried
-    in a diff with real changes in it. Two of these came from a generator
-    emitting the indentation of a badge that was not there; the generator was
-    fixed, and this is what would have said so.
-
-    Markdown is the exception, and it is a real one: a line ending in exactly
-    two spaces is a HARD LINE BREAK, and a block of metadata lines relies on
-    them; stripping them would run the lines together into a paragraph. So
-    two spaces are
-    allowed in a `.md` and anything else is not -- which also catches the
-    three-space near-miss that does nothing at all.
+    Markdown is the exception: a line ending in exactly two spaces is a HARD
+    LINE BREAK, and stripping it would run lines together into a paragraph.
+    So two spaces are allowed in a `.md` and anything else is not -- which
+    also catches the three-space near-miss that does nothing at all.
     """
 
-    #: Everything tracked that is text. The PRD is also tracked as a `.docx`,
-    #: which is a zip file and would be read as mojibake.
+    #: Everything tracked that is text, by extension, so a binary file added
+    #: later is not read as mojibake.
     TEXT = (".py", ".md", ".feature", ".ini", ".json", ".csv", ".html",
             ".ipynb", ".txt", ".js")
 

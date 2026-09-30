@@ -1,19 +1,9 @@
 """How this app starts, what it says while it runs, and what it says when it
-breaks. The factory is `app.py`; this is everything about *serving* it.
+breaks. The factory is `app.py`; this is everything about serving it.
 
-WHY THIS IS A SEPARATE MODULE
-
-`app.py` says of itself that it is "the factory and the entry point, and
-nothing else". Preflight, a banner, an access log and error reporting are none
-of those, and putting them there would make that docstring false.
-
-WHY THE werkzeug/flask IMPORTS ARE DEFERRED
-
-`port_holder`, `preflight` and `banner` are ordinary Python and need no
-database. Importing werkzeug at module scope would make this file unimportable
-under CPython and push their tests behind `gemdb`, out of
-`python3 -m unittest discover` -- which is the command everyone actually runs,
-and these are the parts a newcomer meets first.
+The werkzeug and flask imports are deferred into the functions that need
+them, so the rest -- port, preflight, banner -- imports under CPython and is
+tested by `python3 -m unittest discover`.
 """
 
 import re
@@ -149,11 +139,9 @@ def banner(host, port):
 def install_reporting(app):
     """Give the app an access log and make a view's exception visible.
 
-    Both hang off Flask rather than off Grail's serving layer, because that is
-    where the hooks actually fire. Grail ships its own `werkzeug.serving` in
-    which `log_request` is defined and never called -- `run_wsgi` uses
-    `send_response_only`, which, unlike `send_response`, does not log -- so
-    overriding the handler's `log_request` would be dead code. Measured.
+    Both hang off Flask rather than the request handler: Grail's
+    `werkzeug.serving` never calls `log_request` (`run_wsgi` uses
+    `send_response_only`), so overriding it would be dead code.
     """
     from werkzeug.exceptions import HTTPException
 
@@ -165,18 +153,8 @@ def install_reporting(app):
 
     @app.errorhandler(Exception)
     def report(error):
-        """Return an HTTPException; print anything else.
-
-        **Never re-raise an HTTPException here.** Re-raising sends Flask into
-        the path that reports the exception with
-        `Logger.error(..., exc_info=True)`, and Grail's `logging` does not
-        accept `exc_info`, so a TypeError lands on top of the real exception
-        and the client gets a closed connection instead of its 404. Returning
-        it preserves the status -- measured at 404, 403 and a routing 404.
-
-        And the traceback is PRINTED rather than logged, for the same reason:
-        `logging` is the thing that breaks here (finding 7).
-        """
+        """Return an HTTPException, so Flask answers with it; print anything
+        else, traceback and all, to the terminal running the app."""
         if isinstance(error, HTTPException):
             return error
         import traceback

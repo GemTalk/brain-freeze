@@ -1,7 +1,7 @@
 """Money is `decimal.Decimal`, and these are the rules that keep it honest.
 
-Run under CPython and inside the database. Both must agree, because the demo's
-whole claim is that three surfaces give one answer -- and money is where a
+Run under CPython and inside the database. Both must agree: the app, the
+notebook and the MCP answers must give one answer, and money is where a
 disagreement is least forgivable.
 """
 
@@ -50,9 +50,8 @@ class ArithmeticTests(unittest.TestCase):
 
 
 class RoundingTests(unittest.TestCase):
-    """Grail has no `Decimal.quantize`, so rounding is ours to define. Half-up,
-    because that is what a person expects of money and what an insurer's
-    schedule of premiums prints."""
+    """Half-up, because that is what a person expects of money and what an
+    insurer's schedule of premiums prints."""
 
     def test_it_rounds_a_half_up_not_to_even(self):
         self.assertEqual(round_cents(Decimal("14.175")), Decimal("14.18"))
@@ -65,10 +64,6 @@ class RoundingTests(unittest.TestCase):
         self.assertEqual(round_cents(Decimal("14.1749")), Decimal("14.17"))
 
     def test_it_rounds_negatives_away_from_zero(self):
-        # This one failed inside the database and passed under CPython, which
-        # is the whole reason it is here: `int(Decimal)` truncates toward zero
-        # in CPython and floors in Grail, so a signed rounding disagreed by a
-        # cent between two surfaces of the same demo.
         self.assertEqual(round_cents(Decimal("-14.175")), Decimal("-14.18"))
         self.assertEqual(round_cents(Decimal("-0.005")), Decimal("-0.01"))
 
@@ -85,9 +80,8 @@ class RoundingTests(unittest.TestCase):
 
 
 class RatioRoundingTests(unittest.TestCase):
-    """Ratios are not money, but they are still published, and bare `round()`
-    is half-up in Grail and banker's in CPython -- so the same loss ratio can
-    print differently on two surfaces of the same demo."""
+    """Ratios are not money, but they are published, so they round the same
+    way money does."""
 
     def test_it_rounds_a_half_up_in_both_runtimes(self):
         self.assertEqual(round_half_up(0.0625, 3), Decimal("0.063"))
@@ -107,8 +101,8 @@ class RatioRoundingTests(unittest.TestCase):
 
 
 class FormattingTests(unittest.TestCase):
-    """Grail does not preserve trailing zeros -- `Decimal('170.10')` comes back
-    as `Decimal('170.1')` -- so a display string can never come from `str()`."""
+    """A display string never comes from `str()`, which prints whatever places
+    a Decimal carries: `Decimal('170.1')` is still $170.10."""
 
     def test_it_always_shows_two_places(self):
         self.assertEqual(format_usd(Decimal("170.1")), "$170.10")
@@ -133,10 +127,8 @@ class WireFormatTests(unittest.TestCase):
     but would make every reader divide by a hundred. A string is the same text
     `usd()` already reads.
 
-    This class is the one that has to pass in both runtimes, because the two
-    disagree about the thing it turns on: inside the database a Decimal does
-    not keep its trailing zeros, so `str()` on a $170.10 premium is "170.1"
-    there and "170.10" here.
+    It runs in both runtimes, like every test here, and turns on the same
+    thing: the cents are written out, not taken from `str()`.
     """
 
     def test_it_always_gives_two_places(self):
@@ -165,8 +157,7 @@ class WireFormatTests(unittest.TestCase):
         self.assertIsNone(wire_usd(None))
 
     def test_it_rounds_negatives_away_from_zero_in_both_runtimes(self):
-        # The signed case that disagreed between the two runtimes before
-        # `round_half_up` -- `int(Decimal)` floors here and truncates there.
+        # Away from zero, as a person rounds a negative amount.
         self.assertEqual(wire_usd(Decimal("-14.175")), "-14.18")
         self.assertEqual(wire_usd(Decimal("-0.005")), "-0.01")
 
@@ -187,9 +178,9 @@ class WireFormatTests(unittest.TestCase):
 
 class MoneyFromAnotherRuntimeSaysSo(unittest.TestCase):
     """A Python runtime upgrade can leave committed money answering False to
-    `isinstance(value, Decimal)` while still being exact money: Grail `main`
-    unbinds the name from GemStone's `ScaledDecimal` and keeps the old class
-    alive for values already in the extent.
+    `isinstance(value, Decimal)` while still being exact money: a Grail build
+    that rebinds the name away from GemStone's `ScaledDecimal` keeps the old
+    class alive for values already in the extent.
 
     Nothing here can produce such a value under CPython, and guessing at its
     behaviour is not worth doing. What IS worth pinning is that `usd` does not

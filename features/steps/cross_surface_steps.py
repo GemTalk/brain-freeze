@@ -1,21 +1,14 @@
-"""Steps for the cross-surface beat.
+"""Steps for changing a policy from another session while the app serves it.
 
-The only steps in this suite that run something OUTSIDE the browser.
-`lapse.py` opens the book from a GemStone session of its own and commits; the
-app then sees it because it takes a new view before each request. That is the
-whole demonstration, and it needs both halves in one scenario.
-
-Two details are load-bearing and neither is decoration.
+`tools/lapse.py` opens the book from a GemStone session of its own and
+commits; the app sees it because it takes a new view before each request.
 
 `lapse.py` lapses as of YESTERDAY, not today. Cover runs to the lapse date
-inclusive -- someone who lapses on the 12th is still covered for the treat
-they ate that morning -- so lapsing as of today changes the status label and
-refuses nothing. A screenshot of that would look like the feature working
-while proving nothing.
+inclusive, so lapsing as of today would change the status label and refuse
+nothing.
 
-And the policy is put back in teardown even when the scenario fails. Otherwise
-one bad run leaves BF-100184 lapsed for every run after it, and the next
-person debugs a fixture rather than their change.
+The policy is put back in teardown even when the scenario fails, so one bad
+run cannot leave BF-100184 lapsed for every run after it.
 """
 
 import subprocess
@@ -118,10 +111,9 @@ def app_never_restarted(context):
     different GemStone session.
 
     Both halves are needed. A live process is not enough on its own, because
-    the harness can restart the app when another session's commit has killed it
-    (issue #83). If that happened during this scenario, the browser is talking
-    to a server that started AFTER the change, and the scenario would be
-    demonstrating nothing while passing.
+    the harness restarts the app if it stops answering (`ensure_app_answering`).
+    If that happened during this scenario, the browser would be talking to a
+    server that started after the change.
     """
     assert context.app_state["process"].poll() is None, (
         "the app process is gone -- whatever the browser is talking to, it is "

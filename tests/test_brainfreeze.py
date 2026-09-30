@@ -49,10 +49,8 @@ class Underwriting(unittest.TestCase):
         self.assertEqual(q.plans["Standard"]["monthly"], 14.25)
 
     def test_low_tier_prices(self):
-        # Not `round(x, 2)`. The builtin on a Decimal brings the VM down
-        # inside the database -- "a Decimal does not understand #'*'", with no
-        # Python exception -- which is one of the reasons money rounding lives
-        # in brainfreeze.money rather than being taken from the language.
+        # Not `round(x, 2)`, which rounds half to even: money rounds half-up,
+        # and brainfreeze.money is where that rule lives.
         self.assertEqual(round_cents(annual_premium("Basic", "Low")), usd("31.50"))
         self.assertEqual(round_cents(annual_premium("Standard", "Low")), usd("63.00"))
         self.assertEqual(round_cents(annual_premium("Premium", "Low")), usd("126.00"))
@@ -132,7 +130,7 @@ class Adjudication(unittest.TestCase):
 
     def test_the_lapse_wording_is_the_default(self):
         # The 254 refusals in claims.csv say "Policy lapsed" and go on saying
-        # it; only the new case gets the new wording.
+        # it; only an out-of-term claim is worded differently.
         self.assertEqual(adjudicate(usd("43.09"), usd("60.0"), usd("5.0"), 0,
                                     policy_in_force=False).reason,
                          REASON_POLICY_LAPSED)
@@ -200,7 +198,7 @@ class RuleIdentifiers(unittest.TestCase):
 
     The prose `reason` is what the claimant is told and it is allowed to be
     reworded. `rule` is what an agent explaining the refusal reads, so it is
-    fixed: the same five strings the parallel implementation uses.
+    fixed.
     """
 
     def test_an_approved_claim_names_no_rule(self):
@@ -306,7 +304,7 @@ class ReasonsMapBackToRules(unittest.TestCase):
     def test_it_does_not_guess_at_prose_the_rules_never_wrote(self):
         # The generator's unmodelled denials. The second one reads like the
         # per-incident rule and is not it: no rule produced it, so naming one
-        # would be the paraphrasing this whole change exists to stop.
+        # would be the paraphrasing rule identifiers exist to stop.
         for reason in ("Pre-existing headache condition exclusion",
                        "Claim amount exceeds per-incident coverage limit",
                        "Insufficient severity documented",
@@ -339,18 +337,12 @@ class Assessment(unittest.TestCase):
 
 
 class QuotesAreObjects(unittest.TestCase):
-    """A quote used to have no identity.
+    """A quote has an identity: a `SavedQuote` in the book.
 
-    `POST /quote` priced one, rendered it, and posted the five answers back
-    to the browser as hidden fields so that accepting could work them out
-    again -- state round-tripped through the client because there was nowhere
-    in the book to put it. A `SavedQuote` is that somewhere.
-
-    What it keeps and what it derives is the argument worth having. The
-    answers and the prices are kept, because a quote is a promise made on a
-    date and a policy sold from one must be sold at the figure the customer
+    It keeps the answers and the prices, because a quote is a promise made on
+    a date and a policy sold from one must be sold at the figure the customer
     was shown. That is the opposite of `Policyholder.underwriting_risk_score`,
-    which is derived so that changing a weight moves it -- and deliberately so.
+    which is derived so that changing a weight moves it -- deliberately.
     """
 
     def setUp(self):
@@ -399,7 +391,7 @@ class QuotesAreObjects(unittest.TestCase):
 
     def test_a_float_price_is_refused_rather_than_quietly_converted(self):
         # Money enters the model through `usd`, at Claim, at Policyholder and
-        # now here, and nowhere else. That is the whole guarantee.
+        # here, and nowhere else. That is the whole guarantee.
         plans = {"Basic": {"annual": 85.5, "monthly": 7.13,
                            "limit": 25.0, "deductible": 10.0}}
         with self.assertRaises(TypeError):
@@ -408,8 +400,8 @@ class QuotesAreObjects(unittest.TestCase):
                        **self.answers)
 
     def test_it_carries_the_reasoning_that_produced_it(self):
-        # CUJ-2 asks an agent to explain a price. It can only do that from the
-        # rows the customer was actually shown.
+        # An agent asked to explain a price can only do it from the rows the
+        # customer was actually shown.
         labels = [label for label, _ in self.saved.breakdown]
         self.assertIn("Everyone starts here", labels)
         self.assertIn("Favourite treat: slushie", labels)

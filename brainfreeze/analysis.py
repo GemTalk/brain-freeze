@@ -1,20 +1,14 @@
 """Named questions about a book of business.
 
-The MCP surface GemDB offers is code-level, not data-level: `eval_python`,
-`execute_code`, `commit`, browsing and search. There is no tool that knows
-what a policyholder is. An agent answers "loss ratio by risk tier" by writing
-Python and running it inside the database -- which is the better story, and it
-needs help, or the agent derives the aggregation itself and gets the
-denominator wrong in a way nobody notices.
+GemDB's MCP tools are code-level, not data-level: no tool knows what a
+policyholder is. An agent answers "loss ratio by risk tier" by writing Python
+and running it inside the database, and without these it derives the
+aggregation itself and can get the denominator wrong unnoticed. So these are
+the named questions an agent composes, and what the notebook's cells use.
 
-So these are the questions the demo promises will work. An agent composes
-them; it does not reinvent them. They are also what the notebook's cells are
-made of.
-
-Standard library only, and not even `collections` -- like the rest of the
-package this is compiled and run inside the database. Nothing here decides
+Standard library only, like the rest of the package. Nothing here decides
 anything: the rules live in `underwriting` and `adjudication`, and these only
-count what those two produced.
+count what those produced.
 
 Rates are `None` rather than 0.0 when there is nothing to divide by. An empty
 book has no approval rate; saying 0.0 would claim every claim was refused,
@@ -29,12 +23,7 @@ from .money import ZERO, round_half_up
 
 
 def _rounded(value, places=3):
-    """Half-up, and a float on the way out.
-
-    Bare `round()` is half-up inside the database and banker's outside it, so
-    a published ratio could differ between two surfaces of the same demo. A
-    ratio is not money and stays a float; only the rounding rule is borrowed.
-    """
+    """Half-up, as money is, and a float on the way out."""
     if value is None:
         return None
     return float(round_half_up(value, places))
@@ -72,8 +61,8 @@ def _loss_ratio_grouped(book, key):
 def loss_ratio_by_tier(book):
     """Paid over premium, per risk band.
 
-    The answer is worth looking at twice: the tier loading over-prices High,
-    so the riskiest customers are the most profitable.
+    The tier loading over-prices High, so the riskiest customers are the most
+    profitable.
     """
     return _loss_ratio_grouped(book, lambda p: p.risk_tier)
 
@@ -105,9 +94,9 @@ def denial_reasons(book):
 
     Ties are broken alphabetically so the order does not wobble between runs.
 
-    Prose, and prose drifts -- see `denial_rules` for the same refusals
-    grouped by an identifier that does not. This one keeps its shape and its
-    wording because docs/mcp-questions.md publishes its output.
+    Prose can be reworded -- `denial_rules` groups the same refusals by an
+    identifier that cannot. This keeps its shape because
+    docs/mcp-questions.md publishes its output.
     """
     counts = {}
     for claim in book.claims:
@@ -127,28 +116,17 @@ UNCLASSIFIED_RULE = "unclassified"    # prose no rule in `adjudication` wrote
 def denial_rules(book):
     """The same refusals as `denial_reasons`, grouped by rule identifier.
 
-    A sibling rather than a change of shape, for two reasons.
+    A sibling rather than a replacement, because the two count different
+    things. Prose counts what claimants were told, which in the committed
+    book includes 44 refusals no rule produced (the generator's paperwork,
+    exclusions and late filings); those appear here as `unclassified`.
 
-    The first is that `denial_reasons` output is published -- question 4 of
-    docs/mcp-questions.md prints the list -- so an agent may already be
-    reading it, and rewriting it would move a promised answer rather than add
-    a new one.
+    Same shape as `denial_reasons`: (identifier, count), commonest first,
+    ties alphabetical.
 
-    The second is the better reason: these count different things. Prose
-    counts what claimants were told, which in the committed book includes 44
-    refusals no rule produced -- the generator's paperwork, exclusions and
-    late filings, deliberately there so the sample history looks lived-in.
-    Identifiers count which coded rule bound. Folding those into one list
-    would either drop the 44 or invent rules for them; keeping two lists says
-    plainly that the difference is 44 refusals the rules had no part in.
-
-    Same shape as `denial_reasons` -- (identifier, count), commonest first,
-    ties alphabetical -- so anything already reading one reads the other.
-
-    A claim filed since rules got identifiers carries one; the 2,172 committed
-    before that stored only prose and are mapped back through `rule_for_reason`. Read
-    through `getattr`, because a claim already in the database predates the
-    attribute entirely and does not merely default it.
+    A claim the app filed carries its rule; a seeded one stored only prose and
+    is mapped back through `rule_for_reason`. Read through `getattr`, in case
+    a claim predates the attribute.
     """
     counts = {}
     for claim in book.claims:
@@ -167,11 +145,9 @@ def denial_rules(book):
 def top_n_by_expected_claims(book, n=10, min_events=5):
     """Policies most likely to claim, by approvals per cold treat.
 
-    `min_events` is the whole point. A policy with two treats and two approved
-    claims scores 1.0 and tells you nothing; without a floor the ranking is a
-    list of the shortest histories in the book. Five is low enough to keep
-    most of the book and high enough that the rate means something -- say
-    which floor you used when quoting the answer.
+    `min_events` matters: without a floor, a policy with two treats and two
+    approved claims scores 1.0 and the ranking is a list of the shortest
+    histories. Say which floor you used when quoting the answer.
 
     Returns (policyholder, rate) pairs, highest first, ties by policy id.
     """

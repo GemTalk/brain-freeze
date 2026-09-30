@@ -1,25 +1,21 @@
 Feature: Every surface answers with the same book
 
-  The demo's whole argument in one sentence: there is one database, several
-  ways into it, and no second copy of anything. The other features each drive
-  one way in. This one puts them side by side and requires the same answer.
+  One database, several ways into it, and no second copy of anything. The
+  other features each drive one way in; this one puts them side by side and
+  requires the same answer.
 
-  The notebook and the published agent answers are here because they are the
-  two surfaces a browser cannot reach. A notebook is run cell by cell by its
-  own kernel, and the agent answers are Python snippets a reader is invited to
-  paste. Both still have to agree with the page and the payload, and this is
-  where that is checked rather than assumed.
+  The notebook and the snippets in `docs/mcp-questions.md` are the two
+  surfaces a browser cannot reach, so they are checked here against the page
+  and the payload.
 
-  What this does NOT check is the frozen figures printed in the published
-  answers. Those describe a freshly seeded book, and by the time this runs the
-  suite has bought a policy and filed claims, so they have moved on purpose.
-  They are regenerated from a fresh seed by `tools/make_mcp_questions.py`, and
-  step 5 asks the live book over the real transport. What is checked here is the more useful half: that the
-  code the document publishes still runs, and still answers what every other
+  The figures printed in `docs/mcp-questions.md` are not checked: they
+  describe a freshly loaded book, and by now the suite has bought policies and
+  filed claims. `tools/make_mcp_questions.py` regenerates them. What is
+  checked is that the published code still runs and answers what every other
   surface answers.
 
   Background:
-    Given the demo is running
+    Given the app is running
 
   Scenario: the notebook, the payload and the page agree about the book
     When the notebook is run inside the database
@@ -33,12 +29,12 @@ Feature: Every surface answers with the same book
     Then the page states the same number of policyholders
     And I capture "the same figure, on the page"
 
-  Scenario: the snippets the demo publishes still answer what everything else answers
+  Scenario: the published agent snippets still answer what everything else answers
     When I ask for the statistics
-    And I run the book summary the demo publishes
+    And I run the published book summary
     Then it answers what the JSON surface answers
     And I keep the comparison as "the published snippet against the live book"
 
-    When I run the loss ratio by tier the demo publishes
+    When I run the published loss ratio by tier
     Then it answers what the JSON surface answers for every band
     And I keep the comparison as "loss ratio, two ways"

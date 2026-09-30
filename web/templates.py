@@ -1,16 +1,13 @@
 """Every page and payload the app renders, as module constants.
 
 Inline strings, not files: `render_template_string` is exercised in Grail's
-own suite and file-based `render_template` is not. That constraint is why
-these are here at all, and it says nothing about which FILE they live in --
-so they live beside the routes that render them rather than swamping them.
-`app.py` was 1,025 lines, 280 of them this.
+own suite and file-based `render_template` is not.
 
-A top-level module. An edit to a template is live in a running app once it is
-loaded: `gemdb tools/load.py`. See routes.py.
+An edit to a template is live in a running app once it is loaded with
+`gemdb tools/load.py`. See routes.py.
 
-Money never reaches a template raw -- see `render()` in app.py, which puts
-`usd` in every context.
+Money never reaches a template raw -- `pages.render()` puts `usd` in every
+context.
 """
 
 _STYLE = """
@@ -116,11 +113,8 @@ QUOTE_FORM = _STYLE + """
 </form>
 """
 
-# The five answers used to be posted back through this screen as hidden
-# fields, because a quote had nowhere to live. It has one now, so the only
-# thing this form carries is which plan was picked -- and that rides on the
-# button rather than on a hidden input, which is what a button's `value` is
-# for. There is no hidden field anywhere in this file, and
+# The quote is saved, so this form carries only the plan picked, on the
+# button's `value`. No hidden fields anywhere in this file;
 # tests/test_quote_flow.py pins that.
 PLANS = _STYLE + """
 <h1>Three ways to cover it</h1>

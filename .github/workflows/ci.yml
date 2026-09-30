@@ -1,14 +1,10 @@
 name: CI
 
-# The half of the suite that needs no database: the rules, the money, the
-# packaging allowlist, the tidiness checks, and the dataset regenerating
-# byte-identically. The app's tests skip themselves here, as they do on any
-# machine without GemDB (README, "The tests").
-#
-# The other half -- the same tests inside the database, the notebook, and the
-# acceptance suite -- needs an engine, a Grail payload and raised shared
-# memory. That is #81, and it borrows GemDB Code's integration job rather than
-# reinventing it.
+# Two jobs. `cpython` runs the half of the suite that needs no database: the
+# rules, the money, the packaging allowlist, the tidiness checks, and the
+# dataset regenerating byte-identically; the app's tests skip themselves there,
+# as on any machine without GemDB. `tutorial` sets GemDB up as a reader does and
+# runs the in-database suite, the notebook and the tutorial's acceptance suite.
 
 on:
   pull_request:
@@ -29,7 +25,7 @@ jobs:
     # Apple Silicon, not Linux: the dataset is byte-identical only on the
     # platform that generated it. On x86 Linux numpy's float paths differ in
     # the last digit of the raw score column, and nothing else. GemDB 1.x is
-    # Apple Silicon too, so this is also the machine the demo runs on.
+    # Apple Silicon too, so this is also the machine the tutorial runs on.
     runs-on: macos-15
     timeout-minutes: 10
     strategy:
@@ -70,7 +66,7 @@ jobs:
 
   # The half that needs a database: GemDB set up the way a reader sets it up,
   # then the in-database suite, the notebook, and the tutorial from step 1 on
-  # a brand-new database (#81).
+  # a brand-new database.
   tutorial:
     name: Tutorial, on GemDB ${{ matrix.gemdb }}
     runs-on: macos-15

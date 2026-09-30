@@ -8,108 +8,60 @@ Start it from the project directory. `sys.path[0]` is the script's directory
 ours is imported. An import that cannot find `brainfreeze/` on disk resolves
 out of the database to whatever class was last compiled there, silently.
 
-HOW THIS IS LAID OUT
+LAYOUT
 
-This file is the factory and the entry point, and nothing else. The pages are
-in `routes_html.py`, the payloads in `routes_api.py`, the markup in
-`templates.py`, the questionnaire in `forms.py`, finding an object in
-`lookups.py`, rendering in `pages.py`, and the route table that keeps loaded
-code live in `routes.py`.
+This file is the factory and the entry point. The pages are in
+`routes_html.py`, the payloads in `routes_api.py` (serialised by `wire.py`),
+the markup in `templates.py`, the questionnaire in `forms.py`, finding an
+object in `lookups.py`, rendering in `pages.py`, serving in `serving.py`, and
+the route table that keeps loaded code live in `routes.py`.
 
-None of them is a package. `from package import module` is the one import
-form Grail still serves stale after an edit (GemTalk/Grail#1223), and it is
-the natural way to import a sibling inside a package, so `web/` has no
-`__init__.py`. An edit to any of them is live in the running app once it is
-loaded -- `gemdb tools/load.py` -- because the routes look everything up by
-name on each request (routes.py).
+An edit to any of them except this one is live in the running app once it is
+loaded with `gemdb tools/load.py`, because the routes look everything up by
+name on each request (routes.py). `web/` is not a package because
+`from package import module` is still served stale after an edit
+(GemTalk/Grail#1223).
 
-WHAT IS AND IS NOT HERE
+NO PERSISTENCE LAYER
 
-There is no ORM, no schema, no migration and no serializer, because there is
-nothing to map: `gemdb.root["brainfreeze"]` is a Book of Policyholders and a
-handler reads and writes those objects directly. Creating a policy is
-`book.add(Policyholder(...))` followed by `gemdb.commit()`. That is the whole
-persistence layer, and its absence is the point of the demo.
+There is no ORM, schema, migration or serializer: `gemdb.root["brainfreeze"]`
+is a Book of Policyholders and a handler reads and writes those objects
+directly. Creating a policy is `book.add(Policyholder(...))` then
+`gemdb.commit()`.
 
 Every number on every screen comes from the `brainfreeze` package. A handler
-that worked out a premium or a payout for itself would be a bug: two copies of
-"what does this claim pay" drift by the second demo, and CUJ-2 asks an agent
-to explain a refusal -- an answer it cannot give if the app and the data
-disagree about the rules.
+that worked out a premium or a payout for itself would be a bug: the app, the
+notebook and the agent must agree about the rules.
 
-THREE CONSTRAINTS FROM GRAIL, ALL FOUND FIRST BY grail_rest_demo/app.py
+CONSTRAINTS FROM GRAIL
 
 1. `threaded=False`. Grail renders each Jinja template in a forked green
    thread, and the threaded dev server's per-request ContextVar cannot span
-   those threads, so `url_for` inside a template cannot see the active
-   request. One CPU per gem means threading buys nothing anyway.
+   those threads, so `url_for` inside a template cannot see the request.
 2. One request per connection, via CloseAfterResponseHandler. A
    single-threaded server parked reading a kept-alive connection cannot accept
    the next one, so a second tab or a favicon fetch hangs everything.
 3. Inline templates only. `render_template_string` is exercised in Grail's own
    suite; file-based `render_template` is not. Templates are module constants.
 
-Every write is a POST that mutates, commits and redirects, so a refresh never
-re-submits.
+WRITES AND PAYLOADS
 
-A QUOTE IS AN OBJECT, WHICH IS WHY THERE ARE NO HIDDEN FIELDS
+Every write is a POST that mutates, commits and redirects (routes_html.py).
+`/api/...` serves the same objects read-only, as payloads built by wire.py.
 
-`POST /quote` used to price a quote, render it, and post the five answers back
-to the browser as hidden fields so that taking out a policy could work them
-out again. That is state round-tripped through the client, in the one demo
-whose whole argument is that these are just objects in the database -- and it
-was done that way because a quote had nowhere to live. Now it does: a
-`SavedQuote` goes in the book, `GET /quote/<id>` re-opens it, and
-`POST /quote/<id>/accept` sells it at the price it quoted rather than at a
-price computed a second time. Nothing in this file emits a hidden input; the
-plan a customer picks rides on the button that picks it.
-
-Quotes are kept in `Book.quotes`, which is deliberately not `Book.policies`:
-`len(book)` is the policy count `tests/test_seed.py` pins, and a quote must
-not move it.
-
-THE JSON API IS THE SAME OBJECTS, NOT A SECOND MODEL
-
-`/api/...` answers six endpoints beside the HTML routes rather than instead
-of them. Every one of them serialises through
-`wire.py` and none of them builds a dict of its own, because six
-handlers is six places to get the money rule wrong once.
-
-MONEY ON THE WIRE IS AN EXACT DECIMAL STRING: `"171.00"`.
-
-`json.dumps` cannot serialise a Decimal at all, so this had to be decided
-rather than inherited. A float is not one of the options -- it would put back
-the two answers `brainfreeze.money` exists to remove. Integer
-cents would be exact and would make every reader divide by a hundred; a
-string is exact and goes straight back into `money.usd()`. And it can never
-be `str(value)`: inside the database a Decimal does not keep its trailing
-zeros, so `$170.10` would go out as `170.1` and the API would answer
-differently in each runtime. `money.wire_usd` is where all of that lives.
-`format_usd` is the display spelling -- `"$170.10"` -- and never appears in a
-payload.
-
-The JSON surface is read-only: nothing under `/api` adds or changes an object
-in the book. `/api/quote` is a POST because it carries a body, and pricing
-answers writes nothing. Taking out a policy and filing a claim stay POSTs
-from a form, where the redirect after the write is what stops a refresh
-re-submitting them.
-
-AND ONE BEAT THAT IS NOT AUTOMATIC
+A FRESH VIEW PER REQUEST
 
 A session sees the repository as of its last transaction boundary, so every
-request begins with `take_new_view()` -- commit, then refresh -- or a server
-started an hour ago would still be serving the book as it was an hour ago.
-Read its docstring before changing it: the order matters and `abort()` is not
-a substitute.
+request begins with `take_new_view()` -- commit, then refresh. Read its
+docstring before changing it: the order matters and `abort()` is not a
+substitute.
 """
 
 import os
 import sys
 
-#: The repository, so that `brainfreeze` can be found at all. It has to
-#: happen here rather than in a module this imports: a helper that adjusts
-#: the path works until something commits, and then adjusts a `sys.path` the
-#: caller cannot see. Measured on builds before GemDB 1.5.2.
+#: The repository, so that `brainfreeze` can be found at all. Done here, in
+#: the entry point, before anything of ours is imported.
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if REPO not in sys.path:
     sys.path.insert(0, REPO)
@@ -125,7 +77,7 @@ import serving
 
 
 class CloseAfterResponseHandler(WSGIRequestHandler):
-    """One request per connection -- see constraint 2 in the module docstring."""
+    """One request per connection -- constraint 2 in the module docstring."""
 
     def handle_one_request(self):
         try:
@@ -142,31 +94,20 @@ class CloseAfterResponseHandler(WSGIRequestHandler):
         self.run_wsgi()
 
 def take_new_view():
-    """Commit this session's compiled code, then take the latest view.
+    """Commit this session's work, then take the latest view.
 
     A GemStone session sees the repository as of its last transaction
-    boundary. Without this, a server that started an hour ago answers every
-    request from the book as it was an hour ago: the notebook and the shell
-    can commit whatever they like and the browser never learns of it. That
-    made the web app the one surface of three that could not see the others'
-    writes -- and it looks like a caching bug, not a transaction one.
+    boundary. Without this, the app never sees what the notebook, the agent
+    or `tools/load.py` committed after it started.
 
-    The order is the whole recipe, and neither half is optional.
+    Commit first, because `gemdb.refresh()` refuses while the session holds
+    uncommitted work, and Grail compiles Python into the database, so the
+    app's own code can be that work. Unconditional rather than guarded by
+    `needs_commit()`: a commit costs far less than the render it precedes.
 
-    `gemdb.commit()` first, because `gemdb.refresh()` REFUSES while the
-    session holds uncommitted work -- and it always does. Grail compiles
-    Python into the database, so rendering a template is a repository write
-    and a read-only request leaves the session dirty
-    (on builds before GemDB 1.5.2).
-
-    And never `gemdb.abort()`. It takes a new view too, and it throws away
-    this session's uncommitted work -- which is the app's own compiled
-    handlers. The server would lose the code it is running.
-
-    The commit is unconditional rather than guarded by `needs_commit()`: the
-    branch saves a transaction boundary that costs far less than the render
-    it precedes, and the recipe is easier to trust when it reads the way the
-    notebook and the README state it.
+    Never `gemdb.abort()`. It takes a new view too, but it discards this
+    session's uncommitted work, which can include the app's compiled
+    handlers.
     """
     gemdb.commit()
     gemdb.refresh()
@@ -174,18 +115,14 @@ def take_new_view():
 def restore_template_class():
     """Put back what jinja2 sets at the bottom of its own module.
 
-    Once Jinja is deployed, every session after the one that deployed it gets
-    an Environment with no `template_class`, so every render_template_string
-    raises AttributeError and every page is a 500 (GemTalk/Grail#1242, first
-    met on GemDB 1.5.2's Grail b86985f). The class body only annotates that
-    name, so the store is session-local and writes nothing committed
-    (Grail#1240) -- which is why it has to happen in every session.
+    Every session after the one that deployed Jinja gets an Environment with
+    no `template_class`, so every render raises AttributeError and every page
+    is a 500 (GemTalk/Grail#1242). The store is session-local (Grail#1240),
+    so it has to happen in every session.
 
-    A function, not a module-level statement, and that is the whole point.
-    This file is restored WITHOUT re-running its top level whenever it is
-    unchanged since it was last committed, which is #1242 again: a store at
-    module scope here works the first run after an edit and never again.
-    Delete this once #1242 ships.
+    A function rather than a module-level statement because an unchanged
+    committed module is restored without re-running its top level (#1242
+    again). Delete this once #1242 ships.
     """
     if not hasattr(jinja2.Environment, "template_class"):
         jinja2.Environment.template_class = jinja2.Template
@@ -194,10 +131,8 @@ def restore_template_class():
 def create_app():
     """Build the app and register both surfaces onto it.
 
-    The routes are dispatched by name on every request (routes.py), so a
-    loaded and committed change to a page, a template or the model is live
-    on the next request. This file is the exception: it is the entry point,
-    and a change to it needs a restart.
+    A loaded change to a page, a template or the model is live on the next
+    request (routes.py). A change to this file needs a restart.
     """
     restore_template_class()
     app = Flask(__name__)
@@ -206,10 +141,9 @@ def create_app():
     def before_every_request():
         """Start every handler from what the other surfaces have committed.
 
-        Here rather than at the top of each handler so that a route added
-        later cannot forget it, and on writes as well as reads: a handler
-        that adjudicates a claim against an hour-old policy would be worse
-        than one that merely displays it.
+        Here rather than in each handler so a new route cannot forget it,
+        and on writes as well as reads: adjudicating a claim against a stale
+        policy is worse than displaying one.
         """
         take_new_view()
 
@@ -222,25 +156,15 @@ def create_app():
 def serve(host="127.0.0.1", port=None):
     """Build the app, take a transaction boundary, then open the socket.
 
-    The commit before `run` is not tidiness. Building the app compiles every
-    template and handler into the database, and until something commits, all
-    of that is this session's uncommitted work. If another session commits in
-    the meantime -- the notebook's last cell does exactly that, and so does
-    `tools/load.py` -- the app's first `take_new_view()` meets a
-    write-write conflict on it.
+    Building the app compiles templates and handlers into the database as
+    this session's uncommitted work. If another session (the notebook,
+    `tools/load.py`) commits first, the first `take_new_view()` meets a
+    write-write conflict that repeats on every request. Committing before
+    `run` closes that window.
 
-    That is not a bad request; it is a dead server. The uncommitted work
-    stays uncommitted, so the conflict repeats on every request after it, and
-    Flask's logging stub turns each one into a closed connection with nothing
-    written anywhere (before Grail#1163). Measured: run the
-    notebook before touching the app and the app never answers again.
-
-    Committing here makes the window a request wide instead of a startup
-    wide. `take_new_view` closes the rest of it.
-
-    `port` is `BRAINFREEZE_PORT` if that is set, else 5050 -- read here, in the
-    function, because this file's top level does not re-run in a session
-    where it is unchanged (see `restore_template_class`).
+    `port` is `BRAINFREEZE_PORT` if set, else 5050 -- read here rather than at
+    module scope, which does not re-run while this file is unchanged (see
+    `restore_template_class`).
     """
     if port is None:
         try:

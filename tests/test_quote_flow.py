@@ -4,16 +4,14 @@ Run: python3 -m unittest tests.test_quote_flow -v
 
 `tests/test_app.py` drives these routes against a real database and skips
 everywhere else, because `app.py` imports `gemdb` and `flask` and neither
-exists under CPython. So the half of the quote work that is easiest to undo
-by accident -- putting the answers back in the page -- would be pinned by
-nothing at all outside the database. This reads the file instead, the way
-`tests/test_refresh.py` reads it for the transaction beat.
+exists under CPython. So the part easiest to undo by accident -- putting the
+answers back in the page -- would be pinned by nothing outside the database.
+This reads the source instead, the way `tests/test_refresh.py` does.
 
-Three things are pinned, and each of them is the defect rather than a detail
-of the fix:
+Three things are pinned:
 
-* the quote screen carries no hidden form fields. A hidden field was where a
-  quote's state lived, because a quote had nowhere else to live;
+* the quote screen carries no hidden form fields: a quote's state lives in
+  the book, not in the browser;
 * `POST /quote` writes and redirects, like every other write here, so a
   refresh re-opens the quote instead of minting a second one;
 * `GET /quote/<id>` and `POST /quote/<id>/accept` exist, and accepting does
@@ -89,8 +87,8 @@ def calls(node):
 
 
 class TheQuoteFlowKeepsItsStateInTheDatabase(unittest.TestCase):
-    """The demo's argument is that these are just objects in the database,
-    and the quote flow was the one place the app did the opposite."""
+    """The tutorial's argument is that these are just objects in the
+    database, and a quote is one of them."""
 
     def setUp(self):
         self.source = source()
@@ -124,8 +122,8 @@ class TheQuoteFlowKeepsItsStateInTheDatabase(unittest.TestCase):
         self.assertIn(("/quote/<quote_id>/accept", ("POST",)), self.rules())
 
     def test_nothing_answers_at_the_old_recomputing_address(self):
-        # `POST /policies` took the five answers back off the form and priced
-        # them again. There is nothing left for it to do.
+        # A policy is sold from a stored quote, so nothing takes the five
+        # answers back off a form and prices them again.
         self.assertNotIn(("/policies", ("POST",)), self.rules())
 
     # -- and pricing one is a write --------------------------------------
@@ -139,8 +137,8 @@ class TheQuoteFlowKeepsItsStateInTheDatabase(unittest.TestCase):
 
     def test_posting_the_answers_redirects_to_the_quote(self):
         # Every write here is a POST that mutates, commits and redirects, so
-        # that a refresh cannot re-submit it. Storing a quote made this one a
-        # write, and it has to join the rest.
+        # that a refresh cannot re-submit it. Storing a quote makes this one a
+        # write too.
         self.assertIn("redirect", calls(self.handler("/quote", "POST")))
 
     def test_accepting_does_not_price_the_quote_again(self):

@@ -1,28 +1,21 @@
 Feature: The same policies over curl
 
   Everything the browser shows is also readable by a script, from the same
-  objects, with no second model behind it. That is the whole claim of this
-  surface, and it is checkable: ask the JSON side for a policy and the HTML
-  side for the same policy, and the figures have to agree.
+  objects, with no second model behind it: ask the JSON side and the HTML side
+  for the same policy, and the figures have to agree.
 
-  Two properties are worth stating on their own.
+  Money is an exact decimal string -- "171.00", never 171.0 and never 17100. A
+  float would lose exactness at the boundary, and integer cents would make
+  every reader divide by a hundred. A string goes back in unchanged.
 
-  Money is an exact decimal string -- "171.00", never 171.0 and never 17100.
-  A float would put back at the boundary the two answers exact money exists
-  to remove, and integer cents would be exact but would make every reader
-  divide by a hundred. A string is the same text the model already reads, so
-  a figure goes back in unchanged.
+  The surface is read-only. Pricing a quote is a POST because it carries a
+  body, not because it writes: nothing here commits.
 
-  And the surface is read-only. Pricing a quote is a POST because it carries
-  a body, not because it writes: nothing here commits, so a script can be
-  pointed at a live demo without any way to spoil it.
-
-  The evidence here is the payloads rather than screenshots. There is nothing
-  to photograph, and what a reader wants afterwards is the exact bytes the
+  The evidence is the payloads rather than screenshots: the exact bytes the
   run was given.
 
   Background:
-    Given the demo is running
+    Given the app is running
 
   Scenario: a script reads the questions, answers them, and is quoted
     When I ask for the questions

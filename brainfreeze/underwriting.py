@@ -1,17 +1,12 @@
 """Underwriting: what a policyholder's risk is, and what that costs.
 
-Deliberately playful rather than actuarial -- see the generator's docstring.
-The weights below are the ones the sample dataset was built with, so a quote
-computed here for a given set of answers is the quote that would have produced
-that row.
+Deliberately playful rather than actuarial -- see `data/generate.py`. The
+weights below are the ones the sample dataset was built with.
 
-One wrinkle worth naming. The generator draws each policyholder's starting
-point from a normal distribution rather than using BASE_RISK, and does not
-record what it drew. So a score already in the dataset cannot be reproduced
-from its policyholder's answers -- the unobservable part is gone. `base` is a
-parameter here rather than a constant so that the generator can pass what it
-drew while the app passes BASE_RISK; closing the gap properly means recording
-the drawn base alongside the score.
+The generator draws each policyholder's starting point from a normal
+distribution rather than using BASE_RISK, and records it as
+`underwriting_base`. `base` is therefore a parameter: a seeded policy is
+scored from its recorded base, a new applicant from BASE_RISK.
 """
 
 from decimal import Decimal
@@ -138,11 +133,8 @@ def score_breakdown(
     favourite_trigger: str,
     base: float = BASE_RISK,
 ) -> list:
-    """The score as a list of (label, points) so a quote can explain itself.
-
-    The app shows this; it is also what an agent needs to answer "why is this
-    policy High tier?" without guessing.
-    """
+    """The score as a list of (label, points), so a quote can explain itself
+    and an agent can answer "why is this policy High tier?"."""
     rows = [("Everyone starts here", base)]
     if migraine_history:
         rows.append(("Migraine diagnosis", MIGRAINE_POINTS))

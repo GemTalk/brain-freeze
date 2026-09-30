@@ -1,6 +1,6 @@
 """Steps shared by every feature.
 
-Written in the language of the demo rather than of the browser: a step says
+Written in the language of the app rather than of the browser: a step says
 "I am shown the policy for BF-100539", not "click the third link". A feature
 file that reads like a click script documents nothing.
 """
@@ -16,10 +16,10 @@ SEEDED_POLICIES = 900
 
 # -- going places ---------------------------------------------------------
 
-@given('the demo is running')
-def the_demo_is_running(context):
-    """Nothing to do -- `environment.py` seeded the book and started the app
-    before any scenario ran. The step exists so the feature files can say so."""
+@given('the app is running')
+def the_app_is_running(context):
+    """Nothing to do -- `environment.py` loaded the book and started the app
+    before the feature ran. The step exists so the feature files can say so."""
     assert context.browser is not None
 
 
@@ -62,15 +62,9 @@ def i_do_not_see(context, text):
 def page_says_how_many(context):
     """At least the seeded 900, not exactly 900.
 
-    Scenarios share one book -- re-seeding between them would cost nine
-    seconds each and dominate the run -- so any scenario that buys a policy
-    moves this number for every scenario after it. An exact assertion here
-    passed alone and failed as soon as a second feature existed, which is the
-    order-dependence you get for free with shared state.
-
-    At-least still earns its place: it proves the count came from the
-    database rather than from a template, which is the whole point of the
-    smoke test.
+    Scenarios share one book, so any scenario that buys a policy moves this
+    number for every scenario after it. At-least still proves the count came
+    from the database rather than from a template.
     """
     import re
     match = re.search(r"([\d,]+) policyholders", context.page.inner_text("body"))
@@ -104,10 +98,9 @@ def the_app_spoke_for_itself(context):
 
     A server here prints nothing unless it is made to -- Grail's werkzeug
     defines `log_request` and never calls it -- and a silent app is
-    indistinguishable from a hung one, which is how this repo once ran two at
-    once. `web/serving.py` prints the banner before the socket opens and hangs
-    the access log off Flask's after_request. If that ever regresses, it
-    regresses quietly, so it is asserted here rather than trusted.
+    indistinguishable from a hung one. `web/serving.py` prints the banner
+    before the socket opens and hangs the access log off Flask's
+    after_request. That would regress quietly, so it is asserted here.
     """
     import os
     from environment import ARTIFACTS, HOST, PORT

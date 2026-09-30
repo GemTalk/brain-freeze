@@ -3,17 +3,14 @@
     gemdb tools/run_db_tests.py              # every module
     gemdb tools/run_db_tests.py money seed   # just these
 
-`python3 -m unittest discover` runs the same files under CPython. Running them
-here as well is the demo's central claim reduced to a check: one set of rules,
-two runtimes, identical answers. It matters most for money, where Grail and
-CPython round differently -- `round()` is half-up in the database and banker's
-outside it -- and `brainfreeze.money` exists so that difference cannot reach a
-premium.
+`python3 -m unittest discover` runs the same files under CPython; running them
+here too checks that one set of rules gives the same answers in both runtimes.
+That matters most for money, where they round differently (`round()` is
+half-up in the database, banker's outside it).
 
 Modules are read from disk and executed into a fresh namespace rather than
-imported. Grail keeps compiled modules in the database and served a *stale*
-`tests/test_app` for a whole afternoon once; a runner that silently tests the
-previous version of the tests is worse than no runner.
+imported, because the database can serve a compiled copy of a module that no
+longer matches its file (GemTalk/Grail#1223).
 """
 
 import os
@@ -22,16 +19,12 @@ import types
 import subprocess
 import unittest
 
-#: The repository, for the same reason and in the same way as every other
-#: script in here -- see `seed.py`.
+#: The repository on `sys.path`, as in `seed.py`.
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if REPO not in sys.path:
     sys.path.insert(0, REPO)
 
-#: The web app's modules, so a test can `import app` or `import wire`. A
-#: plain directory rather than a package, deliberately: a committed package
-#: module is served from the database forever, while these are recompiled
-#: from disk each run.
+#: The web app's modules, so a test can `import app` or `import wire`.
 WEB = os.path.join(REPO, "web")
 if WEB not in sys.path:
     sys.path.insert(0, WEB)
@@ -45,22 +38,10 @@ MODULES = ["test_money", "test_brainfreeze", "test_seed", "test_analysis",
 def load_module_from_file(name, path):
     module = types.ModuleType(name)
     module.__file__ = path
-    #: WHY THIS LINE IS HERE, AND WHY `None` IS THE HONEST VALUE.
-    #:
-    #: `exec`ing into a module's `__dict__` raises `'module' object has no
-    #: attribute '__cached__'` on Grail main -- every module here died before
-    #: a line of it ran. Grail leaves `__cached__` absent DELIBERATELY: in
-    #: CPython it is the path of the module's compiled BYTECODE FILE, Grail
-    #: has no such file, and inventing one would be, in the words of its own
-    #: `ModuleCachedAbsentTestCase`, "a wrong answer wearing a familiar name".
-    #: That decision is right and is not what breaks. What breaks is a reader
-    #: on the `exec` path that spells the lookup without a default, against
-    #: guidance written on the accessor it calls.
-    #:
-    #: So we answer it rather than work around it. `None` is what CPython puts
-    #: there for a module with no cached bytecode, which is exactly true of
-    #: every module this function builds -- it is compiled from source, here,
-    #: now. Harmless on builds that never ask.
+    #: Grail leaves `__cached__` absent (it has no bytecode files), but its
+    #: `exec` path looks the attribute up without a default, so without this
+    #: every module dies before a line runs. `None` is what CPython sets for a
+    #: module with no cached bytecode, which is true of this one.
     module.__cached__ = None
     with open(path) as handle:
         source = handle.read()
@@ -83,22 +64,12 @@ def run_one_module(name):
 def run_each_in_its_own_session():
     """Run every module in a session of its own, and report them together.
 
-    ONE SESSION CANNOT HOLD THE WHOLE SUITE, AND THE WAY IT FAILS IS A LIE.
+    One session cannot hold the whole suite: its execution stack runs out,
+    and the run dies of `AlmostOutOfStack` reported against whichever
+    `setUpClass` was running, hiding the real failures (#85).
 
-    A session's Smalltalk execution stack is finite, and running the corpus in
-    one of them exhausts it: the run dies of `AlmostOutOfStack` (notification
-    2502) reported against whichever `setUpClass` happened to be running when
-    the budget ran out. So the suite failed in classes that had nothing wrong
-    with them, on every run, and the real failures underneath went unread --
-    including a money assertion comparing a Decimal against a bare int, which
-    had never once executed. Issue #85.
-
-    Every module passes on its own. Grail's own SUnit runner partitions for the
-    same reason and says so: the partition count decides how much of the corpus
-    one session carries.
-
-    A child gets its module name on the command line and so takes the branch
-    below, which is what stops this recursing.
+    A child gets its module name on the command line and so takes the other
+    branch in `run_db_tests`, which is what stops this recursing.
     """
     failed = []
     for name in MODULES:

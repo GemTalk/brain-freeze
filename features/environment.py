@@ -25,10 +25,9 @@ and exactly the kind of database that has hidden bugs, so not the real run.
 
 WHY NOT RE-SEED PER SCENARIO
 
-It costs about nine seconds each and would dominate the run. `tests/test_app.py`
-already solved this the cheap way: every test that writes gets a policy of its
-own. The feature files follow the same rule, and the reseed at the start of the
-next run is the reset.
+It costs about nine seconds each and would dominate the run. Instead, as in
+`tests/test_app.py`, every scenario that writes gets a policy of its own, and
+the next run's fresh database is the reset.
 
 A LEAKED APP IS A LEAKED SESSION
 
@@ -68,10 +67,9 @@ HOST, PORT = "127.0.0.1", serving.configured_port(os.environ)
 BASE_URL = "http://%s:%d" % (HOST, PORT)
 
 #: Generous on purpose. Rendering is slow here -- Grail runs each Jinja
-#: template in a forked green thread, which is why the picker pages at 25 rows
-#: instead of showing all 900 -- and a cold first render also compiles the
-#: template into the database. A tight timeout would fail on a slow machine
-#: and teach everyone to re-run rather than to read.
+#: template in a forked green thread, which is why the picker pages instead of
+#: showing all 900 -- and a cold first render also compiles the template into
+#: the database. A tight timeout would fail on a slow machine.
 PAGE_TIMEOUT_MS = 60000
 APP_START_TIMEOUT_S = 120
 
@@ -91,13 +89,9 @@ def note_request(context, method, url):
     and would call a scenario that merely MENTIONS an address covered. This
     records what was actually asked for.
 
-    WHY IT IS KEPT ON THE CONTEXT AND NOT IN A MODULE GLOBAL
-
-    It was a module global, and half the requests went missing. A step file
-    that says `from environment import ...` gets a DIFFERENT module object
-    from the one behave loaded to run these hooks, so the steps recorded into
-    one set and `after_all` read another. The context is the single thing
-    both halves demonstrably share.
+    Kept on the context, not in a module global: a step file that says
+    `from environment import ...` gets a different module object from the one
+    behave runs these hooks in, and the context is what both share.
     """
     context.driven.add((method.upper(), urllib.parse.urlparse(url).path))
 
@@ -222,23 +216,18 @@ def run_gemdb(script, *args):
 
 
 
-#: How many times this run has had to restart the app. Deliberately module
-#: state rather than `context`: behave layers attributes per scenario, so a
-#: counter a step incremented would not be the counter the next scenario
-#: reads -- and `the app was never restarted` depends on reading it truly.
-#: The app handle and the restart count live in ONE MUTABLE DICT on `context`,
-#: created by `before_all`, and every reader and writer goes through it.
+#: The app handle, the restart count and whether the book is loaded live in
+#: ONE MUTABLE DICT on `context`, created by `before_all`, and every reader and
+#: writer goes through it.
 #:
 #: Not module state: behave execs this file itself, while a steps module says
-#: `from environment import ...` and gets a second, independent copy. Constants
-#: survive that; a counter does not, and the steps' side simply reads `None`
-#: forever.
+#: `from environment import ...` and gets a second, independent copy.
+#: Constants survive that; mutable state does not.
 #:
-#: Not a plain `context.app` either: `ensure_app_answering` runs inside a step,
-#: and behave discards what a step ASSIGNS when the scenario ends -- so after a
-#: mid-run restart, `context.app` would point at the process the harness had
-#: already killed. MUTATING a dict that `before_all` put there is neither, and
-#: both failures above were paid for once each before this comment existed.
+#: Not a plain `context.app` either: behave discards what a step ASSIGNS when
+#: the scenario ends, so after a restart inside a step, `context.app` would
+#: point at the process already killed. Mutating a dict `before_all` put there
+#: avoids both.
 def new_app_state():
     return {"process": None, "restarts": 0, "seeded": False}
 
@@ -266,12 +255,10 @@ def ensure_ready(context, feature):
 def start_app(context):
     """Start the app and wait until it serves.
 
-    `start_new_session` is load-bearing, not hygiene. `gemdb` is a shell
-    wrapper that execs topaz; terminating the wrapper leaves topaz running,
-    reparented to init, still holding its GemStone session and still bound to
-    the port. Measured the first time this suite ran: the scenario passed,
-    teardown "succeeded", and the leak check caught a server that had outlived
-    its own launcher. Its own group means the whole tree can be signalled.
+    `start_new_session` is load-bearing. `gemdb` is a shell wrapper around
+    topaz; terminating the wrapper alone leaves topaz running, still holding
+    its GemStone session and still bound to the port. Its own process group
+    means the whole tree can be signalled.
     """
     context.app_state["process"] = subprocess.Popen(
         ["gemdb", "web/app.py"], cwd=REPO, env=gemdb_env(),
@@ -308,8 +295,7 @@ def app_is_answering(timeout=15):
 
     A cheap route on purpose: `/api/questions` reads the model and renders no
     template, so a slow answer here means something is wrong rather than
-    something is big. The failure this exists to catch is not slowness anyway
-    -- a conflicted app closes the connection at once.
+    something is big.
     """
     try:
         request = urllib.request.Request(BASE_URL + "/api/questions")
@@ -320,27 +306,16 @@ def app_is_answering(timeout=15):
 
 
 def ensure_app_answering(context, why):
-    """Restart the app if running `why` in another session has killed it.
+    """Restart the app if it stopped answering after `why` ran in another
+    session, and count the restart.
 
-    Python stdlib runtime state lives in the repository here: Grail's
-    `contextvars` keeps the current Context in module-level globals of a
-    committed module, so every session shares one decimal Context and mutates
-    one `flags` dict. A script run from a session of its own commits its half,
-    and the app's next `take_new_view()` is a Write-Write conflict it cannot
-    abort out of -- aborting would discard its own compiled handlers -- so the
-    work stays uncommitted and every later request fails the same way. See
-    issue #83, fixed upstream by Grail#1176.
-
-    Checked rather than done unconditionally: a restart costs ten seconds and,
-    more importantly, `the app was never restarted` is a real claim that
-    cross_surface.feature makes. A harness that
-    restarted the app whenever another session ran would make that claim
-    untestable, which is worse than the bug.
+    A guard: on GemDB 1.5.2 another session's commit no longer stops the app,
+    so this should not fire. Counted, so a scenario that says `the app was
+    never restarted` cannot pass across one.
     """
     if app_is_answering():
         return False
-    print("\n  the app stopped answering after %s -- restarting it.\n"
-          "  (issue #83)"
+    print("\n  the app stopped answering after %s -- restarting it."
           % why, flush=True)
     stop_app(context)
     start_app(context)
@@ -433,13 +408,9 @@ def after_all(context):
     # Last, so that a coverage complaint can never be the reason a leaked
     # session goes unreported.
     #
-    # Only when the whole suite ran. `behave features/quote.feature` is what
-    # anyone does while writing a scenario, and a run told to drive one
-    # feature has not failed to drive the others.
-    #
-    # Which features ran, rather than what was on the command line: behave
-    # fills `config.paths` in for itself when given none, so asking it what
-    # it was told skipped the check on every run.
+    # Only when the whole suite ran: a run told to drive one feature has not
+    # failed to drive the others. Judged by which features ran, not by the
+    # command line -- behave fills `config.paths` in itself when given none.
     on_disk = {name for name in os.listdir(HERE) if name.endswith(".feature")}
     skipped = sorted(on_disk - context.features_run)
     if skipped:
@@ -497,11 +468,9 @@ def before_scenario(context, scenario):
     watch(context, context.page)
     context.shot_number = 0
 
-    # A directory per SCENARIO, not per feature. The shot numbers restart
-    # with each scenario, so two scenarios in one feature both wrote a `01-`,
-    # and two that captured the same moment under the same name overwrote
-    # each other in silence -- evidence a reader would have had no way to
-    # know was missing.
+    # A directory per scenario, not per feature: shot numbers restart with
+    # each scenario, so two scenarios in one directory would overwrite each
+    # other's evidence.
     position = context.scenario_order.index(scenario.name) + 1
     context.shot_dir = os.path.join(
         context.feature_dir, "%d-%s" % (position, slug(scenario.name)))
@@ -509,10 +478,8 @@ def before_scenario(context, scenario):
 
 
 def after_scenario(context, scenario):
-    # Scenario-specific restoration first, and always -- a scenario that
-    # lapses a policy has to put it back even when it failed, or one bad run
-    # leaves a fixture broken for every run after it and the next person
-    # debugs the fixture rather than their change.
+    # Scenario-specific restoration first, and always: a scenario that lapses
+    # a policy has to put it back even when it failed.
     try:
         from cross_surface_steps import after_scenario_restore
         after_scenario_restore(context)

@@ -24,13 +24,7 @@ GRAIL_AVAILABLE = {"csv", "datetime", "decimal", "math", "random",
 
 
 class ThePackageBoundary(unittest.TestCase):
-    """`brainfreeze/` runs inside the database. numpy and pandas do not.
-
-    The generator is `data/generate.py`, the only thing in the repo that
-    may reach for them. This is the test that keeps that true -- a third-party
-    import added here would pass every other test in the suite and then fail
-    the first time the web app is started.
-    """
+    """`brainfreeze/` runs inside the database. numpy and pandas do not."""
 
     def test_brainfreeze_imports_only_what_grail_has(self):
         package = os.path.join(REPO_ROOT, "brainfreeze")

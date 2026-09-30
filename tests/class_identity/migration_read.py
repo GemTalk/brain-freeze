@@ -6,20 +6,10 @@
 A fresh session, importing the edited source the ordinary way. The question is
 whether the class it compiles is the one the committed record points at.
 
-WHAT THE ANSWER MEANS
-
-An added class attribute used to need a slot on the metaclass, and a metaclass
-cannot grow one, so Grail declined to reuse the class and minted a new one --
-stranding every instance already committed under the old one. `isinstance`
-going False is that stranding, visible from Python.
-
-Holding the attributes in a per-class holder instead keeps the metaclass shape
-constant, so an added attribute reuses the identity and committed records stay
-reachable. That is what this reads.
-
-The record keeping its DATA either way is not the point and never was: the
-data was never in danger. What the edit threatens is the record's relationship
-to its class, which is what makes it findable by type.
+If Grail re-minted the class because of the edit, every instance committed
+under the old one would be stranded: `isinstance` going False is that,
+visible from Python. The record's data is not what is at risk; its
+relationship to its class, which is what makes it findable by type, is.
 
 It prints one machine-readable line per fact so a test can assert on it, then
 removes the throwaway package and root key whatever the answer was.
@@ -58,9 +48,8 @@ def main():
 
     record = gemdb.root[ROOT_KEY]
 
-    # `is` and `isinstance` are asked separately on purpose: they came apart
-    # between Grail versions once already, and a check that conflated them
-    # could not have seen it.
+    # `is` and `isinstance` are asked separately on purpose: they can come
+    # apart, and a check that conflated them could not see it.
     print("ISINSTANCE: %s" % isinstance(record, Subject))
     print("TYPE_IS: %s" % (type(record) is Subject))
     print("TYPE_NAME: %s" % type(record).__name__)

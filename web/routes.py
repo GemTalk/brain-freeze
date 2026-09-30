@@ -1,17 +1,15 @@
 """Routes that are looked up by name on every request, so loaded code is live.
 
-Flask keeps the function it is given. A view handed to `app.route` at startup
-is the view the app runs until the process ends, however many times the file
-is edited, loaded and committed since. That is what made a running app ignore
-a changed page while it picked up a changed model: the model is reached
-through classes, which Grail updates in place, and the views were copies.
+Flask keeps the function it is given: a view handed to `app.route` at startup
+is the view the app runs until it exits, however often the file is loaded
+since. The model stays live because Grail updates classes in place; views
+would not.
 
 So a route module declares its routes with `ROUTES.route(...)`, which records
 the rule and the function's NAME, and Flask is given a dispatcher that looks
-the name up in the module on each request. Load a changed route module and
-commit it, and the app's next request runs the new function -- measured on a
-running app, 2026-09-29. A route that is ADDED still needs a restart: Flask's
-table of rules is built once, when the app is.
+the name up in the module on each request. Load a changed route module with
+`gemdb tools/load.py` and the next request runs the new function. An ADDED
+route still needs a restart: Flask builds its rule table once.
 
 Anything a view uses has to be reached the same way -- `templates.DECISION`,
 `lookups.book()`, `pages.render(...)` -- because `from templates import
@@ -35,13 +33,10 @@ class Routes:
         return record
 
     def register(self, app):
-        # The module OBJECT, taken now, while `sys.modules` certainly has it.
-        # Not looked up by name per request: a committed module is not
-        # guaranteed to stay in `sys.modules` (a test runner's session lost
-        # `routes_api` from it, and every JSON route answered 500). Holding
-        # the object loses nothing, because a loaded change rebuilds the
-        # module in place -- measured, the object a running app holds shows
-        # the new functions after the next refresh.
+        # The module OBJECT, taken now, rather than looked up in
+        # `sys.modules` per request: a committed module is not guaranteed to
+        # stay there. Holding it loses nothing, because a loaded change
+        # rebuilds the module in place.
         module = sys.modules[self.module]
         for rule, methods, name in self.table:
             app.add_url_rule(rule, endpoint=name,

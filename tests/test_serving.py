@@ -155,7 +155,7 @@ class WhatTheAppSaysWhileItRuns(unittest.TestCase):
 
     Both hang off Flask rather than off Grail's serving: `log_request` is
     defined there and never called (run_wsgi uses send_response_only), so a
-    handler override would be dead code. Measured before this was written.
+    handler override would be dead code.
     """
 
     def build(self):
@@ -195,9 +195,9 @@ class WhatTheAppSaysWhileItRuns(unittest.TestCase):
         self.assertIn("200", said)
 
     def test_an_http_exception_keeps_its_status(self):
-        """Returning it, never re-raising: re-raising sends Flask into the
-        reporting path that trips finding 7, and the client gets a dead
-        connection instead of a 404. Measured."""
+        """Returning it, never re-raising: re-raising sends Flask into its
+        `logging` reporting path (see below), and the client gets a dead
+        connection instead of a 404."""
         status, _ = self.drive("/missing")
         self.assertEqual(status, 404)
 
@@ -209,9 +209,8 @@ class WhatTheAppSaysWhileItRuns(unittest.TestCase):
         self.assertIn("Traceback", said)
 
     def test_the_report_does_not_go_through_logging(self):
-        """`logging` is the thing that breaks here -- Logger.error(exc_info=)
-        raises a TypeError over the top of what it was called to report
-        (finding 7). The traceback has to be printed."""
+        """The traceback is printed straight to the terminal running the app,
+        not handed to `logging`, so it is there whatever logging is set up."""
         _, said = self.drive("/boom")
         self.assertNotIn("exc_info", said)
 

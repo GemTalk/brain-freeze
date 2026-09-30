@@ -60,9 +60,9 @@ class PromiseTests(unittest.TestCase):
 class PublishedPreambleTests(unittest.TestCase):
     """The verifier must run what the document publishes, not its own copy.
 
-    The generator used to execute a preamble it did not print, so the
-    published one could not run the questions beneath it and nothing noticed.
-    Reading it back from the document is what makes that impossible.
+    A preamble executed but not printed could leave the published one unable
+    to run the questions beneath it, and nothing would notice. Reading it back
+    from the document makes that impossible.
     """
 
     def test_it_lifts_the_preamble_block_from_above_the_first_heading(self):

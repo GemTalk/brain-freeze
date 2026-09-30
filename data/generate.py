@@ -1,7 +1,7 @@
 """Synthetic "Brain Freeze Insurance" dataset generator.
 
-Produces two linked CSVs for a fun insurance/risk-analytics demo aimed at
-kids & teens:
+Produces two linked CSVs for a playful insurance/risk-analytics dataset
+about kids & teens:
 
   1. policyholders.csv - one row per policy (the "underwriting" table):
      demographics, risk classification, coverage plan, and premium.
@@ -11,31 +11,24 @@ kids & teens:
      compute real actuarial-style metrics (claim frequency, severity,
      loss ratio) rather than only looking at approved claims.
 
-GROUNDING: this version is intentionally PLAYFUL, not clinically precise.
-It's loosely inspired by real research on cold-stimulus headache (kids
-get it a lot, migraine history and fast eating make it worse, etc.) but
-effect sizes, dollar amounts, and risk scores are exaggerated/tuned for
-demo drama rather than epidemiological accuracy. Treat every number here
-as "for building a fun product demo," not a real actuarial filing.
+Intentionally playful, not clinically precise. It is loosely inspired by
+real research on cold-stimulus headache (kids get it a lot, migraine history
+and fast eating make it worse) but effect sizes, dollar amounts and risk
+scores are exaggerated. Not a real actuarial filing.
 
-WHAT THIS FILE DOES AND DOES NOT OWN. The underwriting weights, the tier
-bands, the plan terms and the claim rules live in the `brainfreeze` package,
-which is pure standard-library Python so the web app can import the same
-functions inside the database. This file owns the *sampling* -- how many
-policyholders, how their answers are drawn, how much noise sits on a premium,
-and the small chance of a denial for a reason the rules do not model. Keeping
-those apart is what stops the app's quote and the sample data from drifting
-into disagreement.
+The underwriting weights, tier bands, plan terms and claim rules live in the
+`brainfreeze` package, so the web app uses the same functions inside the
+database. This file owns only the *sampling*: how many policyholders, how
+their answers are drawn, the noise on a premium, and the small chance of a
+denial for a reason the rules do not model.
 
-The only file in the repo allowed numpy and pandas: `brainfreeze/` is
-compiled and run inside the database, where they do not exist.
+The only file in the repo allowed numpy and pandas: `brainfreeze/` runs
+inside the database, where they do not exist.
 
     python3 data/generate.py     # rewrites policyholders.csv and claims.csv, here
 
-The output is byte-identical run to run. If it stops being, either something
-is wrong or the dataset is being regenerated deliberately -- and if it is the
-latter, say so loudly: every number in the tests is read out of these two
-files.
+The output is byte-identical run to run. Regenerate only deliberately: the
+numbers the tests check are read out of these two files.
 """
 
 import os
@@ -66,9 +59,8 @@ from brainfreeze import (  # noqa: E402
     risk_tier,
 )
 
-#: Where the CSVs go: beside this file, not the working directory. seed.py and
-#: the tests read them from here, so writing them anywhere else produces a
-#: dataset nothing loads.
+#: Where the CSVs go: beside this file, not the working directory, because
+#: tools/seed.py and the tests read them from here.
 DATA_DIR = Path(__file__).resolve().parent
 POLICYHOLDERS_CSV = DATA_DIR / "policyholders.csv"
 CLAIMS_CSV = DATA_DIR / "claims.csv"
@@ -83,12 +75,10 @@ POLICY_TERM_MONTHS = 12
 LAPSE_EARLIEST_DAY = 30
 
 #: Where each policyholder's score starts, before their answers move it.
-#: This is sampled per policyholder and written out as `underwriting_base`,
-#: which is what makes a score in the dataset reproducible: the app scores an
-#: applicant's answers from the same starting point, so someone matching an
-#: existing row lands in that row's tier. It is written at full precision on
-#: purpose -- the score column is derived from it, and rounding here would
-#: let the two disagree in the last decimal.
+#: Sampled per policyholder and written out as `underwriting_base`, so a
+#: score in the dataset can be reproduced from its row. Written at full
+#: precision: the score column is derived from it, and rounding would let the
+#: two disagree in the last decimal.
 BASE_RISK_MEAN, BASE_RISK_SD = 45, 15
 
 #: Multiplicative jitter on a premium, so the sample book is not uniform.
@@ -154,10 +144,9 @@ def make_policyholders(n):
     for i in range(n):
         plan = COVERAGE_PLANS[coverage_plan[i]]
         noise = RNG.normal(1.0, PREMIUM_NOISE_SD)
-        # `annual_premium` is exact Decimal now; the noise is a float draw.
-        # The product is a measurement-shaped thing and is rounded once, here,
-        # with the same half-up rule the model uses -- so the number written
-        # to the file is the number the loader will read back.
+        # `annual_premium` is an exact Decimal; the noise is a float draw.
+        # The product is rounded once, here, with the model's half-up rule, so
+        # the number written is the number the loader reads back.
         priced = Decimal(str(float(annual_premium(coverage_plan[i], tiers[i])) * noise))
         annual_premiums[i] = float(round_cents(priced))
         coverage_limits[i] = plan.coverage_limit_per_incident
@@ -165,10 +154,8 @@ def make_policyholders(n):
 
     start_dates = [date(2026, 1, 1) + timedelta(days=int(d)) for d in RNG.integers(0, 300, size=n)]
 
-    # A lapsed policy needs a date it lapsed on. Without one, "Lapsed" was a
-    # label with nothing behind it while claims went on being paid to the end
-    # of the term. Lapses fall at least a month in -- nobody's cover ends the
-    # week they buy it -- and cover runs to that date inclusive.
+    # A lapsed policy has the date it lapsed on, at least a month in; cover
+    # runs to that date inclusive.
     status = RNG.choice(["Active", "Active", "Active", "Lapsed"], size=n)
     term_days = 30 * POLICY_TERM_MONTHS
     lapse_offsets = RNG.integers(LAPSE_EARLIEST_DAY, term_days, size=n)
@@ -194,8 +181,7 @@ def make_policyholders(n):
         "deductible_per_incident_usd": deductibles,
         "annual_premium_usd": annual_premiums,
         # Derived the way `Policyholder.monthly_premium` derives it, so the
-        # file and the object cannot disagree -- they did on 23 of 900 rows,
-        # because this said np.round and the model said round.
+        # file and the object cannot disagree.
         "monthly_premium_usd": [float(round_cents(Decimal(str(a)) / 12))
                                 for a in annual_premiums],
         "policy_start_date": start_dates,
@@ -338,9 +324,8 @@ def make_claims(policies):
                 "pain_location": pain_location,
                 "pain_quality": pain_quality,
                 "claim_filed": bool(claim_filed),
-                # Back to float for the CSV: the delivered artefact is
-                # dollars-as-text, and `seed.py` reads it with `usd()` so the
-                # value becomes exact again the moment it is loaded.
+                # Float for the CSV, which is dollars-as-text; tools/seed.py
+                # reads it back with `usd()`, exact again.
                 "claim_amount_requested_usd": float(claim_amount_requested),
                 "claim_amount_approved_usd": float(claim_amount_approved),
                 "claim_status": claim_status,

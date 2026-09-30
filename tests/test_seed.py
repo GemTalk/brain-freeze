@@ -2,8 +2,7 @@
 
 Run: python3 -m unittest test_seed -v
 
-This is the smoke test FR-2.3 asks for, as tests rather than as eyeballing a
-printout. It reads `data/policyholders.csv` and `data/claims.csv`.
+It reads `data/policyholders.csv` and `data/claims.csv`.
 """
 
 import csv
@@ -20,12 +19,10 @@ import seed
 #: One book for the whole module.
 #:
 #: Every class here asserts a property of the SEEDED book and none of them
-#: writes to it, so seven rebuilds were seven copies of the same 900
-#: policyholders. That is not merely slow: each `seed.load()` is deep work in
-#: one session, and by the fourth the session hit `AlmostOutOfStack` -- which
-#: then reported itself against whichever `setUpClass` happened to be running,
-#: so the suite failed in four classes that had nothing wrong with them.
-#: See issue #85.
+#: writes to it, so one load serves them all. Loading once per class is not
+#: merely slow: each `seed.load()` is deep work in one session, and repeated
+#: loads can exhaust it (`AlmostOutOfStack`), failing whichever `setUpClass`
+#: happens to be running. See issue #85.
 _BOOK = None
 
 
@@ -74,12 +71,9 @@ class TheLoad(unittest.TestCase):
 
 
 class MoneyIsExact(unittest.TestCase):
-    """The file and the model once disagreed on 23 of 900 monthly
-    premiums, because the generator rounded with numpy and the model with
-    Python's `round`, and the two disagree on decimal halves.
-
-    Both are gone now -- money is Decimal and both sides round half-up through
-    `brainfreeze.money` -- so this asserts the property rather than the fix."""
+    """The file and the model agree to the cent, because money is Decimal and
+    both the generator and the model round half-up through
+    `brainfreeze.money`. Rounding any other way disagrees on decimal halves."""
 
     @classmethod
     def setUpClass(cls):
@@ -114,14 +108,11 @@ class MoneyIsExact(unittest.TestCase):
 class TheUnderwritingBase(unittest.TestCase):
     """The score is derived from the recorded base, not stored twice.
 
-    The generator draws each policyholder a starting point and, until this
-    column existed, threw it away -- so a score already in the dataset could
-    not be reproduced from the answers that are in it. An applicant matching
-    BF-100539 could land in a different tier, and an agent asked "why is this
-    policy High tier?" had nothing to work from. Recording the base closes
-    that, and making the score derived rather than stored means there is one
-    source of truth: change a weight in underwriting.py and every score moves
-    with it, instead of silently disagreeing with the column.
+    The generator draws each policyholder a starting point and records it, so
+    a score in the dataset can be reproduced from the answers that are in it
+    -- which is what an agent asked "why is this policy High tier?" needs.
+    Deriving the score rather than storing it means one source of truth:
+    change a weight in underwriting.py and every score moves with it.
     """
 
     @classmethod
@@ -155,8 +146,8 @@ class TheUnderwritingBase(unittest.TestCase):
                              policyholder.policy_id)
 
     def test_a_quote_from_the_answers_reproduces_the_policy(self):
-        # FR-5.3: an applicant who gives an existing policyholder's answers
-        # must be scored and tiered exactly as that policy was.
+        # An applicant who gives an existing policyholder's answers must be
+        # scored and tiered exactly as that policy was.
         for policyholder in self.book:
             offer = brainfreeze.quote(
                 policyholder.age,
@@ -174,11 +165,8 @@ class TheUnderwritingBase(unittest.TestCase):
 class LapsedPolicies(unittest.TestCase):
     """A lapsed policy has a date it lapsed on, and cover stops there.
 
-    Before this, a quarter of the book was marked Lapsed with no lapse date
-    while claims went on being approved across the full term -- incoherent the
-    moment the app or an agent reasons about it. Events still happen after the
-    lapse (a child does not stop eating ice cream because a policy ended);
-    what stops is cover.
+    Events still happen after the lapse (a child does not stop eating ice
+    cream because a policy ended); what stops is cover.
     """
 
     @classmethod
@@ -230,14 +218,12 @@ class LapsedPolicies(unittest.TestCase):
 class ThePolicyTerm(unittest.TestCase):
     """Cover starts when the policy does and ends when the term does.
 
-    `is_in_force_on` used to test the lapse date and nothing else, so a
-    policy with no lapse was in force forever in both directions -- an event
-    a year before the policy was sold, or ten years after the term ended, was
-    adjudicated as covered and paid. `policy_end_date` existed and was used by
-    nothing. These pin both ends of the term, and pin the wording: an
-    out-of-term event was refused as a lapse, which is a false statement about
-    a policy that never lapsed and the one thing CUJ-2 asks an agent to
-    explain.
+    Without both ends, a policy with no lapse would be in force forever in
+    both directions: an event a year before the policy was sold, or ten years
+    after the term ended, would be covered and paid. These pin both ends of
+    the term, and the wording: an out-of-term event refused "as a lapse"
+    would be a false statement about a policy that never lapsed, and it is
+    what an agent is asked to explain.
     """
 
     @classmethod
@@ -286,11 +272,9 @@ class ThePolicyTerm(unittest.TestCase):
             brainfreeze.REASON_OUTSIDE_TERM)
 
     def test_no_seeded_event_falls_outside_its_own_policys_term(self):
-        """Asserted, not assumed -- this is what says the fix moves no figure.
-
-        The generator draws event dates inside the term, but nothing checked
-        it. If it ever stops being true, tightening `is_in_force_on` silently
-        unpays claims that the pinned totals above still expect.
+        """Asserted, not assumed: the generator draws event dates inside the
+        term, and if that stops being true the term check silently unpays
+        claims that the pinned totals above still expect.
         """
         checked = 0
         for policyholder in self.book:
@@ -330,8 +314,8 @@ class BF100539(unittest.TestCase):
 
     Chosen because its history runs through every rule in order: four
     approvals, then the annual cap, then the policy lapses and the last two
-    are refused for that. One table on one screen demonstrates the whole of
-    adjudication, which is what CUJ-2 asks an agent to explain.
+    are refused for that. One table on one screen shows the whole of
+    adjudication.
     """
 
     @classmethod
@@ -411,26 +395,16 @@ def scrambled(rows):
 class EventOrderIsTheLoadersJob(unittest.TestCase):
     """Oldest-first has to be something the loader does.
 
-    `Policyholder.events` is documented as oldest first, and it was -- but
-    only because `data/claims.csv` arrives grouped by policy and ascending by
-    date, and `attach_events` appended in file order. The invariant lived in a
-    file's row order, so re-sorting, filtering or regenerating the CSV changed
-    it silently and nothing failed.
-
-    Asserting that the committed file is ordered would only re-measure what is
-    already true. These feed the loader a DELIBERATELY SHUFFLED copy of the
-    same file, which is the only input that can tell a loader that sorts from
-    one that got lucky.
+    `Policyholder.events` is documented as oldest first. `data/claims.csv`
+    happens to arrive in that order, so asserting on the committed file would
+    pass a loader that never sorts. These feed the loader a DELIBERATELY
+    SHUFFLED copy, the only input that can tell a loader that sorts from one
+    that got lucky.
     """
 
-    #: Fixed so a failure is reproducible rather than a coin toss.
-    #: A fixed permutation, written out rather than drawn.
-    #:
-    #: These tests run under CPython AND inside the database, and Grail has no
-    #: `random.Random` -- `random.Random(seed).shuffle(rows)` passed here and
-    #: raised `AttributeError` there, which is exactly the split this suite
-    #: exists to catch. A deterministic scramble is better for the job anyway:
-    #: a failure reproduces instead of depending on a seed.
+    #: The shuffle is `scrambled`, a fixed permutation rather than a random
+    #: one: these tests run inside the database too, where Grail has no
+    #: `random.Random`, and a fixed permutation reproduces any failure.
 
     @classmethod
     def setUpClass(cls):

@@ -1,4 +1,4 @@
-"""The app's transaction beat, checked against the source of `app.py`.
+"""The app's transactions, checked against the source of `app.py`.
 
 Run: python3 -m unittest tests.test_refresh -v
 
@@ -9,8 +9,8 @@ observed from a single session inside it either. "This session went on serving
 the old book after another gem committed" needs two gems, so the test that
 would catch it directly is not a test this suite can run.
 
-What is left is still worth pinning, because it is the whole of the defect
-and every part of it is a mistake someone will make again:
+What is left is still worth pinning, because each part is a mistake someone
+will make again:
 
 * the app must take a new view at all -- without it a running server serves
   whatever was committed when it started, for as long as it runs;
@@ -108,12 +108,12 @@ class TheAppTakesANewView(unittest.TestCase):
         """Building the app compiles every template and handler into the
         database, and until something commits that is all this session's
         uncommitted work. Another session committing in the meantime -- the
-        notebook's last cell, or a redeploy -- collides with it, and the
+        notebook's last cell, or `gemdb tools/load.py` -- collides with it, and the
         collision does not clear: the work stays uncommitted, so the conflict
         repeats on every request after it and the app never answers again.
 
-        Measured. Run the notebook before touching the app, and the app is
-        dead with nothing on the wire to say so."""
+        Run the notebook before touching the app, and the app is dead with
+        nothing on the wire to say so."""
         serve = [f for f in functions(self.tree) if f.name == "serve"]
         self.assertTrue(serve, "app.py has no serve()")
         calls = [child for child in ast.walk(serve[0])

@@ -1,22 +1,18 @@
 """Adjudication: what a claim is worth, and whether it is paid.
 
 Four rules, in order: whether the policy was in force at all, the annual cap,
-the per-incident coverage limit, then the deductible. Nothing here is random -- a claimant is entitled to a reason
-that follows from what they told us, and an agent asked "why was CLM-000123
-turned down?" has to be able to answer it.
+the per-incident coverage limit, then the deductible. Nothing here is random,
+so an agent asked "why was CLM-000123 turned down?" can answer it.
 
-Between them those rules produce five refusals, and every `Decision` names
-which one bound twice over: `reason` in English for the claimant, and `rule`
-as a fixed identifier for whoever has to check rather than paraphrase. Absence
-of cover splits into two of the five -- a lapse and an episode outside the
-term are different facts -- and the two money caps can both apply at once, in
-which case the tighter one is reported, because that is the one that decided
-the number.
+The rules produce five refusals, and every `Decision` names the one that
+bound twice: `reason` in English for the claimant, and `rule` as a fixed
+identifier for whoever has to check rather than paraphrase. Absence of cover
+is two of the five -- a lapse and an episode outside the term are different
+facts. When both money caps apply, the tighter one is reported.
 
-The generator adds a small chance of a denial for an unmodelled reason
-(paperwork, an exclusion) on top of these rules. That belongs to the
-generator, not here: it makes the sample history look lived-in, and it is
-exactly the part the app must not reproduce.
+The generator's small chance of a denial for an unmodelled reason (paperwork,
+an exclusion) belongs to the generator, not here: the app must not reproduce
+it.
 """
 
 from decimal import Decimal
@@ -34,24 +30,18 @@ REASON_POLICY_LAPSED = "Policy lapsed"
 #: Cover can also be absent because the episode happened before the policy was
 #: sold or after its term ran out, which is not a lapse and must not say it is.
 REASON_OUTSIDE_TERM = "Event outside policy term"
-#: A per-incident limit low enough to leave nothing above the deductible. The
-#: wording is deliberately not the generator's "Claim amount exceeds
-#: per-incident coverage limit": that string is one of the unmodelled denials
-#: in the committed data, and if these two collided, ten refusals no rule
-#: produced would start counting as rule outcomes.
+#: A per-incident limit low enough to leave nothing above the deductible.
+#: Deliberately not the generator's "Claim amount exceeds per-incident coverage
+#: limit", an unmodelled denial in the committed data that must not be counted
+#: as a rule outcome.
 REASON_PER_INCIDENT_LIMIT = "Per-incident limit leaves nothing above the deductible"
 
 #: The same five outcomes as identifiers rather than as English.
 #:
 #: `reason` is written for the claimant and may be reworded; these may not.
-#: An agent asked "why was CLM-000123 turned down?" checks the identifier and
-#: quotes the prose, instead of parsing the prose and guessing at the rule --
-#: which is not hypothetical: a lapse and an out-of-term event were told apart
-#: by hand until they were given separate wordings.
-#:
-#: Kebab-case, naming the constraint that bound rather than the sentence it
-#: produced, and matching the parallel implementation's spelling exactly so
-#: the two demos group the same book the same way.
+#: An agent checks the identifier and quotes the prose, rather than parsing
+#: the prose and guessing at the rule. Kebab-case, naming the constraint that
+#: bound.
 RULE_ANNUAL_LIMIT = "annual-claim-count-cap"
 RULE_BELOW_DEDUCTIBLE = "below-deductible"
 RULE_OUTSIDE_TERM = "event-outside-term"
@@ -60,9 +50,9 @@ RULE_POLICY_LAPSED = "policy-lapsed"
 
 #: Which prose came from which rule.
 #:
-#: This exists for the 2,172 claims committed before `rule` did: they stored a
-#: sentence and nothing else, and this is the only way to read one as a rule.
-#: New claims carry the identifier outright and should never come through here.
+#: For claims that stored only a sentence -- every claim seeded from
+#: `data/claims.csv`, which has no rule column. Claims the app files carry the
+#: identifier outright.
 _RULE_BY_REASON = {
     REASON_ANNUAL_LIMIT: RULE_ANNUAL_LIMIT,
     REASON_BELOW_DEDUCTIBLE: RULE_BELOW_DEDUCTIBLE,
@@ -75,17 +65,13 @@ _RULE_BY_REASON = {
 def rule_for_reason(reason: Optional[str]) -> Optional[str]:
     """The rule that wrote this sentence, or None if no rule did.
 
-    Exact match, and None for anything else. The generator's unmodelled
-    denials -- paperwork, an exclusion, a late filing -- are not rule
-    outcomes, and one of them ("Claim amount exceeds per-incident coverage
-    limit") reads almost exactly like a rule that exists. Guessing at it would
-    be the paraphrasing this identifier was added to stop.
+    Exact match only. The generator's unmodelled denials are not rule
+    outcomes, and one reads almost exactly like a rule that exists.
 
-    One ambiguity is inherent and cannot be fixed here: the generator also
-    picks the real `REASON_ANNUAL_LIMIT` wording for some of its unmodelled
-    refusals, so a committed claim saying "Exceeded annual claim limit" is
-    read as the cap whether or not the cap is what refused it. That is an
-    argument for storing the rule at the source, not for weakening this.
+    One ambiguity cannot be fixed here: the generator also uses the real
+    `REASON_ANNUAL_LIMIT` wording for some unmodelled refusals, so a seeded
+    claim saying "Exceeded annual claim limit" reads as the cap whether or
+    not the cap refused it.
     """
     if reason is None:
         return None
@@ -102,8 +88,8 @@ class Decision(NamedTuple):
     capped_by_limit: Decimal           # taken off by the per-incident limit
     deductible_applied: Decimal        # taken off by the deductible
     #: Which rule decided it, as a stable identifier; None when approved.
-    #: Last, with a default, so every existing positional `Decision(...)` and
-    #: every `status, amount, reason, ... = decision` still reads as it did.
+    #: Last, with a default, so positional construction and unpacking of the
+    #: first six fields keep working.
     rule: Optional[str] = None
 
     @property
@@ -125,9 +111,7 @@ def assess_amount(pain_intensity: float, duration_sec: float,
     hook for making the sample data less uniform; the app leaves it at zero.
 
     Severity is a measurement and stays a float; the money it implies is
-    rounded to the cent exactly once, here, on the way out. That single
-    boundary is the point -- past it nothing is a float, so nothing downstream
-    can round the same figure a second, different way.
+    rounded to the cent exactly once, here, and is a Decimal from then on.
     """
     raw = 10 + pain_intensity * 6 + duration_sec / 20 + jitter
     assessed = round_cents(Decimal(str(raw)))
@@ -151,15 +135,12 @@ def adjudicate(
     policy that has used its four approvals is turned down whatever the episode
     was worth.
 
-    `policy_in_force` defaults to True so that a caller who has no lapse to
-    consider reads exactly as before. `no_cover_reason` is which absence of
-    cover the caller found -- a lapse, or an episode outside the policy term.
-    It defaults to the lapse, because that is what every refusal in the sample
-    data says and what callers written before the term was checked meant.
+    `no_cover_reason` is which absence of cover the caller found -- a lapse,
+    or an episode outside the policy term. It defaults to the lapse, which is
+    what every no-cover refusal in the sample data says.
 
-    The returned `rule` is the identifier for whichever of the five refusals
-    applied, and None on an approval, where nothing bound and there is nothing
-    to name.
+    The returned `rule` names the refusal that applied, or is None on an
+    approval.
     """
     if not policy_in_force:
         reason = no_cover_reason or REASON_POLICY_LAPSED
@@ -176,16 +157,11 @@ def adjudicate(
     deductible_applied = round_cents(limited - payable)
 
     if payable <= ZERO:
-        # Two caps applied and between them left nothing. Report the tighter
-        # one, because that is the one that decided the number: compare what
-        # each would have allowed on its own, not what each took off.
-        #
-        # It matters. A $100 episode on a $5 limit with a $10 deductible pays
-        # nothing, and "claim amount below deductible" says something untrue
-        # about a claim ten times the deductible -- the limit allowed $5 where
-        # the deductible would have allowed $90. On the three shipped plans
-        # the limit is far above the deductible, so this branch always lands
-        # on the deductible and no committed refusal changes its wording.
+        # Between them the caps left nothing. Report the tighter one: compare
+        # what each would have allowed on its own, not what each took off. A
+        # $100 episode on a $5 limit with a $10 deductible is refused by the
+        # limit, not "below deductible". On the three shipped plans the limit
+        # is far above the deductible, so this always lands on the deductible.
         allowed_by_limit = limited
         allowed_by_deductible = max(ZERO, assessed - deductible_per_incident)
         if allowed_by_limit < allowed_by_deductible:

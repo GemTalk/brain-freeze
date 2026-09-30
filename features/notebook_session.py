@@ -2,8 +2,8 @@
 
     gemdb features/notebook_session.py DIR
 
-Runs every code cell of brain-freeze.ipynb except the last -- the refresh
-beat, which the scenario performs itself -- then waits for commands in
+Runs every code cell of brain-freeze.ipynb except the last -- the refresh,
+which the scenario performs itself -- then waits for commands in
 DIR/command and writes each answer to DIR/answer:
 
     count     print the policy count, the way cell 11 does, without refreshing

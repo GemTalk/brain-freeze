@@ -2,24 +2,17 @@
 
     gemdb findings/01_shim_missing.py
 
-Last verified against Grail 9a0b0fc (engine 4.0.0.a2), 2026-09-23.
-
 Read-only. Diagnoses, changes nothing.
 
-WHY THIS MATTERS
-
-An extent installed without the CPython shim starts, runs Python, seeds a
-900-policy book and passes every test in this repo -- and then cannot import
-`re`. Werkzeug's routing, Jinja2's lexer and all header parsing need it, so
-Flask, Django and every other web framework fail together, with an error
-message that names `_sre` and explains nothing.
+An extent installed without the CPython shim runs Python, seeds the book and
+passes the tests -- and then cannot import `re`. Werkzeug's routing, Jinja2's
+lexer and header parsing need it, so Flask and every other web framework
+fail, with an error that names `_sre` and explains nothing.
 
 `install.gs` records the shim path only when `SHIM_LIB_PATH` is non-empty, and
 `install-grail.sh` blanks that variable when the library is not present at the
 moment it looks -- then installs anyway, with a warning to a log. Nothing
 later says the database is in this state.
-
-Not documented anywhere in GemDB_Code as of 2026-09-08.
 """
 
 import os
@@ -27,9 +20,8 @@ import sys
 
 SHIM = "src/c/shim/libcpython_ua"
 
-#: Not `__doc__`. Under Grail `__main__` is a namespace shared by every script
-#: the database has run (see finding 2), and `__doc__` there is whatever was
-#: left in it -- this script printed `object`'s docstring the first time.
+#: Not `__doc__`: older Grail builds shared `__main__` between scripts, so
+#: `__doc__` there could be another script's.
 TITLE = """Finding 1: can this database run a web framework at all?"""
 
 

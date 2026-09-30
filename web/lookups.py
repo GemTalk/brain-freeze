@@ -7,11 +7,10 @@ surface that has to produce it.
 
 There is no ORM and no session to open. `book()` is the whole data-access
 layer, and it is one dictionary lookup.
-
-A top-level module. An edit to it is live in a running app once it is
-loaded: `gemdb tools/load.py`. See routes.py.
 """
 
+# Flask's. `gemdb.abort()` must never appear in this app: see
+# `take_new_view` in app.py.
 from flask import abort
 
 import gemdb
@@ -28,16 +27,9 @@ def book():
 def quotes(the_book):
     """The book's quotes, or a 500 that says what to do about it.
 
-    `Book.quotes` did not exist when the sample book was committed, and a
-    class-level default declared now would not reach it: editing a class
-    compiles a DIFFERENT class and instances keep the one they were made
-    under. So an old book raises AttributeError here rather than quietly
-    starting a second store on the side, and the message names the two
-    commands that fix it -- because the reader who meets this will otherwise
-    reasonably conclude the code is broken.
-
-    `abort` here is Flask's. `gemdb.abort()` must never appear in this
-    application; see `take_new_view` in app.py.
+    A book committed before `Book.quotes` existed has no quotes store. This
+    refuses with the commands that fix it rather than quietly starting a
+    second store on the side.
     """
     try:
         return the_book.quotes
@@ -65,10 +57,8 @@ def quote_or_404(quote_id):
 def next_id(existing, prefix, width, start):
     """The next free identifier in a series, given the ones already used.
 
-    Verbatim from the single-file app. It tolerates an identifier that does
-    not parse rather than raising, and floors at `start - 1` so an empty
-    series begins at `start` -- both of which are load-bearing and neither of
-    which is obvious, so this was moved rather than rewritten.
+    Skips an identifier that does not parse rather than raising, and floors
+    at `start - 1` so an empty series begins at `start`.
     """
     highest = start - 1
     for identifier in existing:

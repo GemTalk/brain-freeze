@@ -2,22 +2,18 @@
 
     gemdb tools/make_mcp_questions.py
 
-The point of generating it: a document that lists what an agent can ask, with
-answers typed in by hand, is a promise nobody checked. This one runs each
-snippet inside the database and writes down what actually came back, so the
-answers cannot be wrong -- and regenerating it after a data change is how you
-find out the demo's promises have drifted.
+Each snippet is run inside the database and the answer written down as it
+came back, so the document cannot promise what the code does not do.
+Regenerate after any change to the data or the rules.
 
-It re-seeds first, deliberately. The answers have to describe a freshly
-seeded database -- CUJ-0's starting state, and the figures `tests/test_seed.py`
-pins -- not whatever the last demo or test run left behind. Generating against
-a dirty database was the first thing this script got wrong: it reported 901
-policies because the app's tests had filed claims.
+It re-seeds first, so the answers describe the book step 1 of the tutorial
+loads (the figures `tests/test_seed.py` pins), not whatever a test run left
+behind.
 
-Each entry is the Python an agent would send through GemDB's `eval_python` or
-`execute_code`. There is no tool that knows what a policyholder is; that is
-the design, and `brainfreeze.analysis` exists so the agent composes named
-questions rather than deriving aggregates and getting a denominator wrong.
+Each snippet is what an agent would send through GemDB's `eval_python` or
+`execute_code`. No MCP tool knows what a policyholder is; `brainfreeze.analysis`
+gives the agent named questions so it does not derive aggregates by hand and
+get a denominator wrong.
 """
 
 import io
@@ -25,8 +21,7 @@ import os
 import sys
 import traceback
 
-#: The repository, for the same reason and in the same way as every other
-#: script in here -- see `seed.py`.
+#: The repository on `sys.path`, as in `seed.py`.
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if REPO not in sys.path:
     sys.path.insert(0, REPO)
@@ -34,13 +29,11 @@ if REPO not in sys.path:
 DOC = os.path.join(REPO, "docs", "mcp-questions.md")
 
 
-#: What every snippet below assumes, and the ONLY thing this script executes
-#: to set them up. Those must be the same object: it used to publish this and
-#: then quietly inject `brainfreeze` on top, so the preamble a reader was told
-#: to paste could not run question 6. If a question needs a name, it goes
-#: here where the reader can see it.
-#: The analysis import is written `import brainfreeze.analysis as analysis`,
-#: not `from brainfreeze import analysis`: see #86.
+#: What every snippet assumes, published in the document AND the only setup
+#: this script runs, so the preamble a reader pastes is the one that was
+#: tested. A name a question needs goes here.
+#: `import brainfreeze.analysis as analysis`, not `from brainfreeze import
+#: analysis`: the `from` form can hand back a stale module (Grail#1223, #86).
 PREAMBLE = """import gemdb
 import brainfreeze
 import brainfreeze.analysis as analysis
@@ -54,7 +47,7 @@ QUESTIONS = [
 
     ("What is the loss ratio by risk tier?",
      "analysis.loss_ratio_by_tier(book)",
-     "The demo's punchline. The 1.9x loading on High over-prices the risk, so "
+     "The finding worth asking for. The 1.9x loading on High over-prices the risk, so "
      "the customers the underwriter fears most are the most profitable, and "
      "the middle of the book is where the money leaks."),
 
@@ -72,7 +65,7 @@ QUESTIONS = [
      "p.policy_lapse_date, p.is_in_force_on(e.event_date))\n"
      " for p in book for e in p.events\n"
      " if e.claim is not None and e.claim.claim_id == 'CLM-001291']",
-     "CUJ-2. The refusal is not a stored string an agent has to trust -- the "
+     "The refusal is not a stored string an agent has to trust -- the "
      "event date, the lapse date and the in-force test are all there, so the "
      "reason can be checked rather than repeated."),
 
@@ -84,9 +77,8 @@ QUESTIONS = [
      "    book['BF-100539'].typical_consumption_speed,\n"
      "    book['BF-100539'].favourite_trigger,\n"
      "    base=book['BF-100539'].underwriting_base)",
-     "Only answerable because the drawn base is recorded. Before that column "
-     "existed the score could not be reproduced from the answers beside it, "
-     "and this question had no honest answer."),
+     "Only answerable because the drawn base is recorded: without it the score "
+     "could not be reproduced from the answers beside it."),
 
     ("Which policies are we underpricing?",
      "[(p.policy_id, p.plan_name, p.risk_tier, ratio)\n"
@@ -133,8 +125,7 @@ def generate():
     import gemdb
     import seed
 
-    # A clean book, so the answers match tests/test_seed.py rather than
-    # whatever the last run left behind.
+    # A freshly seeded book, so the answers match tests/test_seed.py.
     gemdb.root["brainfreeze"] = seed.load()
     gemdb.commit()
 
@@ -143,7 +134,7 @@ def generate():
     exec(compile(PREAMBLE, "<preamble>", "exec"), namespace)
 
     out = io.StringIO()
-    out.write("# Questions this demo promises to answer\n\n")
+    out.write("# Questions an agent can answer\n\n")
     out.write(wrap(
         "GemDB's MCP surface is code-level, not data-level: it offers "
         "`eval_python`, `execute_code`, `commit`/`abort`/`refresh`, browsing "
@@ -152,11 +143,11 @@ def generate():
         "database.") + "\n\n")
     out.write(wrap(
         "Every answer below was produced by running the snippet beside it, "
-        "not typed in, against a **freshly seeded** database -- the state "
-        "CUJ-0 starts from and the figures `tests/test_seed.py` pins. "
+        "not typed in, against a **freshly seeded** database: the book step 1 "
+        "of the tutorial loads, and the figures `tests/test_seed.py` pins. "
         "Regenerate with `gemdb tools/make_mcp_questions.py` after any change to "
         "the data or the rules; if an answer moves, either the change was "
-        "wrong or this file is the record of what the demo now promises.")
+        "wrong or this file should change with it.")
         + "\n\n")
     out.write("Each snippet assumes this preamble:\n\n```python\n"
               + PREAMBLE + "\n```\n\n---\n")
@@ -181,8 +172,5 @@ def generate():
     return 1 if failures else 0
 
 
-# Not `main`: under Grail `__main__` is a namespace shared by every script
-# the database has run, and a call resolves by argument count. Two scripts
-# with a zero-argument `main` will reach each other's.
 if __name__ == "__main__":
     sys.exit(generate())

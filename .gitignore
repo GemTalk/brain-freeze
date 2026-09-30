@@ -5,34 +5,24 @@ __pycache__/
 # macOS
 .DS_Store
 
-# Working notes kept deliberately out of the repo. This one is a decision memo
-# comparing this demo against the one being retired from GemDB_Code; it is for
-# a conversation, not for publication. Ignored so `git add -A` cannot sweep it
-# in -- which it did once.
-
-# Agent worktrees and local tooling state, not part of the demo.
+# Agent worktrees and local tooling state.
 .claude/
 
-# The acceptance suite. Its virtualenv carries a browser, and its screenshots
-# and payloads are evidence of a run rather than documentation -- the feature
-# files are the documentation.
+# The acceptance suite's virtualenv (it carries a browser), and the
+# screenshots, payloads and logs a run leaves in artifacts/.
 .venv-acceptance/
 artifacts/
 
-# Coverage measurement, run on demand rather than committed. `coverage.py`
-# cannot see the app at all -- it runs inside GemStone, in another process --
-# so this is only ever the CPython half. tests/test_route_coverage.py and the
-# acceptance suite are what actually answer "is there a route nobody drives?"
+# Coverage of the CPython half, as CI measures it.
 .coverage
 htmlcov/
 
-# What the acceptance suite writes at the root to run a published snippet
-# the way the document says to run it. Removed by the step that wrote it.
+# Written at the root by the acceptance step that runs a published snippet,
+# and removed by it.
 _published_snippet.py
-
 
 # The GemDB Code release ci/setup-gemdb/run.js unpacks to run its setup.
 ci/setup-gemdb/.gemdb-extension/
 
-# The throwaway package the class-identity test writes between its two sessions.
+# The throwaway package tests/test_class_identity.py writes between sessions.
 tests/class_identity/tmp_migration/

@@ -5,11 +5,9 @@ own runner, the published snippets by pasting them into a session -- and then
 compared against the JSON surface and the page.
 
 The comparison is always live-against-live. The figures printed in
-`docs/mcp-questions.md` describe a freshly seeded book and the suite has
-written to this one by the time these run, so comparing against those numbers
-would be a test of which scenario happened to go first. The frozen answers are
-regenerated from a fresh seed by `tools/make_mcp_questions.py`, and step 5 asks
-the live book over the real transport.
+`docs/mcp-questions.md` describe a freshly loaded book, and the suite has
+written to this one by the time these run. `tools/make_mcp_questions.py`
+regenerates those.
 """
 
 import os
@@ -82,9 +80,8 @@ def run_published(context, title_fragment):
     finally:
         os.remove(path)
 
-    # Same exposure as the notebook: the snippet runs in a session of its own
-    # and calls `analysis.book_summary`, which is exactly what `/api/stats`
-    # calls. See issue #83.
+    # The snippet ran in a session of its own; make sure the app still answers
+    # before the steps compare it with `/api/stats`.
     ensure_app_answering(context, "a published snippet")
     return context.published_output
 
@@ -98,10 +95,8 @@ def run_the_notebook(context):
         name: int(value)
         for name, value in NOTEBOOK_FIGURE.findall(context.notebook_output)}
 
-    # The notebook commits from a session of its own, and what it commits
-    # includes the compiled form of functions this app has also called. That
-    # can leave the app unable to commit ever again (issue #83), and the steps
-    # below ask the app questions. Put it back before they do.
+    # The notebook ran in a session of its own, and the steps below ask the app
+    # questions: make sure it still answers.
     ensure_app_answering(context, "the notebook")
 
 
@@ -137,14 +132,14 @@ def page_states_the_same(context):
         "the payload says %d policyholders and the page does not" % count)
 
 
-# -- the answers the demo publishes ---------------------------------------
+# -- the published agent answers ------------------------------------------
 
-@when('I run the book summary the demo publishes')
+@when('I run the published book summary')
 def run_published_summary(context):
     run_published(context, "how big is this book")
 
 
-@when('I run the loss ratio by tier the demo publishes')
+@when('I run the published loss ratio by tier')
 def run_published_loss_ratio(context):
     run_published(context, "loss ratio by risk tier")
 
@@ -192,7 +187,7 @@ def keep_notebook_output(context, name):
 
 @then('I keep the comparison as "{name}"')
 def keep_comparison(context, name):
-    body = ("the snippet the demo publishes, run in a session of its own:\n\n"
+    body = ("the published snippet, run in a session of its own:\n\n"
             "%s\n\nwhat the JSON surface serves:\n\n%r\n"
             % (context.published_output, context.stats_payload))
     path = keep(context, name, body, extension="txt")

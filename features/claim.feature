@@ -1,27 +1,23 @@
 Feature: Filing a claim and being told what it pays
 
-  The other half of CUJ-3, and the screen the demo's argument rests on. A
-  claimant describes an episode -- what they ate, how much it hurt, how long it
-  went on -- and is told what it pays. Nobody types a figure in: the severity
-  implies the amount, and the app hands that to `brainfreeze.adjudicate` and
-  reports what comes back. It works nothing out for itself, which is the only
-  reason the notebook, the agent and this page can never disagree about a
-  claim.
+  A claimant describes an episode -- what they ate, how much it hurt, how long
+  it went on -- and is told what it pays. Nobody types a figure in: the
+  severity implies the amount, and the app hands that to
+  `brainfreeze.adjudicate` and reports what comes back. It works nothing out
+  for itself, which is why the notebook, the agent and this page cannot
+  disagree about a claim.
 
-  So the decision is checked three times over. Against itself -- what it was
-  assessed at, less what the episode cap took off, less the deductible, is
-  what was paid. Against the rules module, driven with the terms and the
-  claim count that this browser was shown rather than anything read from the
-  database. And against the book afterwards: the claim is still there, with
-  the same figures, and the policy's totals have moved by exactly it.
+  So the decision is checked three ways: against itself (assessed, less the
+  episode cap, less the deductible, is what was paid); against the rules,
+  driven with the terms this browser was shown; and against the book
+  afterwards, where the claim is on record and the policy's totals moved by
+  exactly it.
 
   BF-100332 is this scenario's own policy, per the rule at the top of
-  `tests/test_app.py`. This scenario WRITES, and the suite re-seeds once per
-  run rather than once per scenario, so sharing a policy would make the order
-  scenarios happen to run in part of the test.
+  `tests/test_app.py`: it writes, and the book is loaded once per run.
 
   Background:
-    Given the demo is running
+    Given the app is running
 
   Scenario: an episode is assessed, capped, and paid, and the book agrees
     Given I open the policy BF-100332

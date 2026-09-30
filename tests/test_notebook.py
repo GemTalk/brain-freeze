@@ -1,25 +1,19 @@
 """The notebook, checked the way a kernel will meet it.
 
-WHY THIS EXISTS, AND WHAT IT IS MAKING UP FOR
+A kernel starts in the database's working directory, and a cell has no
+`__file__` to find the repository from, so `from brainfreeze import analysis`
+raises `ModuleNotFoundError` unless the notebook puts the repository on the
+path itself. A runner that set up the path before executing the cells would
+hide exactly that: every cell green, the notebook broken in a real kernel.
 
-`brain-freeze.ipynb` shipped for weeks unable to import its own model. Cell
-three said `from brainfreeze import analysis` and raised
-`ModuleNotFoundError` in a real kernel, because a kernel starts in the
-database's working directory and a cell has no `__file__` to derive one from.
-
-Nothing caught it, and the reason is the interesting part.
-The notebook runner put the repository on `sys.path` and THEN
-executed the cells. Every cell ran, every run was green, and the acceptance
-suite -- which drives the notebook through that same runner -- was green with
-it. The check had arranged a condition the thing being checked would not have.
-
-So these tests are about the shape of the notebook rather than its output,
-because output is the part that was already being checked wrongly:
+So these tests are about the shape of the notebook rather than its output:
 
   * the first code cell puts the repository on the path itself;
-  * the runner does NOT, so it cannot go back to hiding this;
+  * the runner does NOT, so it cannot hide a notebook that fails to;
   * the committed .ipynb is what the generator produces, since a notebook
     edited by hand drifts from the file that is supposed to define it.
+
+`tests/test_notebook_runs.py` runs it.
 """
 
 import ast
@@ -50,7 +44,7 @@ def source(cell):
 
 
 class TheNotebookCanFindItsOwnModel(unittest.TestCase):
-    """The defect, pinned. A kernel gets no help from anybody."""
+    """A kernel gets no help from anybody."""
 
     def test_the_first_code_cell_puts_the_repository_on_the_path(self):
         first = source(code_cells()[0])
@@ -80,8 +74,8 @@ class TheNotebookCanFindItsOwnModel(unittest.TestCase):
                         "the path is set after the model is first imported")
 
     def test_a_reader_is_told_what_to_do_when_it_cannot_find_it(self):
-        """The failure a presenter meets ten minutes before a demo has to say
-        what to do, not just what went wrong."""
+        """The failure a reader meets has to say what to do, not just what
+        went wrong."""
         first = source(code_cells()[0])
         self.assertIn("raise", first)
         self.assertIn("BRAINFREEZE_REPO", first,
@@ -92,10 +86,9 @@ class TheNotebookCanFindItsOwnModel(unittest.TestCase):
 
 
 class TheCheckerDoesNotArrangeWhatItChecks(unittest.TestCase):
-    """The notebook runner used to put the repository on `sys.path` before
-    executing the cells, which is exactly how the defect above survived. This
-    is the test that would have caught that, and it is deliberately about the
-    runner's source rather than its output."""
+    """A runner that put the repository on `sys.path` before executing the
+    cells would pass a notebook no kernel can run. This is deliberately about
+    the runner's source rather than its output."""
 
     def setUp(self):
         with open(RUNNER) as handle:
@@ -112,10 +105,9 @@ class TheCheckerDoesNotArrangeWhatItChecks(unittest.TestCase):
                                "id", "") == "sys"]
         self.assertEqual(
             touches, [],
-            "the notebook checker puts the repository on sys.path again. "
-            "That is how it came to pass for weeks while the notebook could "
-            "not import its own model in a real kernel: the check supplied "
-            "the one thing a kernel does not.")
+            "the notebook runner puts the repository on sys.path, so it "
+            "would pass a notebook that cannot import its own model in a "
+            "real kernel: the check supplies the one thing a kernel does not.")
 
     def test_it_still_says_why(self):
         self.assertIn("sys.path", self.source,
@@ -172,24 +164,10 @@ if __name__ == "__main__":
 
 
 class TheFirstCellFindsACheckoutBelowWhereTheKernelStarted(unittest.TestCase):
-    """A kernel does not start inside the checkout, and it does not start
-    above it in the useful sense either. It starts at HOME, and the checkout
-    is three directories underneath.
-
-    Measured, from the GemDB extension's own error output:
-
-        GemDBError: RuntimeError - No brainfreeze/ at or above
-        '/Users/srbaker'. Open this repository as the folder in your editor
-
-    `find_repo` walked upward only, so a checkout BELOW the starting point was
-    unreachable by construction: the parents of `/Users/srbaker` are `/Users`
-    and `/`, and neither holds a `brainfreeze/`. The first cell raised, and
-    every cell after it failed on a name that was never bound -- which is why
-    this reads as "the notebook gets errors" rather than as one error.
-
-    This is the same defect as `TheNotebookCanFindItsOwnModel` above, one step
-    out: that one fixed a cell that never looked, this one fixes a cell that
-    looked in the only direction that could not work.
+    """A kernel may start at HOME, with the checkout several directories
+    underneath. A search that walked upward only could never reach it: the
+    first cell would raise, and every cell after it fail on a name never
+    bound.
 
     It runs the first cell the way a kernel does -- its own process, and a
     working directory that is an ANCESTOR of the checkout.

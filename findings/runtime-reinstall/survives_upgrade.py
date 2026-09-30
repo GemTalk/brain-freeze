@@ -8,21 +8,16 @@
 It reads only, commits nothing, and prints one `KEY: value` per line so the
 diff is the answer. On a healthy database the two files are identical.
 
-WHAT IT IS LOOKING FOR
-
-Not whether the data is there -- it is -- but whether the classes those objects
-point at are still the classes your code imports. That is the thing a runtime
-reinstall breaks, and it breaks quietly: `policy_id` still reads, so a casual
-poke at the database says everything is fine. See README.md beside this file
-for what a broken one looks like.
+It checks not whether the data is there -- it is -- but whether the classes
+those objects point at are still the classes your code imports. A runtime
+reinstall breaks that quietly: `policy_id` still reads. See README.md beside
+this file for what a broken one looks like.
 """
 
 import os
 import sys
 
-#: The repository, spelled the way every other entry point here spells it. A
-#: helper that did this once for all of them would stop working the moment
-#: anything committed (measured on builds before GemDB 1.5.2).
+#: The repository, so `brainfreeze` is importable.
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if REPO not in sys.path:
     sys.path.insert(0, REPO)
@@ -43,26 +38,17 @@ def main():
     policy = book.policies["BF-100539"]
     print("POLICY_ID: %s" % policy.policy_id)
 
-    # A date-valued attribute, deliberately. After a reinstall these fail
-    # while `policy_id` keeps reading, which is most of why the breakage is
-    # easy to miss.
+    # A date-valued attribute, deliberately: after a reinstall these fail
+    # while `policy_id` keeps reading.
     print("POLICY_START: %s" % policy.policy_start_date)
     print("TOTAL_PAID: %s" % policy.total_paid)
 
     # The question the rest of it is really asking.
     #
-    # `from brainfreeze import model`, not `import brainfreeze.model as model`.
-    # Both forms work. They differ in what they say when the module is NOT
-    # found, and this script's whole job is running when things are broken:
-    #
-    #   import brainfreeze.model as model -> UnboundLocalError: local variable
-    #                                        referenced before assignment
-    #   from brainfreeze import model     -> ModuleNotFoundError: No module
-    #                                        named 'brainfreeze'
-    #
-    # The first swallows the ImportError and reports a name that was never
-    # bound, which sent this file's first version chasing a scoping bug that
-    # does not exist. Measured 2026-09-25; not yet filed upstream (see #82).
+    # `from brainfreeze import model`, because this script has to run when
+    # things are broken, and when the module is not found the other form
+    # (`import brainfreeze.model as model`) reported an UnboundLocalError
+    # rather than the ModuleNotFoundError (#82).
     from brainfreeze import model
     print("ISINSTANCE_POLICY: %s" % isinstance(policy, model.Policyholder))
     print("TYPE_IS_POLICY: %s" % (type(policy) is model.Policyholder))

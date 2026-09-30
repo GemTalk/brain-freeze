@@ -6,13 +6,12 @@ The route modules cannot be measured by a coverage tool. They import `gemdb`
 and run inside GemStone under Grail, so they cannot be imported under CPython
 at all, and `coverage.py` never sees the process that actually serves a
 request. The in-database tests and the acceptance suite exercise them heavily
--- and nothing tells you what they miss. That was the largest blind spot in
-the project when it was measured.
+-- and nothing tells you what they miss.
 
-This is the honest substitute: read the routes out of the route modules'
-syntax trees, read the tests and feature files, and require that each route
-is reached by name. It is coarser than line coverage, and it answers the question that
-actually matters here -- *is there a route nobody drives?*
+So this reads the routes out of the route modules' syntax trees, reads the
+tests and feature files, and requires that each route is reached by name. It
+is coarser than line coverage, and it answers the question that matters here
+-- *is there a route nobody drives?*
 
 A route can be claimed in three ways, all of which are real exercise:
 
@@ -39,8 +38,8 @@ REPO = os.path.dirname(HERE)
 UNDRIVEN = {}
 
 
-#: Where routes are declared. Two modules since the single file was split;
-#: a third would have to be added here, which the count guard below catches.
+#: Where routes are declared. A third module would have to be added here,
+#: which the count guard below catches.
 ROUTE_MODULES = ("routes_html.py", "routes_api.py")
 
 

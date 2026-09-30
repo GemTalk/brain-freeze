@@ -1,19 +1,15 @@
 Feature: Changing a policy while the app is serving it
 
-  The demo's central claim, and the only scenario that can show it.
+  `tools/lapse.py` opens the same objects from a session of its own and
+  commits. It does not know the app exists. The app takes a new view before
+  each request, so it sees the change on the next one -- no restart, no
+  reload, no polling.
 
-  Nothing else in this repo captures this. The in-database tests can pin the
-  mechanism but not the beat, because a session sees its own writes
-  immediately and a test running inside the database cannot start a second
-  one. So this is the only place the promise is demonstrated rather than
-  argued.
-
-  `lapse.py` opens the same objects from a session of its own and commits. It
-  does not know the app exists. The app takes a new view before each request,
-  so it sees the next one -- no restart, no reload, no polling.
+  Only this suite can show it: a test inside the database is one session, and
+  a session sees its own writes immediately.
 
   Background:
-    Given the demo is running
+    Given the app is running
 
   Scenario: a policy lapsed from a shell turns up in the browser, and turns back
     Given I open the policy BF-100184

@@ -53,13 +53,9 @@ def shown_a_saved_quote(context):
 def quote_prices_all_plans(context):
     """Read the ANNUAL premium off each plan's card.
 
-    Not the first money in the card: that is the per-episode limit. An earlier
-    version of this step sliced the page text from the plan's name and took
-    the first `$nn.nn` it found, which was `$60.00` -- the Standard plan's
-    episode cap. The policy page shows that figure too, so the price check
-    below passed while comparing a number that had nothing to do with the
-    premium. It is only visible if you look at the screenshot, which is a
-    decent argument for taking them.
+    Not the first money in the card: that is the per-episode limit, which the
+    policy page also shows -- so taking it would let the price check pass
+    while comparing something that is not the premium.
     """
     context.quoted = {}
     for plan in ("Basic", "Standard", "Premium"):

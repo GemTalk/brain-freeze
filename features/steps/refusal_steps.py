@@ -1,12 +1,9 @@
 """Steps for the three refusals: cover ended, allowance spent, term not begun.
 
 Every scenario here is a pure read. The states they need are already in the
-seeded book -- BF-100746 lapsed in July, BF-100539 has spent its four
-approvals, and something over a hundred of the 900 terms begin after today --
-so nothing files a claim, nothing writes, and re-running them changes nothing.
-The count is left vague on purpose, because it falls every day. Reading only
-is deliberate as well: a scenario that cannot dirty the book cannot make the
-next one fail.
+loaded book -- BF-100746 lapsed in July, BF-100539 has spent its four
+approvals, and some of the 900 terms begin after today -- so nothing writes,
+and a scenario that cannot dirty the book cannot make the next one fail.
 
 Two things are read besides the page.
 
@@ -293,7 +290,7 @@ def the_two_refusals_differ(context):
     assert first != second, (
         "both policies are refused with the same sentence:\n  %r\n"
         "One of them lapsed and the other has not started yet. Saying the "
-        "same thing about both is a bug this demo has had." % first)
+        "same thing about both is wrong for one of them." % first)
 
 
 @then('"{ended}" speaks of cover that ended, and "{not_started}" does not')
@@ -324,8 +321,8 @@ def only_one_speaks_of_cover_ending(context, ended, not_started):
 
 @then('neither refusal names a date the policy does not have')
 def neither_names_a_missing_date(context):
-    """The shape the old bug took: a lapse date read off a policy that has
-    none renders as the word None in the middle of a sentence."""
+    """A lapse date read off a policy that has none would render as the word
+    None in the middle of a sentence."""
     for name, (text, policy_id) in getattr(context, "kept", {}).items():
         assert "None" not in text, (
             "the refusal kept as %r (%s) names a date the policy does not "

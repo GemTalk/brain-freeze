@@ -1,21 +1,18 @@
 Feature: The refusals, and being told why
 
   Three ways a claim is refused before anyone fills the form in, and three
-  different sentences saying which one it is. None of them needs setting up:
-  the seeded book already holds a policy whose cover ended, one that has spent
-  its four approvals for the year, and a hundred-odd whose terms have not
-  begun yet. Nothing here files a claim, so nothing here can dirty the book --
-  these are the cheapest scenarios in the suite and the ones most likely to
-  still work next year.
+  different sentences saying which one it is. None needs setting up: the
+  loaded book already holds a policy whose cover ended, one that has spent its
+  four approvals for the year, and policies whose terms have not begun.
+  Nothing here files a claim, so nothing here writes.
 
-  The pair worth the trouble is the last one. A policy whose term has not
-  started never lapsed, and telling its customer that it did is a mistake this
-  demo has made before. So the two refusals are read against each other rather
-  than one at a time, and each is checked against the reason the rules
-  themselves give, so the screen and the adjudicator cannot drift apart.
+  A policy whose term has not started never lapsed, and must not be told it
+  did. So the last scenario reads those two refusals against each other, and
+  each is checked against the reason the rules give, so the screen and the
+  adjudicator cannot drift apart.
 
   Background:
-    Given the demo is running
+    Given the app is running
 
   Scenario: cover that has ended is named as a lapse
     Given the policy BF-100746

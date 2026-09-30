@@ -2,13 +2,12 @@
 
     python3 tools/make_notebook.py
 
-The notebook is generated rather than hand-edited because a .ipynb is JSON with the source
-split into per-line strings, and editing that by hand invites exactly the
-drift this repo keeps testing for. Change the cells here.
+A .ipynb is JSON with the source split into per-line strings, so change the
+cells here and regenerate rather than editing the notebook;
+tests/test_notebook.py checks the two agree.
 
-Outputs are deliberately left empty. A notebook shipped with saved output is a
-screenshot; this one has to be run against a live database, which is the point
-of it.
+Outputs are left empty: the notebook is meant to be run against a live
+database, not read as a record of one run.
 """
 
 import io
@@ -103,9 +102,9 @@ book"""),
 
     (MD, """## There is no schema to introspect
 
-That is not a boast, it is the thing to look at. Ask a policyholder what it
-knows about itself and you get 30-odd names — but only about half are *stored*.
-The rest are computed on the way out, from the rules in `brainfreeze`.
+Ask a policyholder what it knows about itself and you get 30-odd names, but
+only about half are *stored*. The rest are computed on the way out, from the
+rules in `brainfreeze`.
 
 No table, no columns, no migration: `risk_tier` and `total_paid` are not
 fields that could drift out of step with the data, they are questions the
@@ -175,7 +174,8 @@ for name in sorted(n for n in dir(analysis)
 
 The helpers live in `brainfreeze.analysis` so that the notebook, the web app
 and an agent over MCP all answer these the same way. Deriving them inline is
-easy to get subtly wrong — see the notes on weighting and on `min_events`."""),
+easy to get subtly wrong — see the notes on weighting and on `min_events` in
+`brainfreeze/analysis.py`."""),
 
     (PY, """import brainfreeze.analysis as analysis
 
@@ -197,8 +197,7 @@ analysis.loss_ratio_by_tier(book)"""),
 The 1.9x loading on the High band over-prices the risk it is pricing for, so
 the customers the underwriter is most worried about are the most profitable,
 and the middle of the book is where the money leaks. That is a real finding
-about this data, not a scripted one — and it is the kind of thing that is
-tedious to reach through an ORM and trivial when the objects are just there."""),
+about this data, reached with nothing but the objects and a loop."""),
 
     (PY, """# 3. What an approved claim is actually worth.
 #
@@ -246,9 +245,9 @@ bar_chart([(tier, ratios[tier]) for tier in ("Low", "Medium", "High")
 
     (PY, """# Severity, in $10 bands -- where the payouts actually cluster.
 #
-# `int(amount // 10)` would be the obvious way to band these, and Grail has no
-# floor division for Decimal -- it raises TypeError. `int()` truncates toward
-# zero, which is the same thing for money that is never negative.
+# `int(amount // 10)` would be the obvious way to band these, but Grail has no
+# floor division for Decimal -- it raises TypeError. `int(amount / 10)` gives
+# the same band, because money here is never negative.
 bands = {}
 for amount in paid:
     low = int(amount / 10) * 10
@@ -258,35 +257,28 @@ print("Approved claim amounts\\n")
 bar_chart([("$%d-%d" % (low, low + 9), bands[low]) for low in sorted(bands)],
           width=40, fmt="%d")"""),
 
-    (MD, """## The refresh beat
+    (MD, """## Seeing another session's commit
 
-This is the part worth doing slowly, because it is the one thing about sharing
-a database across three surfaces that is *not* automatic.
+The notebook, the web app and each MCP client are separate sessions, each with
+its own transaction. A session sees the database as of its last transaction
+boundary, so what another session commits is **not** visible here until this
+session takes a new view. Your analysis does not shift under you mid-cell.
 
-Every notebook, the web app and each MCP client gets its own gem and its own
-transaction. A GemStone session sees the repository as of its last transaction
-boundary — so work another session commits is **not** visible here until this
-session takes a new view. That is a feature (your analysis does not shift under
-you mid-cell) but it will look like a bug the first time it bites.
-
-Run the next cell, then go and file a claim in the web app, then run it again."""),
+Run the next cell, then buy a policy in the web app, then run it again."""),
 
     (PY, """print("policies:", len(gemdb.root["brainfreeze"]))
 print("events  :", len(gemdb.root["brainfreeze"].events))"""),
 
-    (MD, """Nothing moved — even though the app committed. Now take a new view.
+    (MD, """Nothing moved, even though the app committed. Now take a new view with
+`gemdb.refresh()`.
 
-**`gemdb.refresh()` on its own will usually refuse here**, with *"refresh()
-would discard uncommitted changes"*. That is not because you changed any data:
-Grail compiles your code into the database, so simply having run the cells
-above leaves this session with uncommitted work and `gemdb.needs_commit()`
-returning `True`.
+The cell below commits first. `refresh()` refuses rather than discard
+uncommitted work, and Grail compiles Python into the database, so importing
+a module can leave this session with some even though you changed no data.
+`gemdb.needs_commit()` says whether it has.
 
-`gemdb.abort()` also takes a new view, and it is the wrong tool — it discards
-this session's uncommitted work, **including the functions defined in the cells
-above**. `bar_chart` would stop existing.
-
-So: commit first, then refresh."""),
+`gemdb.abort()` also takes a new view, but it is the wrong tool: it throws
+this session's uncommitted work away."""),
 
     (PY, """print("needs_commit before:", gemdb.needs_commit())
 
@@ -298,12 +290,10 @@ print("policies:", len(book))
 print("events  :", len(book.events))
 print("bar_chart still defined:", callable(bar_chart))"""),
 
-    (MD, """There it is. The claim filed in the browser is in the notebook's objects,
-with no export step, no reload, and no serialisation format in between — but
-only once this session deliberately asked for it.
-
-That last point is the honest version of "one dataset, three surfaces": the
-objects are genuinely shared, *and* each surface has its own transaction."""),
+    (MD, """There it is. The policy bought in the browser is in the notebook's objects,
+with no export step, no reload and no serialisation format in between — once
+this session asked for it. The objects are shared; each session's view of
+them is its own."""),
 ]
 
 

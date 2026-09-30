@@ -58,10 +58,8 @@ from .adjudication import (
     rule_for_reason,
 )
 
-#: The package's public surface, grouped exactly as the imports above are.
-#: `tests/test_brainfreeze.py` requires the two to agree name for name, so a
-#: function added to a submodule and imported here cannot quietly fail to be
-#: published -- which is the one way a hand-kept list of names goes wrong.
+#: The package's public surface, grouped as the imports above are.
+#: `tests/test_brainfreeze.py` requires the two to agree name for name.
 __all__ = [
     # underwriting: what a policy costs and why
     "BASE_RISK", "CONSUMPTION_SPEEDS", "COVERAGE_PLANS", "RISK_TIER_MULT",

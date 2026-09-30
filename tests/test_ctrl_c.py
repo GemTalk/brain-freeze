@@ -3,7 +3,7 @@
 Run: python3 -m unittest tests.test_ctrl_c -v
 
 It does not yet, and this is marked an expected failure so that the suite says
-so without going red. Measured 2026-09-30 on GemDB Code 1.5.2: a real Ctrl-C
+so without going red. On GemDB Code 1.5.2 a real Ctrl-C
 -- `\\x03` through a terminal, not a signal from `kill` -- makes topaz report a
 soft break (error 6003) and wait at its own `topaz 1>` prompt, still holding a
 session, until someone types `exit`. It is GemDB's `gemdb` command, not the

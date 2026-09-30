@@ -52,7 +52,7 @@ def main():
         print("PRECONDITION_LOST: importing brainfreeze pulled in numbers")
         return 3
 
-    # Each of these reaches a comparison that used to be `< 0`.
+    # Each of these reaches a money comparison against zero.
     checks = [
         ("round_cents negative", lambda: round_cents(Decimal("-1.005"))),
         ("round_cents zero", lambda: round_cents(ZERO)),

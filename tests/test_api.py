@@ -2,18 +2,17 @@
 
 Run: python3 -m unittest tests.test_api -v
 
-Two halves, and both of them run under plain CPython, which is the point of
-splitting them out of `tests/test_app.py`. That module needs a live database
-and skips everywhere else, so pinning the JSON API only there would leave the
-one genuinely interesting decision in this work -- what money looks like in a
-JSON body -- untested on the machine most likely to change it.
+Both halves run under plain CPython, which is why they are not in
+`tests/test_app.py`: that module needs a live database and skips everywhere
+else, which would leave what money looks like in a JSON body untested on the
+machine most likely to change it.
 
 * `wire` turns model objects into JSON-ready dicts. It imports
   nothing from `app`, so it can be driven from the real seeded book.
 * The routes themselves are read out of `app.py` as a syntax tree, the same
   trick `tests/test_refresh.py` uses, because `app.py` imports `gemdb` and
-  `flask` and neither exists out here. What that pins is the contract from
-  the JSON contract -- six paths, and which verbs they answer.
+  `flask` and neither exists out here. What that pins is the contract: six
+  paths, and which verbs they answer.
 
 MONEY ON THE WIRE
 
@@ -43,23 +42,15 @@ from datetime import date
 def ast_is_usable():
     """Whether this runtime's `ast` can be walked the way CPython's can.
 
-    Grail ships an `ast` that cannot be walked the way CPython's can, so every
-    test here that reads `app.py`'s syntax tree fails inside the database.
-    Those tests are about the shape of the source and lose nothing by running
-    only under CPython.
+    Grail's `ast` cannot be walked the way CPython's can, so the tests that
+    read `app.py`'s syntax tree skip inside the database. They are about the
+    shape of the source and lose nothing by running only under CPython. The
+    money-on-the-wire half must NOT skip: Decimal is where the two runtimes
+    differ, so serialisation checked only under CPython is checked in the
+    wrong place.
 
-    What must NOT be skipped is the money-on-the-wire half. `wire_usd` does
-    Decimal arithmetic, and Decimal is exactly where the two runtimes differ --
-    `round(Decimal, 2)` ends the session, `int(Decimal)` floors here and
-    truncates there. Serialisation that is only ever checked under CPython is
-    checked in the wrong place.
-
-    THE PROBE DOES WHAT THE TESTS DO, rather than checking one attribute.
-    `hasattr(tree, "body")` was enough on Grail 9a0b0fc, where `parse`
-    answered an opaque `_ParsedExpr` with no tree at all. Grail main gives
-    that object a `body` -- an improvement -- while `ast.dump` is still absent
-    and a walk still yields no nodes. The shallow probe therefore answered
-    "usable" on main and five tests ran into a wall instead of skipping.
+    The probe does what the tests do -- parse, dump, walk -- rather than
+    checking one attribute: a tree can have a `body` and still yield no nodes.
     """
     try:
         tree = ast.parse("x = 1")
@@ -134,14 +125,11 @@ class MoneyOnTheWire(unittest.TestCase):
     def test_it_is_the_money_modules_wire_format(self):
         """By name and by answer, not by object identity.
 
-        `assertIs` was the obvious spelling and it is wrong here. Reading a
-        module-level function as an attribute makes a fresh `BoundMethod`
-        wrapper in Grail, so `wire.money is wire_usd` compares two wrappers
-        around the SAME function and answers False -- under CPython it passed,
-        and inside the database it failed the first time a redeploy made new
-        wrappers. What the test means is that the serialiser uses the money
-        module's wire format rather than a second spelling of it, and that
-        survives being asked in a way both runtimes can answer."""
+        Not `assertIs`: reading a module-level function as an attribute makes
+        a fresh wrapper in Grail, so `wire.money is wire_usd` can answer False
+        for the SAME function inside the database. What the test means is
+        that the serialiser uses the money module's wire format rather than a
+        second spelling of it."""
         for figure in ("92081.22", "0.00", "171.00"):
             self.assertEqual(wire.money(usd(figure)), wire_usd(usd(figure)))
 
@@ -256,7 +244,7 @@ class Payloads(unittest.TestCase):
         self.assertEqual(payload["plans"]["Standard"]["annual"], "171.00")
         self.assertEqual(payload["plans"]["Standard"]["monthly"], "14.25")
         self.assertEqual(payload["plans"]["Premium"]["deductible"], "0.00")
-        # CUJ-2 needs the breakdown, not just the total
+        # explaining a price needs the breakdown, not just the total
         self.assertEqual(payload["breakdown"][0],
                          {"label": "Everyone starts here", "points": 45.0})
 
@@ -318,8 +306,8 @@ class TheQuestionnaire(unittest.TestCase):
                                  "tension_type_headache_history",
                                  "typical_consumption_speed",
                                  "favourite_trigger"])
-        # FR-5.2 asks for sex; the risk model gives it no weight, so neither
-        # surface poses a question that changes nothing.
+        # The risk model gives sex no weight, so neither surface poses a
+        # question that changes nothing.
         self.assertNotIn("sex", json.dumps(self.questions()).lower())
 
     def test_its_options_are_the_values_the_model_accepts(self):
@@ -436,14 +424,8 @@ class TheRouteContract(unittest.TestCase):
 
     def test_the_html_routes_are_untouched(self):
         # Additive: the JSON surface goes beside the HTML one, it does not
-        # replace it.
-        #
-        # `POST /policies` was on this list once. It is the one HTML route
-        # that has moved since, and it moved because it was the wrong
-        # address: it took the five answers back off the form and priced them
-        # a second time. Selling a quote now happens at the quote's own
-        # address, and the two that replaced it are listed here so this test
-        # goes on saying what it was written to say.
+        # replace it. Selling a quote happens at the quote's own address
+        # (`/quote/<quote_id>/accept`), not by re-pricing a posted form.
         found = self.routes()
         for path in ("/", "/quote", "/quote/<quote_id>",
                      "/quote/<quote_id>/accept", "/policies/<policy_id>",

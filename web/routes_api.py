@@ -1,12 +1,10 @@
 """The same objects over `curl`.
 
-Read-only by design: a JSON surface that could mutate would need an
-authentication story this demo does not have, and the point here is that the
-objects are reachable, not that they are writable.
+Read-only: a JSON surface that could mutate would need authentication this
+app does not have.
 
-Money on the wire is an exact decimal string -- see `brainfreeze.money.wire_usd`
-and `wire.py`. Never a float: publishing money as a JSON number would put back
-at the boundary the defect the money work removed from the data.
+Money on the wire is an exact decimal string, never a float -- see
+`brainfreeze.money.wire_usd` and `wire.py`.
 """
 
 from datetime import date
@@ -25,9 +23,8 @@ ROUTES = Routes(__name__)
 def api_error(status, message):
     """A JSON error, from the handler rather than from an errorhandler.
 
-    A global `@app.errorhandler(404)` would be shorter and would also
-    turn the HTML routes' 404s into JSON, which is the wrong answer to
-    give a browser. Two surfaces, two shapes of failure.
+    A global `@app.errorhandler(404)` would also turn the HTML routes' 404s
+    into JSON, which is the wrong answer to give a browser.
     """
     return jsonify(error=message), status
 
@@ -55,11 +52,8 @@ def api_quote():
 
 @ROUTES.route("/api/policies")
 def api_policies():
-    # The whole book, where the picker shows 25 at a time. That page size
-    # is not a JSON problem: it is there because Grail renders each Jinja
-    # row in a forked green thread and 900 of those take the best part of
-    # a minute. Serialising 900 dicts does not, and a script wants the
-    # book rather than a window onto it.
+    # The whole book: the picker pages because rendering is slow under
+    # Grail, but serialising 900 dicts is not, and a script wants it all.
     today = date.today()
     everyone = sorted(lookups.book(), key=lambda p: p.policy_id)
     return jsonify(count=len(everyone),
@@ -78,11 +72,9 @@ def api_policy(policy_id):
 
 @ROUTES.route("/api/claim/<claim_id>")
 def api_claim(claim_id):
-    # A claim id is enough here where the HTML route needs the policy id
-    # as well, and that is most of what makes this one useful from a
-    # shell. The scan is linear over the book because nothing indexes
-    # claims by id -- an index would be a second copy of `Book.claims`,
-    # and the demo's whole argument is that there is only ever one.
+    # A claim id alone is enough here, where the HTML route needs the
+    # policy id too. The scan is linear because nothing indexes claims by
+    # id, and an index would be a second copy of `Book.claims`.
     for policyholder in lookups.book():
         for an_event in policyholder.events:
             if (an_event.claim is not None

@@ -4,34 +4,20 @@
     gemdb tools/seed.py --dry-run       # build the objects, report, commit nothing
     python3 tools/seed.py --dry-run     # same, under CPython, for checking the parse
 
-There is no import tool here and no schema to declare. This reads two CSVs,
-makes ordinary Python objects, puts one of them in `gemdb.root`, and commits.
-That is the whole of what the PRD called a separate workstream.
+Step 1 of the tutorial. There is no import tool and no schema to declare:
+this reads two CSVs, makes ordinary Python objects, puts one of them in
+`gemdb.root`, and commits.
 
 WHAT ENDS UP IN THE DATABASE
 
     gemdb.root["brainfreeze"]           a Book
         .policies["BF-100539"]          a Policyholder
-            .events                     every cold treat, oldest first,
-                                        sorted here rather than assumed
+            .events                     every cold treat, oldest first
                 [0].claim               a Claim, or None
 
-Re-running REPLACES `gemdb.root["brainfreeze"]` wholesale. The old graph is
-left unreferenced and the garbage collector deals with it; nothing is merged,
-appended or deduplicated, so a second run is a clean reset rather than a
-double load. That is deliberate -- resetting the demo is "run it again".
-
-ONE THING TO VERIFY BEFORE RELYING ON THIS
-
-Grail compiles a Python class into a real GemStone class, and these classes
-are defined by importing `brainfreeze.model`. Whether a later session's import
-binds to the same class as the committed instances, or compiles a fresh one
-and orphans them, is the question this script is built on and cannot answer by
-itself. Check it the short way: run this, quit, start a new session, and see
-whether `gemdb.root["brainfreeze"]["BF-100539"].total_paid` still answers. If
-it does not, the fix is to define these classes once inside the database
-rather than on every import -- a change to how the package is loaded, not to
-the model.
+Re-running REPLACES `gemdb.root["brainfreeze"]` wholesale; nothing is merged
+or appended, so running it again is a clean reset. The old graph is left to
+the garbage collector.
 """
 
 import csv
@@ -40,17 +26,14 @@ import sys
 from datetime import date
 
 #: `gemdb tools/seed.py` puts *this* directory on `sys.path`, not the
-#: repository, so the model has to be pointed at. Every script in here repeats
-#: these three lines rather than importing a helper that does it once: a
-#: helper works until something commits, and then adjusts a `sys.path` the
-#: caller cannot see. Measured on builds before GemDB 1.5.2.
+#: repository, so the model has to be pointed at. Every script in here that
+#: imports the model opens the same way.
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if REPO not in sys.path:
     sys.path.insert(0, REPO)
 
-#: `data/` at the repository root, not beside the working directory: the
-#: seeder and the tests both have to find these whatever directory they
-#: started from.
+#: Relative to the repository, not the working directory: the seeder and the
+#: tests have to find these wherever they started.
 POLICYHOLDERS_CSV = os.path.join(REPO, "data", "policyholders.csv")
 CLAIMS_CSV = os.path.join(REPO, "data", "claims.csv")
 

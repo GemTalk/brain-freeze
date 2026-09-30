@@ -57,11 +57,8 @@ def promises(markdown):
 def published_preamble(markdown):
     """The `python` block above the first `##` heading, or None.
 
-    Read back rather than restated. The document says "each snippet assumes
-    this preamble", and the generator used to run a different one -- so
-    the published preamble could not run the questions printed beneath it and
-    nothing caught it. Lifting it from the document is what makes verification
-    exercise the reader's path instead of a private one.
+    Read back rather than restated, so a check runs the preamble the
+    document tells the reader to paste, not a private copy of it.
     """
     fence = None
     buffer = []
@@ -90,15 +87,10 @@ def read_promises():
 def preamble():
     """The document's own preamble, plus the path it does not have to mention.
 
-    The imports are LIFTED from docs/mcp-questions.md rather than written out
-    here. A private copy is how that bug survived: the document published a
-    preamble that could not run its own question 6, and every check passed
-    because nothing checked ran what the document said.
-
-    The `sys.path` line is the one honest addition. A worker gem's working
-    directory is the stone's, so `brainfreeze` is not importable until the
-    repository is on the path; in a notebook or a script the directory is
-    already there, which is why the document does not carry it.
+    The imports are lifted from docs/mcp-questions.md, not written out here.
+    The `sys.path` line is the one addition: an MCP worker gem starts in the
+    stone's directory, so `brainfreeze` is not importable until the
+    repository is on the path.
     """
     with open(DOC) as handle:
         published = published_preamble(handle.read())
@@ -110,9 +102,8 @@ def preamble():
 class Client:
     """One MCP session, and only one.
 
-    Each client costs a worker gem, the router caps them at three and the stone
-    allows ten. A verifier that opened a session per question would be the
-    pathological case the cap exists to refuse.
+    Each client costs a worker gem and the router caps them at three, so a
+    check opens one session for every question rather than one per question.
     """
 
     def __init__(self, port):

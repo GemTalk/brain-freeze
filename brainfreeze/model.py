@@ -1,13 +1,9 @@
 """The objects that live in the database.
 
-A policyholder holds every cold treat they recorded, in order, and each of
-those may or may not have a claim attached. That shape is deliberate and it is
-the one thing here worth arguing about, so: the obvious model is a
-policyholder holding a list of *claims*, and it is wrong. Most of what happens
-to a policyholder is a cold treat that hurt nobody, and those rows are the
-denominator. Throw them away and "how often does a slushie cause brain
-freeze" stops being a question the data can answer -- which is most of what
-the notebook and the agent are for.
+A policyholder holds every cold treat they recorded, in order, and each may
+or may not have a claim attached. Not a list of *claims*: most cold treats
+hurt nobody, and those are the denominator. Without them "how often does a
+slushie cause brain freeze" is not a question the data can answer.
 
 So: `Policyholder.events` is the list. `claims` is derived from it.
 
@@ -32,23 +28,16 @@ class Claim:
     #: Which rule refused this claim, as a stable identifier, alongside
     #: the sentence in `reason`. A class attribute as well as an instance one:
     #: a claim written before the field existed has no slot of its own, and
-    #: reads the default through the class.
-    #:
-    #: Read it as `getattr(claim, "rule", None)` across the whole book, the way
-    #: `analysis.denial_rules` does. The original reason for that was that a
-    #: default declared after records were committed could not reach them --
-    #: editing a class compiled a different one -- which is fixed upstream and
-    #: no longer true (tests/test_class_identity.py). The defence stays because a
-    #: database seeded by an older checkout is still out there, and because
-    #: `getattr` costs nothing.
+    #: reads the default through the class. Code reading a whole book uses
+    #: `getattr(claim, "rule", None)` anyway, as `analysis.denial_rules`
+    #: does; it costs nothing.
     rule = None
 
     def __init__(self, claim_id, requested, approved, status, reason=None,
                  rule=None):
         self.claim_id = claim_id
         #: Through `usd`, which refuses a float outright. Money enters the
-        #: model here and at Policyholder, and nowhere else, so those two
-        #: calls are the whole guarantee that none of it is a float.
+        #: model only here, at Policyholder and at SavedQuote.
         self.requested = usd(requested)
         self.approved = usd(approved)
         self.status = status
@@ -98,19 +87,12 @@ class Event:
 def event_order(event):
     """The sort key behind "oldest first" -- date, then event id.
 
-    The date is the promise, and on its own it is not a total order: 37
-    policies in the committed data record two cold treats on the same day. A
-    date-only sort leaves those pairs wherever they arrived, which is the bug
-    again with an extra step -- Python's sort is stable, so ties fall back on
-    the row order in the CSV, and that is precisely the thing that must stop
-    deciding anything.
-
-    `event_id` breaks them. It is unique across the file, never empty, and
-    zero-padded to a fixed width, so comparing the strings compares the
-    numbers; `app.py` mints new ones through the same `EVT-%06d` series. That
-    makes the loaded order a function of the rows themselves rather than of
-    the sequence they were read in: shuffle the file and every policy comes
-    back in exactly the order it is in now.
+    The date alone is not a total order: 37 policies in the committed data
+    record two cold treats on the same day, and a stable date-only sort would
+    leave those ties in CSV row order. `event_id` breaks them. It is unique,
+    and zero-padded (`EVT-000001`, the series the web app also mints from) so
+    string order is numeric order. Shuffle the file and every policy loads in
+    the same order.
     """
     return (event.event_date, event.event_id)
 
@@ -155,11 +137,8 @@ class Policyholder:
 
     @property
     def underwriting_risk_score(self):
-        """Scored from the recorded base, never stored.
-
-        One source of truth: change a weight in `underwriting` and this moves,
-        rather than quietly disagreeing with a number frozen at seed time.
-        """
+        """Scored from the recorded base, never stored, so changing a weight
+        in `underwriting` moves it."""
         return round(risk_score(
             self.age,
             self.migraine_history,
@@ -174,10 +153,8 @@ class Policyholder:
 
     @property
     def monthly_premium(self):
-        #: Half-up on an exact division, so this cannot disagree with the
-        #: same figure computed anywhere else. `170.10 / 12` is exactly
-        #: `14.175`; rounding it is a decision, and the decision is written
-        #: down rather than inherited from whichever library ran last.
+        #: Half-up on an exact division, so this agrees with the same figure
+        #: computed anywhere else: `170.10 / 12` is exactly `14.175`.
         return round_cents(self.annual_premium / 12)
 
     @property
@@ -198,12 +175,10 @@ class Policyholder:
 
         The lapse is tested first because it is the more specific fact: a
         policy that lapsed on the 10th and was claimed on the 20th lapsed,
-        whether or not the term had also run out by then. What is left --
-        before the policy was sold, or after the term ended without a lapse --
-        is outside the term, and calling that a lapse would state something
-        untrue about a policy that never lapsed. The distinction is the whole
-        of it: CUJ-2 asks an agent to explain a refusal, and it can only do
-        that from a reason that is actually the reason.
+        whether or not the term had also run out. What is left -- before the
+        policy was sold, or after a term that ended without a lapse -- is
+        outside the term, and must not be called a lapse. An agent explaining
+        a refusal can only be as right as this reason.
         """
         if self.policy_lapse_date is not None and when > self.policy_lapse_date:
             return REASON_POLICY_LAPSED
@@ -250,23 +225,16 @@ class Policyholder:
         """Paid out over premium collected. Above 1.0 and we are losing money."""
         if not self.annual_premium:
             return None
-        # A ratio is not money, so it is published as a float -- but it is
-        # rounded half-up rather than by bare `round()`, which is half-up in
-        # the database and banker's outside it.
+        # A ratio is not money, so it is published as a float -- rounded
+        # half-up, as money is, rather than half to even.
         return float(round_half_up(self.total_paid / self.annual_premium, 3))
 
     def add_event(self, event):
         """Add an event, in order, not at the end.
 
-        Appending was enough while events only arrived from the CSV, which is
-        already sorted. It is not enough once the app files a claim: that adds
-        an event dated TODAY to a policy whose seeded events run into 2027, so
-        an appended event belongs in the middle of the history and would
-        otherwise be shown last.
-
-        Sorting at load time and appending afterwards means the guarantee
-        holds until the moment someone uses the demo, which is the worst
-        possible time for it to stop holding.
+        The app files claims dated today on policies whose seeded events run
+        into 2027, so a new event usually belongs in the middle of the
+        history. Appending would show it last.
         """
         key = event_order(event)
         position = len(self.events)
@@ -285,35 +253,18 @@ class Policyholder:
 class SavedQuote:
     """A quote that was given, kept as an object rather than as a form post.
 
-    Not `Quote` -- that name belongs to the NamedTuple `brainfreeze.quote()`
-    hands back, which is a price worked out and returned. This is the one that
-    is kept: it has an identity, an address in the web app, and a record of
-    which policy it turned into.
+    Not `Quote` -- that is the NamedTuple `brainfreeze.quote()` returns, a
+    price worked out and handed back. This one is kept: it has an identity,
+    an address in the web app, and a record of which policy it became.
 
-    WHAT IT KEEPS AND WHAT IT DERIVES, WHICH IS THE ARGUMENT WORTH HAVING
+    It stores everything -- the five answers, the score, its breakdown and all
+    three prices -- where `Policyholder.underwriting_risk_score` is derived.
+    That is deliberate: a quote is a promise made on a date, and a policy sold
+    from it must be sold at the figure the customer was shown. A policy's
+    score is a statement about a person and should be true today.
 
-    It keeps everything: the five answers, the score, the reasoning behind the
-    score, and all three prices. That is the opposite of
-    `Policyholder.underwriting_risk_score`, which is derived on purpose so that
-    changing a weight moves it rather than leaving a number frozen at seed
-    time -- and the difference is not an inconsistency.
-
-    A quote is a promise made on a date. A policy sold from one has to be sold
-    at the figure the customer was shown, and a re-opened quote that had
-    quietly re-priced itself would be the same round-trip the hidden form
-    fields were, with the state going through the rules instead of through the
-    browser. A policy's score, by contrast, is a statement about a person and
-    should be true today.
-
-    IT HOLDS MONEY, SO IT HOLDS DECIMAL
-
-    Twelve figures of it -- annual, monthly, limit and deductible for each of
-    the three plans -- and every one arrives through `usd`, which refuses a
-    float outright. Money enters the model at `Claim`, at `Policyholder` and
-    here, and nowhere else; those three calls are the whole guarantee that
-    none of it is a float. A committed Decimal keeps its value, its ordering
-    and its equality, measured; what it does not keep is its trailing zero, so
-    nothing here may print one with `str()`.
+    Every price arrives through `usd`, which refuses a float. Never print one
+    with `str()`; see `brainfreeze.money`.
     """
 
     #: Which policy this quote became, once someone took it up. A class
@@ -358,11 +309,9 @@ class SavedQuote:
 
     @property
     def answers(self):
-        """The five answers, keyed the way both callers want them.
-
+        """The five answers, keyed the way both callers want them:
         `brainfreeze.quote(**saved.answers)` re-prices it and
-        `Policyholder(..., **saved.answers)` sells it, with nothing restated
-        in between. Restating them is what the hidden fields were.
+        `Policyholder(..., **saved.answers)` sells it.
         """
         return dict(
             age=self.age,
@@ -399,10 +348,8 @@ class Book:
 
     def __init__(self):
         self.policies = {}
-        #: Quotes given, by quote id. A separate mapping rather than a
-        #: policy's field, because most quotes never become a policy -- and
-        #: deliberately not in `policies`, which `len(self)` counts and
-        #: tests/test_seed.py pins at 900.
+        #: Quotes given, by quote id. Separate from `policies`, because most
+        #: quotes never become a policy and `len(self)` counts policies.
         self.quotes = {}
 
     def add(self, policyholder):
@@ -412,18 +359,11 @@ class Book:
     def add_quote(self, a_quote):
         """Keep a quote. It is not a policy and is counted as neither.
 
-        A Book committed before this field existed has no `quotes` slot of
-        its own. There is deliberately no class-level `quotes = {}` to cover
-        that: a mutable default on the class would be SHARED by every Book
-        that fell through to it, which is a worse bug than the AttributeError.
-        So this raises on an old book rather than pretending, and the fix is
-        the documented pair -- `gemdb tools/load.py` to give the database the
-        new code, then `gemdb tools/seed.py` to rebuild the book under it.
-
-        (Until Grail bcedc68a a class-level default could not have reached an
-        old book anyway, because editing a class compiled a different one.
-        That is fixed -- see tests/test_class_identity.py -- so the mutable-default
-        trap is now the only reason this is written the way it is.)
+        A Book committed before `quotes` existed has no such slot, and there
+        is deliberately no class-level `quotes = {}` to cover it: a mutable
+        class default would be shared by every Book that fell through to it.
+        So this raises on an old book; the fix is `gemdb tools/load.py` for
+        the code, then `gemdb tools/seed.py` to rebuild the book.
         """
         self.quotes[a_quote.quote_id] = a_quote
         return a_quote
@@ -457,10 +397,8 @@ class Book:
     def loss_ratio(self):
         """Paid over premium for the whole book, as a float.
 
-        Summing 900 exact premiums and then dividing once is the right order
-        anyway, and with Decimal the sum is exact rather than 900 roundings
-        deep. See `analysis.loss_ratio_by_tier` for why this is never an
-        average of ratios.
+        Sum, then divide once: never an average of ratios (see
+        `analysis._loss_ratio_grouped`).
         """
         if not self.total_premium:
             return None

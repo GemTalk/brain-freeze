@@ -2,19 +2,15 @@
 
 Run: python3 -m unittest tests.test_notebook_runs -v
 
-`tests/test_notebook.py` is the sibling of this and checks the document: that
-the first cell puts the repository on the path, that every cell parses, that
-regenerating changes nothing. It was written after the notebook shipped for
-weeks unable to import its own model, and it would catch that again.
+`tests/test_notebook.py` checks the document: the first cell puts the
+repository on the path, every cell parses, regenerating changes nothing. It
+cannot catch the notebook's real hazards, which are not syntactic and do not
+exist under CPython: `statistics.median` on a Decimal ENDS THE SESSION inside
+the database, floor division on money raises TypeError, `ast` cannot be
+walked, and a `__repr__` that is fine outside is not necessarily fine in here
+-- and cell 2 ends with a bare `book`, so the reader sees that repr.
 
-It would not catch any of the failures this one is for, because the notebook's
-real hazards are not syntactic and do not exist under CPython. `statistics.median`
-on a Decimal does not raise inside the database, it ENDS THE SESSION. Floor
-division on money raises TypeError. `ast.parse` answers an opaque object with
-no tree. A `__repr__` that is fine outside is not necessarily fine in here --
-and cell 2 ends with a bare `book`, so the audience sees that repr.
-
-The notebook is step 4 of the tutorial. Until this existed, nothing ran it.
+The notebook is step 4 of the tutorial.
 
 CPython-side, because it SPAWNS a database session and so cannot be one.
 Skips rather than fails where there is no database to ask.
@@ -56,8 +52,8 @@ class TheNotebookRunsEndToEnd(unittest.TestCase):
     def test_every_cell_ran(self):
         self.assertEqual(
             self.ran.returncode, 0,
-            "the notebook does not run. Beat 5 of the demo is seven minutes "
-            "of this document.\n%s%s" % (self.ran.stdout, self.ran.stderr),
+            "the notebook does not run, and it is step 4 of the tutorial."
+            "\n%s%s" % (self.ran.stdout, self.ran.stderr),
         )
 
     def test_it_ran_all_of_them(self):
@@ -77,11 +73,10 @@ class TheNotebookRunsEndToEnd(unittest.TestCase):
         self.assertEqual(reported, expected, self.ran.stdout)
 
     def test_the_book_echoed_itself(self):
-        """Cell 2 ends with a bare `book`; the room sees that repr."""
+        """Cell 2 ends with a bare `book`; the reader sees that repr."""
         self.assertRegex(
             self.ran.stdout, r"<Book \d+ policies, \d+ events, loss ratio ",
-            "cell 2's bare `book` did not echo a Book. Beat 5 says it "
-            "\"echoes itself\".\n%s" % self.ran.stdout,
+            "cell 2's bare `book` did not echo a Book.\n%s" % self.ran.stdout,
         )
 
 

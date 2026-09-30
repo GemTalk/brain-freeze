@@ -5,37 +5,24 @@
 
 Cells are numbered from 1, the way the notebook UI shows them.
 
-WHY THIS EXISTS
+The notebook is step 4 of the tutorial. `tests/test_notebook.py` parses it
+under CPython, but the failures that matter are the ones only the database
+shows: a Decimal that `statistics.median` cannot take, floor division on
+money, a repr that differs.
 
-The notebook is step 4 of the tutorial, and nothing ran it. `tests/test_notebook.py` parses every cell
-and checks the first one puts the repository on the path -- which it added
-after the notebook shipped for weeks unable to import its own model -- but
-parsing is not running, and the interesting failures here are not syntactic.
-They are `statistics.median` ending the session on a Decimal, or floor division
-raising for money, or a repr that is fine under CPython and not in here.
-
-WHAT "IN ORDER, IN ONE SESSION" BUYS
-
-A kernel gives the notebook one namespace and one database session for the
-whole document, so cell 7 sees what cell 3 bound and every cell shares one
-transaction. Running the cells separately would test something nobody does.
-
-The last expression of a cell is evaluated and its repr printed, because that
-is what a kernel shows and it is frequently the whole point of the cell -- cell
-1 ends with a bare `book`. A broken `__repr__` breaks the demo in front of the
-room and would pass a test that only executed statements.
+A kernel gives the notebook one namespace and one session for the whole
+document, so this does the same: later cells see what earlier ones bound.
+The last expression of a cell is evaluated and its repr printed, as a kernel
+shows it, so a broken `__repr__` fails here too.
 """
 
 import json
 import os
 import sys
 
-#: The repository, to find the notebook. Note what is NOT here: this runner
-#: does **not** put it on `sys.path`. A runner that did is how the notebook
-#: once shipped without a path cell of its own -- every cell ran here, and the
-#: first `import brainfreeze` in a real kernel raised ModuleNotFoundError. The
-#: notebook says where the repository is itself, in its first cell, and this
-#: runs the cells the way a kernel does.
+#: The repository, to find the notebook. This runner deliberately does NOT put
+#: it on `sys.path`: a kernel does not, so the notebook's first cell has to,
+#: and a runner that did it for the notebook would hide a missing path cell.
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 NOTEBOOK = os.path.join(REPO, "brain-freeze.ipynb")
@@ -51,18 +38,10 @@ def code_cells():
 def split_off_last_expression(source):
     """(statements, trailing expression or None), as SOURCE TEXT.
 
-    NOT with `ast`. On Grail 9a0b0fc -- the build GemDB Code 1.5.0 ships --
-    `ast.parse` does not return a tree at all: it answers an opaque
-    `_ParsedExpr` whose only attributes are `mode` and `source`, so there is
-    no `body` to walk and no way to rebuild a node. Grail main has since given
-    that object a `body`, but `ast.dump` is still absent and a walk still
-    yields no nodes, so neither build can do this with `ast`. (The syntax-tree
-    tests in `tests/` are all CPython-side for the same reason; their probe is
-    `tests/test_api.py:ast_is_usable`.)
-
-    So the split is done the one way both runtimes agree on: find where the
-    last top-level statement begins, and ask the compiler whether the text
-    from there is an expression. If it compiles in "eval" mode it is one.
+    Not with `ast`: Grail's `ast` cannot be walked the way CPython's can (see
+    `ast_is_usable` in tests/test_api.py). So this finds where the last
+    top-level statement begins, and `run_cell` decides whether it is an
+    expression.
     """
     lines = source.splitlines()
     start = None
@@ -82,12 +61,10 @@ def split_off_last_expression(source):
 def run_cell(source, namespace, where):
     """Execute one cell the way a kernel does, and show its last expression.
 
-    Whether the trailing statement is an EXPRESSION is settled by trying to
-    evaluate it, not by compiling it first and looking. Grail's `compile()` is
-    lazy -- it answers the source text rather than a code object -- so a
-    `for` loop compiles happily in "eval" mode and only fails when eval runs
-    it. That failure arrives before any of the statement executes, so falling
-    back to `exec` here cannot run anything twice.
+    Whether the trailing statement is an expression is settled by evaluating
+    it, not by compiling it first: Grail's `compile()` is lazy, so a `for`
+    loop compiles in "eval" mode and only fails when evaluated. It fails
+    before any of it runs, so falling back to `exec` runs nothing twice.
     """
     statements, tail = split_off_last_expression(source)
     if statements.strip():
@@ -107,10 +84,7 @@ def run_notebook():
     stop_after = int(sys.argv[1]) if sys.argv[1:] else None
 
     cells = code_cells()
-    # One namespace for the whole document, as a kernel gives it. `__name__`
-    # is not "__main__": every script this database has ever run shares that
-    # one namespace on builds before GemDB 1.5.2, and a cell defining
-    # something there would collide with whatever ran last.
+    # One namespace for the whole document, as a kernel gives it.
     namespace = {"__name__": "brain_freeze_notebook"}
 
     for index, source in enumerate(cells):

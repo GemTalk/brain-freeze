@@ -3,36 +3,27 @@
     import wire
     wire.policy(book["BF-100539"], date.today())
 
-`routes_html.py` renders these same objects as HTML; the JSON surface offers
-them over `curl` as well. What that needs is not an ORM or a schema -- the objects are
-already in the database and nothing maps them -- but an answer to one
-question: what does money look like on the wire?
+`routes_html.py` renders these same objects as HTML; the JSON surface serves
+them through here. Nothing maps them -- the only question is what money
+looks like on the wire.
 
 MONEY IS AN EXACT DECIMAL STRING
 
-`json.dumps` cannot serialise a `decimal.Decimal`, so the API has to choose,
-and `"92081.22"` is the choice: exact, two places, no symbol, no grouping,
-`null` when no money was recorded. The reasoning is in
-`brainfreeze.money.wire_usd`, which is the only function here that turns money
-into text. Every money field in every payload below goes through `money()`,
-which is that function under a shorter name, and that is the whole point of
-this module existing rather than six handlers building dicts for themselves:
-six handlers is six places for the rule to be got wrong once.
-
-`money.format_usd` is display -- `"$92,081.22"` -- and must never appear in a
-payload.
+`"92081.22"`: exact, two places, no symbol, no grouping, `null` when no money
+was recorded. The rule is `brainfreeze.money.wire_usd`, and every money field
+below goes through `money()`, so it is applied in one place rather than in
+each handler. `money.format_usd` (`"$92,081.22"`) is display and never
+appears in a payload.
 
 A RATIO IS NOT MONEY
 
-Loss ratios stay floats, because that is what they honestly are. They are the
-already-rounded ones the model and `brainfreeze.analysis` publish, so the
-number in a JSON body is the number on the screen. `brain_freeze_rate` is
-deliberately absent: it is an unrounded division, and two surfaces could
-disagree in its last digit. The two counts it divides are both here.
+Loss ratios stay floats: the already-rounded ones `brainfreeze.analysis`
+publishes, so the number in a JSON body is the number on the screen.
+`brain_freeze_rate` is absent because it is unrounded and two surfaces could
+disagree in its last digit; the two counts it divides are both here.
 
-Standard library only, like the rest of the package, and it imports nothing
-from the routes -- so the payloads can be driven under CPython from a seeded book,
-which `tests/test_api.py` does.
+Standard library only, and nothing from the routes, so `tests/test_api.py`
+drives the payloads under CPython from a seeded book.
 """
 
 from datetime import date
@@ -57,15 +48,10 @@ def _date(value):
     return str(value)
 
 
-#: Every key in every payload here whose value is money. Named rather than
-#: inferred, because the two checkers that enforce the wire format -- the unit
-#: tests and the acceptance suite -- have to walk a decoded payload, where the
-#: only thing left to recognise a figure by is its key.
-#:
-#: It cannot drift: `tests/test_api.py` reads this module's syntax tree and
-#: fails if a key is handed to `money()` and is not listed here. Adding a
-#: money field means adding it here, and that is the one thing that makes both
-#: checks cover it automatically.
+#: Every key in every payload here whose value is money. The unit tests and
+#: the acceptance suite check the wire format on decoded payloads, where the
+#: key is all that identifies a figure. `tests/test_api.py` fails if a key is
+#: handed to `money()` and is not listed here.
 MONEY_KEYS = frozenset([
     "annual", "annual_premium", "approved", "coverage_limit", "deductible",
     "limit", "monthly", "monthly_premium", "paid", "premium", "requested",
@@ -81,8 +67,7 @@ def claim(a_claim):
         "approved": money(a_claim.approved),
         "status": a_claim.status,
         "is_approved": a_claim.is_approved,
-        # The reason is the point of CUJ-2: an agent can only explain a
-        # refusal from the reason that actually refused it.
+        # An agent can only explain a refusal from the reason that refused it.
         "reason": a_claim.reason,
     }
 
@@ -115,12 +100,9 @@ def event(an_event, with_claim=True):
 def policy(policyholder, when=None):
     """One policy, without its history. What a list of them shows.
 
-    Cover is answered `as of` a date rather than described. The picker renders
-    "Lapses 2027-03-10" because a person reads that; a script wants
-    `in_force` and a reason, and it must not have to parse a sentence. Note
-    that `policy_status` is a different question again -- it records the
-    policy's fate over the whole term, and 217 policies are stored "Lapsed"
-    while only 53 have reached the date.
+    Cover is answered as of a date: `in_force` and a reason, where the picker
+    shows a sentence. `policy_status` is different -- the policy's fate over
+    its whole term (see `pages.cover_state`).
     """
     if when is None:
         when = date.today()
@@ -159,10 +141,8 @@ def policy(policyholder, when=None):
 def policy_detail(policyholder, when=None):
     """One policy and everything that has happened under it.
 
-    Every event, not just the claimed ones -- the treats that hurt nobody are
-    the denominator, and a surface that drops them cannot answer how often a
-    slushie causes brain freeze. They arrive in the order the model keeps
-    them in, which is oldest first.
+    Every event, not just the claimed ones: the treats that hurt nobody are
+    the denominator. Oldest first, as the model keeps them.
     """
     payload = policy(policyholder, when)
     payload["events"] = [event(e) for e in policyholder.events]
@@ -172,11 +152,9 @@ def policy_detail(policyholder, when=None):
 def claim_detail(policyholder, an_event):
     """One claim, with the episode behind it and the terms it was judged by.
 
-    The limit and the deductible are here because without them the two
-    figures do not explain themselves: a script reading `requested` and
-    `approved` can see what the episode cap and the excess took only if it is
-    told what they were. It is not told the subtraction -- that would be a
-    second copy of arithmetic the decision screen already does.
+    The limit and the deductible are here so `requested` and `approved`
+    explain themselves. The subtraction is not: that would be a second copy
+    of the decision screen's arithmetic.
     """
     return {
         "policy_id": policyholder.policy_id,
@@ -191,8 +169,8 @@ def claim_detail(policyholder, an_event):
 def quote(offer):
     """A priced quote, with the reasoning that produced it.
 
-    The breakdown is not decoration. CUJ-2 asks an agent to explain a price,
-    and it can only do that from the same rows the quote screen shows.
+    The breakdown is what lets an agent explain a price from the same rows
+    the quote screen shows.
     """
     plans = {}
     for name in offer.plans:
@@ -215,14 +193,12 @@ def quote(offer):
 def stats(book):
     """Book-level aggregates: `brainfreeze.analysis`, serialised.
 
-    Every figure is one of the named questions rather than a count worked out
-    here. A surface that did its own aggregation would be a second answer, and
-    the denominator is exactly what gets got wrong.
+    Every figure comes from `brainfreeze.analysis`, not from aggregation
+    here, so there is only one answer.
 
-    The counts are renamed on the way out. `book_summary` calls them
-    `policies`, `claims` and `approved`, which is fine in Python and ambiguous
-    in JSON: `approved` is money on a claim and a count here, and `events` is
-    a list on a policy. `_count` throughout, so a reader never has to ask.
+    Counts are renamed `*_count` on the way out: `approved` is money on a
+    claim and `events` a list on a policy, so the bare names are ambiguous
+    in JSON.
     """
     summary = analysis.book_summary(book)
     return {

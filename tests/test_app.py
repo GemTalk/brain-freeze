@@ -8,7 +8,7 @@ plain CPython there is no gemdb module, so the whole module skips and
 coverage of the app at all.
 
 setUpClass re-seeds. The tests file real claims and create a real policy, and
-re-running the seed is how this demo resets, so leaning on that keeps them
+re-running the seed is how the app resets, so leaning on that keeps them
 deterministic and leaves the database in a known state afterwards.
 """
 
@@ -75,11 +75,9 @@ class TheApp(unittest.TestCase):
     def newest_claim(self, policy):
         """The claim just filed, found by claim id rather than by position.
 
-        `policy.events[-1]` was the obvious way and stopped being true once
-        events were kept in date order: and the app files a claim dated
-        TODAY against policies whose seeded events run into 2027, so a new
-        event usually lands in the MIDDLE. Position was never the thing that
-        made it the new one.
+        Not `policy.events[-1]`: events are kept in date order, and the app
+        files a claim dated TODAY against policies whose seeded events run
+        into 2027, so a new event usually lands in the MIDDLE.
         """
         seeded = self.seeded_claims
         fresh = [e.claim for e in policy.events
@@ -119,9 +117,8 @@ class TheApp(unittest.TestCase):
         self.assertIn(first, r.data.decode())
 
     def test_a_book_saved_before_quotes_says_how_to_fix_it(self):
-        """A 500 is a dead end unless it says what to run. This names the
-        command that exists, which it did not when load.py replaced the
-        script it named."""
+        """A 500 is a dead end unless it says what to run, and the commands
+        it names have to exist."""
         from werkzeug.exceptions import HTTPException
         with self.app.test_request_context():
             with self.assertRaises(HTTPException) as raised:
@@ -148,7 +145,7 @@ class TheApp(unittest.TestCase):
     # the module -- the ordinary way to spy on `commit`/`refresh` -- puts the
     # session into a dirty state that `commit()` does NOT clear, so the very
     # next `refresh()` raises PendingChangesError and the test destroys what it
-    # came to measure. Measured 2026-09-09.
+    # came to measure.
     #
     # So the order of the recipe is pinned by reading app.py's syntax tree in
     # tests/test_refresh.py, which runs under plain CPython, and what is
@@ -176,9 +173,8 @@ class TheApp(unittest.TestCase):
                      "<dirty>", "exec"), namespace)
         namespace["_dirties_the_session"](1)
         if not gemdb.needs_commit():
-            # findings/04 measured this both ways on different Grails. If the
-            # session is clean there is no trap to spring, and saying so is
-            # better than passing quietly.
+            # If the session is clean there is no trap to spring, and saying
+            # so is better than passing quietly.
             self.skipTest("this session is clean -- nothing to refuse")
         self.assertEqual(
             self.client.get("/policies/%s" % ACTIVE_READONLY).status_code, 200)
@@ -186,7 +182,7 @@ class TheApp(unittest.TestCase):
     def test_a_filed_claim_lands_in_date_order_not_at_the_end(self):
         # The app dates a claim TODAY, and ACTIVE's seeded events run
         # into 2027, so an appended event would show up last in a history it
-        # belongs in the middle of -- on the screen CUJ-3 drives.
+        # belongs in the middle of.
         policy = self.book()[ORDERING]
         later = [e for e in policy.events if e.event_date > date.today()]
         if not later:
@@ -207,8 +203,8 @@ class TheApp(unittest.TestCase):
     # -- the quote flow --------------------------------------------------
 
     def test_the_quote_form_does_not_ask_for_sex(self):
-        # FR-5.2: it is in the CSVs and carries no weight in the risk model,
-        # so asking would pose a question that changes nothing.
+        # Sex is in the CSVs and carries no weight in the risk model, so
+        # asking would pose a question that changes nothing.
         r = self.client.get("/quote")
         self.assertEqual(r.status_code, 200)
         self.assertNotIn("sex", r.data.decode().lower())
@@ -230,9 +226,9 @@ class TheApp(unittest.TestCase):
     def a_quote(self, answers=None):
         """Ask for a quote and return (its id, the page it redirects to).
 
-        `POST /quote` is a write now -- it puts a SavedQuote in the book --
-        so it answers 303/302 and the screen is a GET of the quote's own
-        address. The answers used to come back as hidden fields instead, which is the one place this app kept state in the browser.
+        `POST /quote` is a write -- it puts a SavedQuote in the book -- so it
+        answers with a redirect and the screen is a GET of the quote's own
+        address.
         """
         posted = self.client.post("/quote", data=answers or self.EXAMPLE_ANSWERS)
         self.assertEqual(posted.status_code, 302)    # POST/redirect/GET
@@ -255,7 +251,7 @@ class TheApp(unittest.TestCase):
         self.assertIn(quote_id, body)            # and it says which quote
 
     def test_the_quote_explains_itself(self):
-        # CUJ-2 needs the breakdown visible, not just the total.
+        # Explaining a price needs the breakdown visible, not just the total.
         self.assertIn("Everyone starts here", self.a_quote()[1].data.decode())
 
     # -- a quote is an object ---------------------------------------------
@@ -296,8 +292,8 @@ class TheApp(unittest.TestCase):
         self.assertEqual(self.client.get("/quote/QTE-999999").status_code, 404)
 
     def test_the_quote_screen_sends_nothing_back_through_the_browser(self):
-        # The defect in one line. A hidden field on this page is a quote's
-        # state living in the client because it had nowhere else to live.
+        # A hidden field on this page would be a quote's state living in the
+        # client; the quote lives in the book instead.
         self.assertNotIn('type="hidden"', self.a_quote()[1].data.decode())
 
     def test_taking_out_a_policy_persists_it(self):
@@ -404,7 +400,7 @@ class TheApp(unittest.TestCase):
     def test_a_policy_that_has_not_started_is_not_told_it_lapsed(self):
         # 147 of the 900 terms begin after today. Cover has not started, so a
         # claim is refused -- but not for a lapse these policies never had,
-        # and the old warning would have said "ended on None".
+        # and the warning must not say "ended on None".
         today = date.today()
         not_started = [p for p in self.book()
                        if today < p.policy_start_date and p.policy_lapse_date is None]
@@ -476,8 +472,7 @@ class TheApp(unittest.TestCase):
         self.assertEqual(claim.status, "Approved")
         # ZERO, not 0: `claim.approved` is money, and a Decimal compared
         # against a bare int raises TypeError in the database (see
-        # tests/test_decimal_comparison.py). This line had never run -- the
-        # suite died of AlmostOutOfStack before reaching it.
+        # tests/test_decimal_comparison.py).
         self.assertGreater(claim.approved, ZERO)
         self.assertGreater(policy.total_paid, before_paid)
 
@@ -526,8 +521,7 @@ class TheJsonApi(unittest.TestCase):
     against a seeded book. What is left for here is what only a live database
     can answer: that the routes exist, that they answer JSON rather than an
     HTML error page, and -- the one that matters -- that the money in a body
-    is the exact figure the model holds, in a runtime whose Decimals do not
-    keep their trailing zeros.
+    is the exact figure the model holds, to the cent.
     """
 
     @classmethod
@@ -578,8 +572,8 @@ class TheJsonApi(unittest.TestCase):
                                  "tension_type_headache_history",
                                  "typical_consumption_speed",
                                  "favourite_trigger"])
-        # FR-5.2: sex is in the CSVs and carries no weight in the model, so
-        # the JSON surface does not ask for it either.
+        # Sex is in the CSVs and carries no weight in the model, so the JSON
+        # surface does not ask for it either.
         self.assertNotIn("sex", json.dumps(body).lower())
 
     def test_the_options_are_the_values_the_model_accepts(self):
@@ -612,10 +606,9 @@ class TheJsonApi(unittest.TestCase):
         self.assertEqual(body["quote"]["plans"]["Standard"]["annual"], "171.00")
 
     def test_money_in_a_body_is_a_string_and_not_a_number(self):
-        # The decision this card turns on. `str()` on a Decimal inside the
-        # database drops the trailing zero, so this would read "171.0" if the
-        # serialiser were not doing the two places itself -- and a float would
-        # put back the disagreement exact money removed.
+        # The decision the JSON surface turns on: an exact string to the cent,
+        # written by the serialiser rather than by `str()`, and never a float,
+        # which would put back the disagreement exact money removed.
         plan = self.post("/api/quote", {
             "age": 11, "typical_consumption_speed": "fast",
             "favourite_trigger": "slushie"})["quote"]["plans"]["Standard"]

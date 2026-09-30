@@ -36,7 +36,7 @@ class Aggregates(unittest.TestCase):
         self.assertEqual(s["loss_ratio"], 0.594)
 
     def test_loss_ratio_by_tier(self):
-        # The demo's punchline: the 1.9x High loading over-prices the risk, so
+        # The headline finding: the 1.9x High loading over-prices the risk, so
         # the riskiest customers are the most profitable and Medium is the
         # band losing money relative to its price.
         self.assertEqual(analysis.loss_ratio_by_tier(self.book),
@@ -167,7 +167,7 @@ class Rankings(unittest.TestCase):
 
     def test_rankings_are_stable(self):
         # Ties are broken by policy_id, so an agent asked the same question
-        # twice gets the same answer and a demo does not wobble.
+        # twice gets the same answer.
         self.assertEqual(analysis.top_n_by_loss_ratio(self.book, 5),
                          analysis.top_n_by_loss_ratio(self.book, 5))
         self.assertEqual(
@@ -182,8 +182,8 @@ class Rankings(unittest.TestCase):
 class EmptyBook(unittest.TestCase):
     """A fresh book answers rather than dividing by zero.
 
-    The app creates policies with no events, and CUJ-1 looks at one straight
-    after taking it out.
+    The app creates policies with no events, and shows one straight after
+    taking it out.
     """
 
     def setUp(self):

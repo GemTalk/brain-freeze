@@ -7,7 +7,7 @@ can say is that a person is *shown* figures that hold together.
 
 There are two exceptions, and both are deliberate.
 
-The first is that this file imports `brainfreeze`. The demo's whole claim is
+The first is that this file imports `brainfreeze`. The claim under test is
 that the app REPORTS payouts rather than working them out, and the only way to
 test a claim like that is to run the rules independently and check the page
 agrees. So `adjudicate` is driven here -- but every input it is given was read
@@ -109,7 +109,7 @@ def the_policy_is_covered_today(context):
     """The scenario's premise, asserted rather than assumed.
 
     If this policy ever stops being in force -- the seed changes, or its term
-    simply runs out as the demo ages -- the claim below is refused and every
+    simply runs out -- the claim below is refused and every
     assertion after it fails somewhere far less informative than here.
     """
     tag = context.page.locator("p.sub .tag").inner_text().strip()
@@ -371,8 +371,8 @@ def it_sits_in_date_order(context):
 
     This policy's seeded history runs into 2027, so a claim filed today
     belongs in the middle of it. A row at the end would mean the record is
-    kept in the order things were entered, which is the bug those two issues
-    fixed -- and it is also why nothing here looks the claim up by position.
+    kept in the order things were entered -- and it is why nothing here looks
+    the claim up by position.
     """
     index, dates, _ = _row_of_the_new_claim(context)
     assert dates == sorted(dates), (

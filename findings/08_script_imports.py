@@ -1,59 +1,31 @@
-"""Finding 8: what a script can import, and what the database remembers.
+"""Finding 8: what a script can import, and what the database keeps.
 
     gemdb findings/08_script_imports.py     # run it TWICE
 
-Last verified against Grail 9a0b0fc (engine 4.0.0.a2), 2026-09-23.
+Two halves. The first shows where `sys.path` points: a script can import the
+module beside it (Grail#847, fixed), but `sys.path[0]` is relative to the
+working directory, so a script that changes directory loses its neighbours.
 
-Two halves. The first is about where `sys.path` points, and it is fixed on
-current Grail -- with one wrinkle still worth knowing. The second is about the
-database keeping a compiled copy of a module and serving it in preference to
-the file on disk, and that one is live and cost the most time of anything in
-this repo.
+The second is live (GemTalk/Grail#1223): once a package module has been
+compiled and committed, `from package import module` in a later session
+returns the committed copy without checking the file on disk, so an edit
+does not take. `import package.module` does check, which is why
+`tools/load.py` imports that way.
 
-Run 1 measures the path, writes a throwaway PACKAGE, imports it, commits, and
+Run 1 measures the path, writes a throwaway package, imports it, commits, and
 edits it. Run 2 is a fresh session that imports the same package. Two runs
-because a genuine re-import needs a genuine new session.
-
-**THE COMMIT IS THE WHOLE MECHANISM, AND IT IS NOT A MISTAKE**
-
-Without `gemdb.commit()` in run 1, run 2 reads the edited file quite happily.
-The first draft of this script had no commit and concluded there was no
-problem. Compiling a module is a repository write; COMMITTING it is what makes
-the database keep the compiled copy and hand it to every later session.
-
-Which puts two pieces of good advice in direct conflict. `findings/class-
-identity/` establishes that you must commit after your imports, or instances
-you write are stranded on a class the next session does not recognise. That
-rule is right. This is its price: the same commit that stabilises your classes
-freezes your code, and nothing tells you which version you are running.
-
-`redeploy.py` in this repo is the way out, and it is not obvious -- deleting
-the module from `sys.modules` makes it unimportable for the rest of the
-session rather than fresh.
+because a genuine re-import needs a genuine new session. The commit in run 1
+is the mechanism: without it, run 2 reads the edited file.
 
 It writes `findings/tmp_neighbour/` and removes it at the end of run 2. It
 never touches `gemdb.root` and never touches `brainfreeze/`.
-
-WHY THE SECOND HALF MATTERS MORE THAN IT SOUNDS
-
-`tests/test_app.py` was edited over and over with no effect, run after run,
-while edits to top-level `app.py` in the same tree took effect immediately.
-`run_db_tests.py` reads its test modules and `exec`s them rather than importing
-them, for exactly this reason: a runner that silently tests the previous
-version of the tests is worse than no runner.
-
-The same thing at package scale ate an afternoon during the money work. The
-database went on running a float `annual_premium` for an hour after the file on
-disk had returned exact `Decimal`, and every test passed -- against last week's
-rules. `redeploy.py` in this repo is the answer, and finding this out is what
-it is for.
 """
 
 import os
 import shutil
 import sys
 
-#: Not `__doc__` -- `__main__` is shared under Grail; see finding 2.
+#: Not `__doc__`: older Grail builds shared `__main__` between scripts.
 TITLE = "Finding 8: sys.path, and modules the database will not let go of."
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -72,12 +44,8 @@ WHAT_THE_FILE_SAYS = "EDITED between run 1 and run 2"
 
 
 def write_module(text):
-    """A PACKAGE, not a lone module, and that distinction is the finding.
-
-    A top-level module picks up an edit on the next run. A module imported as
-    part of a package does not: the database keeps what it compiled. Writing
-    an `__init__.py` beside it is the whole difference.
-    """
+    """A PACKAGE, not a lone module: a top-level module picks up an edit on
+    the next run, and a module imported from a package does not."""
     if not os.path.isdir(PKG):
         os.makedirs(PKG)
     with open(os.path.join(PKG, "__init__.py"), "w") as handle:
@@ -95,11 +63,7 @@ def show_the_path():
     print("    %-26s %r" % ("sys.path[0]", first))
     print("    %-26s %s" % ("...is it absolute?", os.path.isabs(first)))
     print()
-    print("    Grail issue #847 was that a script could not import the module")
-    print("    beside it. That is fixed -- 8c8f503e, 2026-08-29 -- and the")
-    print("    import below confirms it on your build.")
-    print()
-    print("    But note what sys.path[0] IS: a path RELATIVE to the working")
+    print("    Note what sys.path[0] IS: a path RELATIVE to the working")
     print("    directory, where CPython puts an absolute one. It resolves")
     print("    only while the process stays where it started. Anything that")
     print("    changes directory -- and a test runner reasonably might --")
@@ -135,15 +99,9 @@ def run_one():
     write_module(BEFORE)
     said = try_the_neighbour_import()
 
-    # The commit is the whole experiment. Compiling a module is a repository
-    # write; committing it is what makes the database keep the compiled copy
-    # and hand it back to every later session. Without this line run 2 reads
-    # the edited file quite happily, which is why the first version of this
-    # script concluded there was no problem.
-    #
-    # It is the same instruction as the class-identity rule in
-    # tests/test_class_identity.py: commit after your imports. That rule keeps
-    # class identity stable, and this is the price it charges.
+    # The commit is the experiment: it is what makes the database keep the
+    # compiled copy and hand it to later sessions. Without it, run 2 reads
+    # the edited file.
     gemdb.commit()
     print("\n    committed -- the compiled module is now the database's")
 
@@ -171,10 +129,8 @@ def run_two():
     print("    run 2 read                  %r" % said)
     print()
     if said == "EDITED between run 1 and run 2":
-        print("  The edit took, even for a package. Either your Grail differs")
-        print("  from the one this was measured on, or the package was never")
-        print("  deployed -- record which, because this repo measured the")
-        print("  opposite and `redeploy.py` exists because of it.")
+        print("  The edit took. If this Grail has fixed Grail#1223, this finding")
+        print("  can go; `tools/load.py` avoids this import form either way.")
     elif said == run1_said:
         print("  REPRODUCED. A new session, a new process, an edited file on")
         print("  disk -- and the database served what it compiled last time.")
@@ -189,7 +145,7 @@ def run_two():
     print("  Not from the database. A compiled module stays, and there is no")
     print("  supported way to take it out -- deleting it from `sys.modules`")
     print("  makes it unimportable for the rest of the session rather than")
-    print("  fresh. That residue is finding 2 in another costume.")
+    print("  fresh.")
     return 0
 
 

@@ -1,25 +1,18 @@
 """No undefined name reaches a handler.
 
-WHY THIS EXISTS
-
 The modules that serve requests -- `app`, `routes_html`, `routes_api`,
-`lookups`, `wire` -- import `gemdb` and `flask`, so CPython cannot import
-them. Nothing in the CPython suite executes a single line of them. A name
-that does not exist is therefore invisible until a request reaches that line
-inside the database, and the demo's most expensive half hour was spent
-finding exactly that: handlers calling helpers under names they had been
-given while the app was one file.
+`lookups`, `wire` -- import `gemdb` and `flask`, so CPython cannot import or
+execute them. A name that does not exist is invisible until a request reaches
+that line inside the database.
 
 `tests/test_imports.py` resolves the imports between these modules without
-running them. This closes the other half -- a name used but never bound --
-by handing the files to pyflakes, which does the scope analysis properly
-rather than approximately.
+running them. This closes the other half -- a name used but never bound -- by
+handing the files to pyflakes, which does the scope analysis properly.
 
 Pyflakes is the one development dependency, and it is optional on purpose:
 the application itself is standard library only, so that the same code runs
-under CPython and inside GemStone. When it is missing this module says so
-and skips, which is why `run_db_tests.py` and the in-database suite remain
-the backstop rather than the only line of defence.
+under CPython and inside GemStone. When it is missing this module skips, and
+the in-database suite remains the backstop.
 
     python3 -m pip install pyflakes
 """
@@ -36,10 +29,8 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 #: commands. Read off the directories rather than listed, so a module added
 #: to either is checked without anyone remembering to add it here.
 #:
-#: Nothing is excused. There was an excuse mechanism -- skip a complaint whose
-#: line carries a `# noqa` -- and it existed for two side-effect imports. Both
-#: were rewritten to say what they mean instead, which left the mechanism with
-#: nothing to forgive and a standing offer to hide the next real complaint.
+#: Nothing is excused: no `# noqa`, which would be a standing offer to hide
+#: the next real complaint.
 SURFACE = sorted(
     os.path.join(directory, name)
     for directory in ("web", "tools")

@@ -1,16 +1,13 @@
 Feature: Getting a quote and buying a policy
 
-  The first thing anyone touches. Five questions, three priced plans, and a
-  policy at the end of it.
+  Five questions, three priced plans, and a policy at the end of it.
 
-  The point worth watching is that the quote is an OBJECT. It has an id, it can
-  be re-opened, and accepting it sells at the price it showed -- none of that
-  state goes through the browser. Before it was an object, the answers were
-  round-tripped in hidden form fields so accepting could recompute, which is
-  the one place this demo did the opposite of what it claims.
+  The quote is an object. It has an id, it can be re-opened, and accepting it
+  sells at the price it showed -- none of that state goes through the
+  browser.
 
   Background:
-    Given the demo is running
+    Given the app is running
 
   Scenario: a quote is an object, and the policy is sold at the price it showed
     When I open the quote page

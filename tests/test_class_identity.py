@@ -3,25 +3,18 @@
 Run: python3 -m unittest test_class_identity -v
 
 Adding a class attribute to a class that already has committed instances is
-the ordinary shape of a schema change, and it used to re-mint the class: an
-added class attribute needed a slot on the metaclass, a metaclass cannot grow
-one, so Grail declined to reuse the class. Every record committed under the
-old one was left pointing at a class nothing recognised, and `isinstance`
-answered False.
+the ordinary shape of a schema change -- step 3 of the tutorial. If Grail
+re-minted the class instead of reusing it, every record committed under the
+old one would point at a class nothing recognises, and `isinstance` would
+answer False. This guards against that.
 
-That is the whole of what this asserts, and it is deliberately narrow. The
-record's DATA was never at risk and asserting it proves nothing; what the edit
-threatens is the record's relationship to its class -- which is what makes it
-findable by type, and what an application actually depends on.
+The record's data is not what is at risk; its relationship to its class,
+which is what makes it findable by type, is.
 
-This drives two real sessions, because a genuine re-import needs a genuine new
-session; `tests/class_identity/` holds the two scripts. It is a
-CPython-side test for that reason: it SPAWNS database sessions, so it cannot
-itself be one. `tools/run_db_tests.py` names its modules explicitly and does
-not pick this up.
-
-It skips rather than fails when there is no database to ask, so a checkout
-without one still runs the suite.
+It drives two real sessions (the scripts in `tests/class_identity/`), because
+a genuine re-import needs a genuine new session. So it is a CPython-side test:
+it spawns database sessions and cannot be one. It skips when there is no
+database to ask.
 """
 
 import os

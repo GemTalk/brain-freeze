@@ -1,35 +1,19 @@
-"""The generator, which nothing exercised until now.
+"""The dataset generator, `data/generate.py`.
 
-WHY IT MATTERS MORE THAN ITS LINE COUNT SUGGESTS
-
-`data/generate.py` is the only part of this repo that is not run by anything. It is
-also the part whose output every other pinned figure depends on: 251 CPython
-tests, 194 in-database tests and nine published answers are all assertions
-about what it produced. Measured coverage of the generator was **19%**.
-
-And it is not merely untested, it is *touchy*. Nudging one drawn value shifts
-the RNG stream for everything after it, because the claim branch consumes more
-randomness than the no-claim branch -- so a one-line change to a clamp moved
-4,993 events to 4,940 and renumbered 2,631 claim ids. A change that looks
+Every pinned figure in the repo -- in the tests and in the published MCP
+answers -- is an assertion about what it produced. And it is touchy: the
+claim branch consumes more randomness than the no-claim branch, so nudging one
+drawn value shifts the RNG stream for everything after it. A change that looks
 local is not.
 
-WHAT THESE TESTS DO AND DO NOT DO
-
-They do not regenerate. Regenerating takes a while and would rewrite `data/`,
-which is the one thing no test may do -- the committed CSVs are the fixture
-everything else is pinned to.
-
-Instead they exercise the generator's pieces against a private RNG, and assert
-the properties the rest of the repo silently relies on: that events land inside
-their policy's term, that they come out sorted, and that the seeded output is
-reproducible from the seed it claims.
-
-The reproducibility check is the important one. It is the only thing that would
-notice if the committed data stopped being what the committed generator makes.
+These tests do not regenerate: that would rewrite `data/`, the fixture
+everything else is pinned to. They exercise the generator's pieces against a
+private RNG and assert what the rest of the repo relies on: events land inside
+their policy's term, they come out sorted, and the output is reproducible from
+the seed it claims.
 """
 
 import os
-import sys
 import unittest
 from datetime import date, timedelta
 

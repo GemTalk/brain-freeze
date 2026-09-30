@@ -1,19 +1,14 @@
 """Every name a surface module imports from a sibling actually exists there.
 
-WHY THIS EXISTS
-
 `app.py` and the modules it registers -- `routes_html`, `routes_api`,
 `lookups`, `wire` -- import `gemdb` and `flask`, so CPython cannot import them
-at all. Nothing in the CPython suite loads them, and until the database runs
-them a misspelled import is invisible. One was: `routes_html` asked
-`templates` for a name that had never existed, and the only thing that said so
-was the in-database suite failing to start, with no line number.
+at all, and a misspelled import is invisible until the database runs them.
+Inside the database it shows up only as the suite failing to start, with no
+line number.
 
 So the import graph is checked without being executed. For every
 `from <sibling> import a, b, c` in a top-level module, and every `sibling.name`
-it reads -- the form the routes use, so a loaded change is live (routes.py) --
-the names are looked up in that sibling's syntax tree. Nothing is imported, nothing is run, and it
-catches the whole class of typo in under a second.
+it reads, the name is looked up in that sibling's syntax tree.
 
 It is deliberately syntactic. A name bound in a way this cannot see -- inside
 an `if`, by `globals()[...]` -- would be reported as missing, and that is the
