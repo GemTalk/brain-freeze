@@ -33,7 +33,11 @@
 set -euo pipefail
 
 GEMDB_HOME="${GEMDB_HOME:-$HOME/GemDB}"
-EXTENSION="$(ls -d "$HOME"/.vscode*/extensions/gemtalksystems.gemdb-* 2>/dev/null | sort -V | tail -1)"
+# GemDB Code itself, for its installers: GEMDB_EXTENSION if set (CI installs it
+# into an editor of its own), otherwise the newest in a VS Code or VSCodium.
+# `|| true`: under pipefail a failed `ls` here ended the script silently,
+# before the message below that says what is missing.
+EXTENSION="${GEMDB_EXTENSION:-$( (ls -d "$HOME"/.vscode*/extensions/gemtalksystems.gemdb-* 2>/dev/null || true) | sort -V | tail -1)}"
 GEMSTONE="$(sed -n 's/^GEMSTONE="\(.*\)"$/\1/p' "$GEMDB_HOME/bin/gemdb")"
 
 die() { echo "fresh_database: $*" >&2; exit 1; }

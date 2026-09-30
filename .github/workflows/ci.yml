@@ -123,6 +123,9 @@ jobs:
           npm ci --no-audit --no-fund
           node run.js "$RUNNER_TEMP/$VSIX"
           echo "$HOME/GemDB/bin" >> "$GITHUB_PATH"
+          # Installed into the harness's editor, not ~/.vscode: say where, for
+          # tools/fresh_database.sh and the MCP step, which use its installers.
+          echo "GEMDB_EXTENSION=$(ls -d "$PWD"/.vscode-test/extensions/gemtalksystems.gemdb-*)" >> "$GITHUB_ENV"
 
       - name: The acceptance suite's browser
         run: |

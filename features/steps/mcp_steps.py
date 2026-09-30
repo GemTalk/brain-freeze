@@ -57,6 +57,10 @@ def database():
 
 
 def payload():
+    """GemDB Code's MCP payload: GEMDB_EXTENSION's, if set, as for
+    tools/fresh_database.sh; otherwise the newest installed in an editor."""
+    if os.environ.get("GEMDB_EXTENSION"):
+        return os.path.join(os.environ["GEMDB_EXTENSION"], "mcp")
     found = sorted(glob.glob(os.path.expanduser(
         "~/.vscode*/extensions/gemtalksystems.gemdb-*/mcp")))
     assert found, "GemDB Code's MCP payload is not installed"
