@@ -6,7 +6,8 @@
 #
 # Sets GemDB up the way a reader does (ci/setup-gemdb/run.js, GemDB Code's own
 # setup without an editor), loads the book, runs the in-database suite and the
-# notebook, then the acceptance suite from a brand-new database.
+# unit suite with gemdb there to run, then the acceptance suite from a
+# brand-new database.
 #
 # It uses $HOME/GemDB, so run it locally with HOME pointed somewhere empty:
 #
@@ -45,7 +46,9 @@ fi
 step "load the book, then the tests inside the database"
 gemdb tools/seed.py
 gemdb tools/run_db_tests.py
-gemdb tools/run_notebook.py
+
+step "the unit suite, with gemdb here for the tests that start their own"
+python3 -m unittest discover
 
 step "the tutorial, from a brand-new database"
 .venv-acceptance/bin/behave
