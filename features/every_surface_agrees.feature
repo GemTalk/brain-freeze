@@ -13,8 +13,8 @@ Feature: Every surface answers with the same book
   What this does NOT check is the frozen figures printed in the published
   answers. Those describe a freshly seeded book, and by the time this runs the
   suite has bought a policy and filed claims, so they have moved on purpose.
-  Replaying them against a fresh seed is `tools/refresh_mcp.py --verify`, over
-  the real transport. What is checked here is the more useful half: that the
+  They are regenerated from a fresh seed by `tools/make_mcp_questions.py`, and
+  step 5 asks the live book over the real transport. What is checked here is the more useful half: that the
   code the document publishes still runs, and still answers what every other
   surface answers.
 

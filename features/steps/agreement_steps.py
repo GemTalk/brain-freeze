@@ -7,9 +7,9 @@ compared against the JSON surface and the page.
 The comparison is always live-against-live. The figures printed in
 `docs/mcp-questions.md` describe a freshly seeded book and the suite has
 written to this one by the time these run, so comparing against those numbers
-would be a test of which scenario happened to go first. `tools/refresh_mcp.py
---verify` is where the frozen answers are replayed, against a fresh seed and
-over the real transport.
+would be a test of which scenario happened to go first. The frozen answers are
+regenerated from a fresh seed by `tools/make_mcp_questions.py`, and step 5 asks
+the live book over the real transport.
 """
 
 import os
@@ -22,13 +22,13 @@ from behave import then, when
 from environment import REPO, ensure_app_answering, gemdb_env, keep
 
 # `tools/` is a plain directory rather than a package, so it goes on the path.
-# The document parser lives in `refresh_mcp` and there is no reason to have a
-# second one here: a snippet this file extracted differently from the way the
-# verifier extracts it would not be the published snippet.
+# The document parser lives in `mcp_questions` and there is no reason to have a
+# second one here: a snippet this file extracted differently from the way
+# step 5 extracts it would not be the published snippet.
 if os.path.join(REPO, "tools") not in sys.path:
     sys.path.insert(0, os.path.join(REPO, "tools"))
 
-import refresh_mcp                           # noqa: E402  (needs the path first)
+import mcp_questions                           # noqa: E402  (needs the path first)
 
 #: How long a `gemdb` run may take. The notebook renders charts and walks the
 #: whole book; a cold first run also compiles into the database.
@@ -54,16 +54,16 @@ def published(title_fragment):
     agent, where the last expression echoes itself. That is the only change
     made to it.
     """
-    with open(refresh_mcp.DOC) as handle:
+    with open(mcp_questions.DOC) as handle:
         markdown = handle.read()
-    preamble = refresh_mcp.published_preamble(markdown)
-    for promise in refresh_mcp.promises(markdown):
+    preamble = mcp_questions.published_preamble(markdown)
+    for promise in mcp_questions.promises(markdown):
         if title_fragment.lower() in promise.title.lower():
             return "%s\nprint(%s)\n" % (preamble, promise.code.strip())
     raise AssertionError(
         "no published question matches %r -- have %s"
         % (title_fragment,
-           [p.title for p in refresh_mcp.promises(markdown)]))
+           [p.title for p in mcp_questions.promises(markdown)]))
 
 
 def run_published(context, title_fragment):

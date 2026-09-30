@@ -149,7 +149,7 @@ class TheDatabaseRunnerRunsEverything(unittest.TestCase):
         # only be slower there. Named rather than guessed at.
         cpython_only = {
             "test_refresh",         # reads app.py's syntax tree
-            "test_refresh_mcp",     # parses markdown and shas
+            "test_mcp_questions",   # parses markdown
             "test_quote_flow",      # reads the route modules' syntax trees
             "test_route_coverage",  # reads the route modules' syntax trees
             "test_imports",         # resolves imports without running them
@@ -192,10 +192,10 @@ class ThePublishedQuestionsAreExecutable(unittest.TestCase):
     reader to paste three lines that could not run its own question six."""
 
     def test_the_preamble_binds_every_name_the_snippets_use(self):
-        import refresh_mcp
-        with open(refresh_mcp.DOC) as handle:
+        import mcp_questions
+        with open(mcp_questions.DOC) as handle:
             text = handle.read()
-        preamble = refresh_mcp.published_preamble(text)
+        preamble = mcp_questions.published_preamble(text)
         self.assertIsNotNone(preamble, "the document publishes no preamble")
 
         # Parsed, not split on spaces: `import a.b as c` binds `c`, not `a`.
@@ -209,7 +209,7 @@ class ThePublishedQuestionsAreExecutable(unittest.TestCase):
                 bound.add(node.id)
 
         used, locally_bound = set(), set()
-        for promise in refresh_mcp.promises(text):
+        for promise in mcp_questions.promises(text):
             for node in ast.walk(ast.parse(promise.code.strip())):
                 if not isinstance(node, ast.Name):
                     continue

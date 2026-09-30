@@ -25,7 +25,7 @@ from behave import then, when
 from environment import REPO, gemdb_env, keep
 
 sys.path.insert(0, os.path.join(REPO, "tools"))
-from refresh_mcp import Client, preamble     # noqa: E402
+from mcp_questions import Client, preamble     # noqa: E402
 
 PORT = 50391
 GRAIL_TOOLSET = "McpGrailToolset"
@@ -166,7 +166,6 @@ def answers_from_the_live_book(context):
                             env=gemdb_env(), capture_output=True, text=True)
     assert direct.returncode == 0, direct.stdout[-1500:] + direct.stderr[-1500:]
     expected = [line for line in direct.stdout.strip().splitlines() if line.strip()][-2:]
-    got = [line for line in context.agent_answer.strip().splitlines() if line.strip()]
     keep(context, "what the agent was asked and answered",
          "server: %s\ntools: %s\n\nasked:\n%s\nanswered:\n%s\n\nasked directly:\n%s\n"
          % (context.agent_server, ", ".join(context.agent_tools), QUESTION,

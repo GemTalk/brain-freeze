@@ -13,7 +13,7 @@ import time
 
 from behave import then, when
 
-from environment import (REPO, gemdb_env, keep, seed_book, start_app,
+from environment import (REPO, gemdb_env, keep, start_app,
                          stop_app)
 
 README = os.path.join(REPO, "README.md")
