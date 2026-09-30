@@ -317,9 +317,8 @@ class SavedQuote:
     """
 
     #: Which policy this quote became, once someone took it up. A class
-    #: attribute as well as an instance one, declared before this class was
-    #: ever committed, which is the only moment a default can be added for
-    #: free -- see `Claim.rule` above and docs/prd-corrections.md correction 5.
+    #: attribute as well as an instance one, so a quote that was never taken
+    #: up reads None -- the same rule as `Claim.rule` above.
     policy_id = None
 
     def __init__(self, quote_id, quoted_on, age, migraine_history,
