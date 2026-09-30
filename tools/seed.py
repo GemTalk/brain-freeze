@@ -61,10 +61,6 @@ def _float(text):
     return float(text) if text else None
 
 
-def _int(text):
-    return int(text) if text else None
-
-
 def _text(value):
     return value if value else None
 

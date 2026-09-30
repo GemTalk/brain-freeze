@@ -79,11 +79,6 @@ def published_preamble(markdown):
     return None
 
 
-def read_promises():
-    with open(DOC) as handle:
-        return promises(handle.read())
-
-
 def preamble():
     """The document's own preamble, plus the path it does not have to mention.
 
