@@ -10,8 +10,7 @@ So these tests are about the shape of the notebook rather than its output:
 
   * the first code cell puts the repository on the path itself;
   * the runner does NOT, so it cannot hide a notebook that fails to;
-  * the committed .ipynb is what the generator produces, since a notebook
-    edited by hand drifts from the file that is supposed to define it.
+  * no cell ships saved output: it has to be run against a live database.
 
 `tests/test_notebook_runs.py` runs it.
 """
@@ -26,7 +25,6 @@ import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NOTEBOOK = os.path.join(REPO, "brain-freeze.ipynb")
-GENERATOR = os.path.join(REPO, "tools", "make_notebook.py")
 RUNNER = os.path.join(REPO, "tools", "run_notebook.py")
 
 
@@ -115,33 +113,7 @@ class TheCheckerDoesNotArrangeWhatItChecks(unittest.TestCase):
                       "this has gone, and the next person will add it back")
 
 
-class TheCommittedNotebookIsWhatTheGeneratorMakes(unittest.TestCase):
-    """`make_notebook.py` is the source of truth -- a .ipynb is JSON with the
-    code split into per-line strings, and editing that by hand is how a
-    notebook and the file that defines it quietly diverge."""
-
-    def test_regenerating_changes_nothing(self):
-        with open(NOTEBOOK, encoding="utf-8") as handle:
-            before = handle.read()
-        backup = tempfile.NamedTemporaryFile(
-            "w", suffix=".ipynb", delete=False, encoding="utf-8")
-        backup.write(before)
-        backup.close()
-        try:
-            finished = subprocess.run([sys.executable, GENERATOR],
-                                      cwd=REPO, capture_output=True, text=True)
-            self.assertEqual(finished.returncode, 0, finished.stderr)
-            with open(NOTEBOOK, encoding="utf-8") as handle:
-                after = handle.read()
-        finally:
-            with open(NOTEBOOK, "w", encoding="utf-8") as handle:
-                handle.write(before)
-            os.remove(backup.name)
-        self.assertEqual(
-            after, before,
-            "the committed notebook is not what tools/make_notebook.py "
-            "produces -- it has been edited by hand, or the generator has "
-            "changed and nobody regenerated")
+class TheCommittedNotebook(unittest.TestCase):
 
     def test_no_cell_ships_saved_output(self):
         """A notebook with saved output is a screenshot. This one has to be

@@ -98,8 +98,8 @@ def run_notebook():
             print()
             print("  CELL %d FAILED: %s: %s" % (number, type(error).__name__, error))
             print()
-            print("  The notebook is step 4 of the tutorial. Fix the cell in")
-            print("  tools/make_notebook.py, then regenerate the notebook.")
+            print("  The notebook is step 4 of the tutorial: fix the cell in")
+            print("  brain-freeze.ipynb.")
             return 1
 
     print()
