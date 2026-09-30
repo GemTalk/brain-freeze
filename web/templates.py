@@ -114,8 +114,8 @@ QUOTE_FORM = _STYLE + """
 """
 
 # The quote is saved, so this form carries only the plan picked, on the
-# button's `value`. No hidden fields anywhere in this file;
-# tests/test_quote_flow.py pins that.
+# button's `value`. No hidden fields anywhere in this file; the quote
+# feature and tests/test_app.py check that.
 PLANS = _STYLE + """
 <h1>Three ways to cover it</h1>
 <p class="sub">Risk band <strong>{{ q.risk_tier }}</strong>,

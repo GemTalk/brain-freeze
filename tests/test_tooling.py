@@ -141,9 +141,6 @@ class TheDatabaseRunnerRunsEverything(unittest.TestCase):
         # These are about files and lists, not about the database, and would
         # only be slower there. Named rather than guessed at.
         cpython_only = {
-            "test_refresh",         # reads app.py's syntax tree
-            "test_quote_flow",      # reads the route modules' syntax trees
-            "test_route_coverage",  # reads the route modules' syntax trees
             "test_imports",         # resolves imports without running them
             "test_lint",            # shells out to pyflakes under CPython
             "test_notebook",        # reads the .ipynb and its generator

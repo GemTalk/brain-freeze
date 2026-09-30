@@ -140,16 +140,8 @@ class TheApp(unittest.TestCase):
         self.assertEqual(r.status_code, 302)
         self.assertIn(LAPSES_LATER, r.headers["Location"])
 
-    # -- taking a new view ----------------------------------------------
-    # Instrumenting `gemdb` is not available to us. Rebinding an attribute on
-    # the module -- the ordinary way to spy on `commit`/`refresh` -- puts the
-    # session into a dirty state that `commit()` does NOT clear, so the very
-    # next `refresh()` raises PendingChangesError and the test destroys what it
-    # came to measure.
-    #
-    # So the order of the recipe is pinned by reading app.py's syntax tree in
-    # tests/test_refresh.py, which runs under plain CPython, and what is
-    # checked here is only what needs a live database.
+    # -- taking a new view: every request starts from what other sessions
+    # -- have committed (take_new_view in web/app.py) ---------------------
 
     def test_the_app_takes_a_new_view_before_every_request(self):
         # Flask's own registry, rather than gemdb's -- introspecting the app

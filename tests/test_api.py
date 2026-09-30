@@ -9,9 +9,8 @@ machine most likely to change it.
 
 * `wire` turns model objects into JSON-ready dicts. It imports
   nothing from `app`, so it can be driven from the real seeded book.
-* The routes themselves are read out of `app.py` as a syntax tree, the same
-  trick `tests/test_refresh.py` uses, because `app.py` imports `gemdb` and
-  `flask` and neither exists out here. What that pins is the contract: six
+* The routes themselves are read out of the route modules as a syntax tree,
+  because they import `gemdb` and `flask` and neither exists out here. What that pins is the contract: six
   paths, and which verbs they answer.
 
 MONEY ON THE WIRE
