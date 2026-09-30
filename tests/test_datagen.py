@@ -2,10 +2,10 @@
 
 WHY IT MATTERS MORE THAN ITS LINE COUNT SUGGESTS
 
-`datagen/` is the only part of this repo that is not run by anything. It is
+`data/generate.py` is the only part of this repo that is not run by anything. It is
 also the part whose output every other pinned figure depends on: 251 CPython
 tests, 194 in-database tests and nine published answers are all assertions
-about what it produced. Measured coverage of `datagen/dataset.py` was **19%**.
+about what it produced. Measured coverage of the generator was **19%**.
 
 And it is not merely untested, it is *touchy*. Nudging one drawn value shifts
 the RNG stream for everything after it, because the claim branch consumes more
@@ -33,11 +33,15 @@ import sys
 import unittest
 from datetime import date, timedelta
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+GENERATOR = os.path.join(REPO, "data", "generate.py")
 
 try:
     import numpy as np
-    from datagen import dataset
+    import importlib.util
+    _spec = importlib.util.spec_from_file_location("generate", GENERATOR)
+    dataset = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(dataset)
 except ImportError:                     # numpy lives outside the database
     np = None
     dataset = None
@@ -80,10 +84,7 @@ class TheSeedIsTheWholeContract(unittest.TestCase):
     figures are archaeology rather than expectations."""
 
     def test_the_seed_is_the_one_the_data_was_made_with(self):
-        path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "datagen", "dataset.py")
-        with open(path) as handle:
+        with open(GENERATOR) as handle:
             source = handle.read()
         self.assertIn("default_rng(20260828)", source,
                       "the seed changed; every pinned figure in the repo is "

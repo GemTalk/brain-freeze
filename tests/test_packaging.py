@@ -2,8 +2,8 @@
 
 Run: python3 -m unittest tests.test_packaging -v
 
-`brainfreeze/` is compiled and run *inside* the database. `datagen/` is the
-only package allowed to reach for numpy and pandas. Nothing else in the suite
+`brainfreeze/` is compiled and run *inside* the database. `data/generate.py` is
+the only file allowed to reach for numpy and pandas. Nothing else in the suite
 notices when that boundary is crossed -- a third-party import added to
 `brainfreeze/` passes every other test here and then fails the first time the
 web app starts.
@@ -26,7 +26,7 @@ GRAIL_AVAILABLE = {"csv", "datetime", "decimal", "math", "random",
 class ThePackageBoundary(unittest.TestCase):
     """`brainfreeze/` runs inside the database. numpy and pandas do not.
 
-    The generator lives in `datagen/` and is the only thing in the repo that
+    The generator is `data/generate.py`, the only thing in the repo that
     may reach for them. This is the test that keeps that true -- a third-party
     import added here would pass every other test in the suite and then fail
     the first time the web app is started.

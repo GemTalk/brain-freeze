@@ -145,6 +145,6 @@ form and the page — while the app keeps serving.
 brainfreeze/         the model and the rules
 web/                 the web app
 tools/               seed.py, and the other commands above
-data/                the sample book, as CSV
+data/                the sample book, as CSV, and generate.py, which made it
 brain-freeze.ipynb   the notebook
 ```

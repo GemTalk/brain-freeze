@@ -65,7 +65,7 @@ jobs:
       # wrong, so a change to it has to be deliberate and said out loud.
       - name: The dataset regenerates byte-identically
         run: |
-          python -m datagen
+          python data/generate.py
           git diff --exit-code -- data/
 
   # The half that needs a database: GemDB set up the way a reader sets it up,

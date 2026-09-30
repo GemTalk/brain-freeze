@@ -27,9 +27,19 @@ and the small chance of a denial for a reason the rules do not model. Keeping
 those apart is what stops the app's quote and the sample data from drifting
 into disagreement.
 
-Run: python3 -m datagen
+The only file in the repo allowed numpy and pandas: `brainfreeze/` is
+compiled and run inside the database, where they do not exist.
+
+    python3 data/generate.py     # rewrites policyholders.csv and claims.csv, here
+
+The output is byte-identical run to run. If it stops being, either something
+is wrong or the dataset is being regenerated deliberately -- and if it is the
+latter, say so loudly: every number in the tests is read out of these two
+files.
 """
 
+import os
+import sys
 from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -37,8 +47,14 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from brainfreeze.money import ZERO, round_cents
-from brainfreeze import (
+#: The repository, so `brainfreeze` is importable: run as a script, this
+#: file's own directory -- data/ -- is what is on the path.
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if REPO not in sys.path:
+    sys.path.insert(0, REPO)
+
+from brainfreeze.money import ZERO, round_cents  # noqa: E402
+from brainfreeze import (  # noqa: E402
     ANNUAL_CLAIM_LIMIT,
     COVERAGE_PLANS,
     TRIGGER_RISK_MULT,
@@ -50,10 +66,10 @@ from brainfreeze import (
     risk_tier,
 )
 
-#: Where the CSVs go: `data/` at the repo root, not the working directory.
-#: seed.py and the tests read them from there, so writing them anywhere else
-#: produces a dataset nothing loads.
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+#: Where the CSVs go: beside this file, not the working directory. seed.py and
+#: the tests read them from here, so writing them anywhere else produces a
+#: dataset nothing loads.
+DATA_DIR = Path(__file__).resolve().parent
 POLICYHOLDERS_CSV = DATA_DIR / "policyholders.csv"
 CLAIMS_CSV = DATA_DIR / "claims.csv"
 
@@ -367,3 +383,7 @@ def main():
     print(f"\nTotal annual premium collected: ${total_premium:,.2f}")
     print(f"Total approved claims paid out: ${total_approved:,.2f}")
     print(f"Implied loss ratio (claims paid / premium): {total_approved / total_premium:.2f}")
+
+
+if __name__ == "__main__":
+    main()
