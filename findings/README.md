@@ -11,5 +11,3 @@ Run any of them with `gemdb findings/<name>`. Fixed findings were removed on
 |---|---|---|
 | [`01_shim_missing.py`](01_shim_missing.py) | A database can be installed without the CPython shim; then `import re`, and so Flask and Jinja, fail | not yet filed |
 | [`06_statistics_decimal.py`](06_statistics_decimal.py) | `statistics.mean` and `median` over Decimals end the session instead of raising | not yet filed |
-| [`08_script_imports.py`](08_script_imports.py) | What a script can import, and what the database keeps. The live part: `from package import module` returns the committed copy after an edit | [Grail#1223](https://github.com/GemTalk/Grail/issues/1223) |
-| [`runtime-reinstall/`](runtime-reinstall/README.md) | A Python runtime reinstall orphans every committed object | [Grail#1181](https://github.com/GemTalk/Grail/issues/1181), [GemDB_Code#31](https://github.com/GemTalk/GemDB_Code/issues/31) |

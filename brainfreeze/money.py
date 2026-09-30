@@ -49,13 +49,13 @@ def usd(value):
         # Anything else is a programming error. One shape of it is named: after
         # a Python runtime upgrade, committed money can answer False to
         # `isinstance(value, Decimal)` while still being exact money, because
-        # the class moved (findings/runtime-reinstall/). Without this branch
+        # the class moved (GemTalk/Grail#1181). Without this branch
         # the error would be a baffling `AttributeError: strip`.
         raise TypeError(
             "money of type %s, which this runtime does not recognise as a "
             "Decimal. If this is a figure read back from the database after "
             "a Python runtime upgrade, the value is intact and it is the "
-            "class that moved -- see the upgrade notes rather than the data."
+            "class that moved (GemTalk/Grail#1181), not the data."
             % type(value).__name__)
     text = value.strip()
     if not text:
