@@ -44,6 +44,11 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
+      # tests/test_tutorial_answer.py checks step 3's answer still applies;
+      # a checkout fetches only the commit it tests.
+      - name: The answer to tutorial step 3
+        run: git fetch --no-tags --depth=2 origin tutorial-step-3:tutorial-step-3
+
       # numpy and pandas are for the generator only; brainfreeze/ is not allowed
       # them. pyflakes checks the modules CPython cannot import, and without it
       # two tests skip rather than fail.
