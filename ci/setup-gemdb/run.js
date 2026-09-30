@@ -1,67 +1,98 @@
 // node run.js <path/to/gemdb-*.vsix>
 //
-// Downloads VS Code, installs GemDB Code from the .vsix into an extensions
-// directory of its own, and runs harness/suite.js inside that editor. Exits
-// non-zero if GemDB's setup does not end with a working ~/GemDB/bin/gemdb.
+// Set up GemDB the way a reader does -- GemDB Code's own first-run preparation,
+// then its own Start command -- without an editor. The extension's
+// out/extension.js is loaded in plain Node with a stand-in for the `vscode`
+// module (./vscode-stub.js), so no window opens, here or on CI, and the setup
+// that runs is GemDB's own code rather than a copy of it.
+//
+// Exits 0 once ~/GemDB/bin/gemdb runs Python, with the regex engine, in the
+// database; non-zero with the reason otherwise. GemDB's own log lines are
+// printed as they happen, prefixed [GemDB].
 
-const fs = require('fs');
-const path = require('path');
 const cp = require('child_process');
-const {
-  downloadAndUnzipVSCode,
-  resolveCliArgsFromVSCodeExecutablePath,
-  runTests,
-} = require('@vscode/test-electron');
+const fs = require('fs');
+const Module = require('module');
+const os = require('os');
+const path = require('path');
+const { makeVscode, makeContext, commands } = require('./vscode-stub');
 
-// Run from a terminal inside VS Code (or VSCodium), this process inherits the
-// editor's extension-host environment -- ELECTRON_RUN_AS_NODE=1 among it --
-// and the editor it launches would start as plain Node and reject its own
-// options. None of it is ours to pass on.
-for (const name of Object.keys(process.env)) {
-  if (name === 'ELECTRON_RUN_AS_NODE' || name.startsWith('VSCODE_')) {
-    delete process.env[name];
+const ROOT = path.join(os.homedir(), 'GemDB');
+const GEMDB = path.join(ROOT, 'bin', 'gemdb');
+const GRAIL = path.join(ROOT, 'grail', 'GRAIL_VERSION');
+// GemDB's own setup lock (its src/lock.ts), held for the whole first run.
+const SETUP_LOCK = path.join(ROOT, '.gemdb-setup.lock');
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const since = (t) => `${Math.round((Date.now() - t) / 1000)}s`;
+const prepared = () => fs.existsSync(GEMDB) && fs.existsSync(GRAIL);
+
+function answers() {
+  try {
+    const out = cp.execFileSync(GEMDB,
+      ['-c', 'import re; print("gemdb answers", bool(re.match("a+", "aaa")))'],
+      { encoding: 'utf8', timeout: 120000, stdio: ['ignore', 'pipe', 'pipe'] });
+    return out.includes('gemdb answers True');
+  } catch (e) {
+    return false;
   }
 }
 
-async function main() {
-  const vsix = path.resolve(process.argv[2] || '');
-  if (!process.argv[2]) throw new Error('usage: node run.js <gemdb.vsix>');
-
-  const work = path.join(__dirname, '.vscode-test');
-  const userDataDir = path.join(work, 'user-data');
-
-  // The release named on the command line, and only that: without this the
-  // editor updates GemDB Code from the marketplace on startup, and CI would
-  // test whatever is newest rather than the version it says it installs.
-  const settings = path.join(userDataDir, 'User', 'settings.json');
-  fs.mkdirSync(path.dirname(settings), { recursive: true });
-  fs.writeFileSync(settings, JSON.stringify({
-    'extensions.autoUpdate': false,
-    'extensions.autoCheckUpdates': false,
-    'update.mode': 'none',
-    'telemetry.telemetryLevel': 'off',
-  }, null, 2));
-
-  const code = await downloadAndUnzipVSCode('stable');
-  const [cli, ...cliArgs] = resolveCliArgsFromVSCodeExecutablePath(code);
-  // cliArgs already names the runner's extensions directory; the editor is
-  // launched with the same one below.
-  cp.execFileSync(cli, [...cliArgs, '--install-extension', vsix, '--force'],
-    { stdio: 'inherit' });
-
-  await runTests({
-    vscodeExecutablePath: code,
-    extensionDevelopmentPath: path.join(__dirname, 'harness'),
-    extensionTestsPath: path.join(__dirname, 'harness', 'suite.js'),
-    launchArgs: [...cliArgs.filter((a) => a.startsWith('--extensions-dir')), '--user-data-dir', userDataDir,
-      '--skip-welcome', '--skip-release-notes', '--disable-workspace-trust',
-      // No keychain: a runner, or a HOME pointed somewhere else, may not
-      // have one, and the editor stops to ask where it went.
-      '--use-mock-keychain'],
-  });
+async function waitFor(what, test, limitMs, from) {
+  while (Date.now() - from < limitMs) {
+    if (test()) return;
+    await sleep(3000);
+  }
+  throw new Error(`GemDB setup: ${what} did not happen within ${limitMs / 60000} minutes`);
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+async function main() {
+  if (!process.argv[2]) throw new Error('usage: node run.js <gemdb.vsix>');
+  const vsix = path.resolve(process.argv[2]);
+
+  // The extension, unpacked from the release exactly as an editor would.
+  const work = path.join(__dirname, '.gemdb-extension');
+  fs.rmSync(work, { recursive: true, force: true });
+  fs.mkdirSync(work, { recursive: true });
+  cp.execFileSync('unzip', ['-q', vsix, 'extension/*', '-d', work]);
+  const extensionPath = path.join(work, 'extension');
+  const packageJSON = JSON.parse(fs.readFileSync(path.join(extensionPath, 'package.json'), 'utf8'));
+
+  const vscode = makeVscode(packageJSON, extensionPath);
+  const load = Module._load;
+  Module._load = function (request, ...rest) {
+    return request === 'vscode' ? vscode : load.call(this, request, ...rest);
+  };
+
+  const started = Date.now();
+  const extension = require(path.join(extensionPath, 'out', 'extension.js'));
+  extension.activate(makeContext(vscode, packageJSON, extensionPath, path.join(work, 'storage')));
+  console.log(`GemDB Code ${packageJSON.version} activated`);
+
+  // Phase 1: GemDB's own first-run preparation, seen by the setup lock it
+  // holds rather than by what it has produced so far. Only if nothing takes
+  // the lock within a minute is this a GemDB that does not prepare itself.
+  let began = false;
+  while (!began && Date.now() - started < 60000) {
+    began = fs.existsSync(SETUP_LOCK) || prepared();
+    if (!began) await sleep(1000);
+  }
+  if (!began) {
+    console.log('no first-run setup under way: running gemdb.install');
+    await commands.execute('gemdb.install');
+  }
+  await waitFor('preparation (engine, database, gemdb command)',
+    () => prepared() && !fs.existsSync(SETUP_LOCK), 20 * 60000, started);
+  console.log(`prepared in ${since(started)}`);
+
+  // Phase 2: Start, which files Python support into the running database.
+  const startPressed = Date.now();
+  await commands.execute('gemdb.start');
+  await waitFor('Start (the database running Python)', answers, 10 * 60000, startPressed);
+  console.log(`setup done in ${since(started)}: ${GEMDB} answers`);
+}
+
+main().then(
+  () => process.exit(0),
+  (err) => { console.error(err); process.exit(1); },
+);

@@ -90,12 +90,10 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
-      # Node for the setup harness (ci/setup-gemdb), which drives VS Code.
+      # Node, for GemDB Code's own setup code (ci/setup-gemdb).
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
-          cache: npm
-          cache-dependency-path: ci/setup-gemdb/package-lock.json
 
       - name: Download GemDB Code ${{ matrix.gemdb }}
         run: gh release download "v${{ matrix.gemdb }}" -R GemTalk/GemDB_Code -p "$VSIX" -D "$RUNNER_TEMP"
@@ -117,32 +115,12 @@ jobs:
           unzip -p "$RUNNER_TEMP/$VSIX" extension/resources/setSharedMemoryDarwin.sh > "$RUNNER_TEMP/shm.sh"
           sudo bash "$RUNNER_TEMP/shm.sh"
 
-      - name: Set up GemDB, as a reader does
-        working-directory: ci/setup-gemdb
-        run: |
-          npm ci --no-audit --no-fund
-          node run.js "$RUNNER_TEMP/$VSIX"
-          echo "$HOME/GemDB/bin" >> "$GITHUB_PATH"
-          # Installed into the harness's editor, not ~/.vscode: say where, for
-          # tools/fresh_database.sh and the MCP step, which use its installers.
-          echo "GEMDB_EXTENSION=$(ls -d "$PWD"/.vscode-test/extensions/gemtalksystems.gemdb-*)" >> "$GITHUB_ENV"
-
-      - name: The acceptance suite's browser
-        run: |
-          python -m venv .venv-acceptance
-          .venv-acceptance/bin/pip install behave playwright
-          .venv-acceptance/bin/playwright install chromium
-
-      - name: Load the book, then the tests inside the database
-        run: |
-          gemdb tools/seed.py
-          gemdb tools/run_db_tests.py
-          gemdb tools/run_notebook_check.py
-
-      # Builds its own brand-new database from the GemDB just set up, and
-      # walks the README's five steps before the rest.
-      - name: The tutorial, from a brand-new database
-        run: .venv-acceptance/bin/behave
+      # Everything else is one script, so a local run is this run:
+      # HOME=<empty dir> ci/tutorial.sh <vsix>. It sets GemDB up with GemDB
+      # Code's own setup, headless, then runs the in-database suite, the
+      # notebook, and the tutorial from a brand-new database.
+      - name: Set up GemDB, then the tutorial
+        run: ci/tutorial.sh "$RUNNER_TEMP/$VSIX"
 
       - name: Keep the screenshots
         if: always()
@@ -158,5 +136,4 @@ jobs:
           name: gemdb-logs
           path: |
             ~/GemDB/db/log/
-            ci/setup-gemdb/.vscode-test/user-data/logs/
           if-no-files-found: ignore

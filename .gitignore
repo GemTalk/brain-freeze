@@ -34,7 +34,5 @@ _published_snippet.py
 findings/.finding09_ran
 findings/_finding09_helper_*.py
 
-# The CI harness that runs GemDB setup in a headless editor (ci/setup-gemdb):
-# its npm packages and the editor it downloads.
-ci/setup-gemdb/node_modules/
-ci/setup-gemdb/.vscode-test/
+# The GemDB Code release ci/setup-gemdb/run.js unpacks to run its setup.
+ci/setup-gemdb/.gemdb-extension/
