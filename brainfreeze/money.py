@@ -20,14 +20,10 @@ one rounding rule and one written form:
 A *ratio* is not money and stays a float -- see `brainfreeze.analysis`.
 """
 
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 #: No money at all, as distinct from `None`, which is no money *recorded*.
 ZERO = Decimal("0")
-
-_CENT = Decimal("0.01")
-_HUNDRED = Decimal(100)
-_HALF = Decimal("0.5")
 
 
 def usd(value):
@@ -72,29 +68,20 @@ def round_half_up(value, places=2):
 
     Money uses this through `round_cents`; ratios use it too, so a published
     figure is rounded the same way everywhere. Floats are accepted here,
-    unlike in `usd`: a ratio is a measurement. Negative values round by
-    magnitude, so -0.125 goes to -0.13.
+    unlike in `usd`: a ratio is a measurement. A tie rounds away from zero,
+    so -0.125 goes to -0.13.
     """
     if value is None:
         return None
     value = value if isinstance(value, Decimal) else Decimal(str(value))
-    scale = Decimal(10) ** places
-    negative = value < ZERO
-    shifted = (-value if negative else value) * scale
-    whole = int(shifted)
-    if shifted - whole >= _HALF:
-        whole += 1
-    result = Decimal(whole) / scale
-    return -result if negative else result
+    return value.quantize(Decimal(1).scaleb(-places), rounding=ROUND_HALF_UP)
 
 
 def round_cents(value):
     """Half-up to the cent. The only rounding money gets, anywhere.
 
-    Half-up rather than banker's: it is what a person expects of money, and
-    36 of the 900 monthly premiums are exact half-cents. Written out in
-    Decimal arithmetic (see `round_half_up`) rather than with `quantize`, so
-    the rule is ours and the same in both runtimes.
+    Half-up rather than half to even: it is what a person expects of money,
+    and 36 of the 900 monthly premiums are exact half-cents.
     """
     return round_half_up(value, 2)
 
@@ -118,11 +105,9 @@ def wire_usd(value):
     if value is None:
         return None
     cents = round_cents(value)
-    negative = cents < ZERO
-    magnitude = -cents if negative else cents     # never int() a negative here
-    whole = int(magnitude)
-    fraction = int((magnitude - whole) * _HUNDRED + Decimal("0.5"))
-    return "%s%d.%02d" % ("-" if negative else "", whole, fraction)
+    if cents == ZERO:
+        cents = ZERO.quantize(cents)       # a tiny negative is "0.00", not "-0.00"
+    return format(cents, "f")
 
 
 def format_usd(value):
