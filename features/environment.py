@@ -329,7 +329,7 @@ def ensure_app_answering(context, why):
     and the app's next `take_new_view()` is a Write-Write conflict it cannot
     abort out of -- aborting would discard its own compiled handlers -- so the
     work stays uncommitted and every later request fails the same way. See
-    findings/10_shared_session_state.py and issue #83.
+    issue #83, fixed upstream by Grail#1176.
 
     Checked rather than done unconditionally: a restart costs ten seconds and,
     more importantly, `the app was never restarted` is a real claim that
@@ -340,7 +340,7 @@ def ensure_app_answering(context, why):
     if app_is_answering():
         return False
     print("\n  the app stopped answering after %s -- restarting it.\n"
-          "  (issue #83; findings/10_shared_session_state.py reproduces it)"
+          "  (issue #83)"
           % why, flush=True)
     stop_app(context)
     start_app(context)

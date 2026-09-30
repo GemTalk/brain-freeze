@@ -43,7 +43,7 @@ from datetime import date
 #: repository, so the model has to be pointed at. Every script in here repeats
 #: these three lines rather than importing a helper that does it once: a
 #: helper works until something commits, and then adjusts a `sys.path` the
-#: caller cannot see. Measured -- `findings/09_imported_module_sys.py`.
+#: caller cannot see. Measured on builds before GemDB 1.5.2.
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if REPO not in sys.path:
     sys.path.insert(0, REPO)

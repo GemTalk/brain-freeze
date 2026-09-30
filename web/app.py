@@ -109,7 +109,7 @@ import sys
 #: The repository, so that `brainfreeze` can be found at all. It has to
 #: happen here rather than in a module this imports: a helper that adjusts
 #: the path works until something commits, and then adjusts a `sys.path` the
-#: caller cannot see. Measured -- `findings/09_imported_module_sys.py`.
+#: caller cannot see. Measured on builds before GemDB 1.5.2.
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if REPO not in sys.path:
     sys.path.insert(0, REPO)
@@ -157,7 +157,7 @@ def take_new_view():
     session holds uncommitted work -- and it always does. Grail compiles
     Python into the database, so rendering a template is a repository write
     and a read-only request leaves the session dirty
-    (findings/04_dirty_session.py).
+    (on builds before GemDB 1.5.2).
 
     And never `gemdb.abort()`. It takes a new view too, and it throws away
     this session's uncommitted work -- which is the app's own compiled
@@ -232,7 +232,7 @@ def serve(host="127.0.0.1", port=None):
     That is not a bad request; it is a dead server. The uncommitted work
     stays uncommitted, so the conflict repeats on every request after it, and
     Flask's logging stub turns each one into a closed connection with nothing
-    written anywhere (findings/07_logging_stub.py). Measured: run the
+    written anywhere (before Grail#1163). Measured: run the
     notebook before touching the app and the app never answers again.
 
     Committing here makes the window a request wide instead of a startup

@@ -1,7 +1,7 @@
 """Arm 1 of the schema-change check: commit a record, then edit its class.
 
-    gemdb findings/class-identity/migration_write.py
-    gemdb findings/class-identity/migration_read.py     # the answer is there
+    gemdb tests/class_identity/migration_write.py
+    gemdb tests/class_identity/migration_read.py     # the answer is there
 
 Two processes, because a genuine re-import needs a genuine new session.
 Compiling the edited source with `exec` in this one would land in a different
@@ -14,7 +14,7 @@ attribute to it. `commit_write.py` next door already establishes that an
 UNEDITED class keeps its identity across sessions, so anything this pair
 measures is caused by the edit alone.
 
-It writes a throwaway package under findings/class-identity/tmp_migration/ and
+It writes a throwaway package under tests/class_identity/tmp_migration/ and
 one throwaway key in `gemdb.root`. `migration_read.py` removes both.
 """
 
@@ -68,7 +68,7 @@ def main():
 
     print("ARMED: a record is committed under the unedited class, and the")
     print("       class on disk has since gained `added_later`.")
-    print("       Now run: gemdb findings/class-identity/migration_read.py")
+    print("       Now run: gemdb tests/class_identity/migration_read.py")
     return 0
 
 

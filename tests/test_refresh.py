@@ -17,7 +17,7 @@ and every part of it is a mistake someone will make again:
 * `gemdb.commit()` has to come first, because `refresh()` refuses while the
   session holds uncommitted work and a long-running app always does: Grail
   compiles Python into the database, so rendering one page dirties it
-  (findings/04_dirty_session.py);
+  (on builds before GemDB 1.5.2);
 * `gemdb.abort()` must never appear. It takes a new view too, and it discards
   this session's compiled code -- the app's own handlers included.
 

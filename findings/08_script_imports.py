@@ -142,7 +142,7 @@ def run_one():
     # script concluded there was no problem.
     #
     # It is the same instruction as the class-identity rule in
-    # `findings/class-identity/`: commit after your imports. That rule keeps
+    # tests/test_class_identity.py: commit after your imports. That rule keeps
     # class identity stable, and this is the price it charges.
     gemdb.commit()
     print("\n    committed -- the compiled module is now the database's")

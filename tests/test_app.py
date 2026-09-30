@@ -148,7 +148,7 @@ class TheApp(unittest.TestCase):
     # the module -- the ordinary way to spy on `commit`/`refresh` -- puts the
     # session into a dirty state that `commit()` does NOT clear, so the very
     # next `refresh()` raises PendingChangesError and the test destroys what it
-    # came to measure. Measured 2026-09-09; see findings/05_module_monkeypatch.py.
+    # came to measure. Measured 2026-09-09.
     #
     # So the order of the recipe is pinned by reading app.py's syntax tree in
     # tests/test_refresh.py, which runs under plain CPython, and what is

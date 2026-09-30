@@ -1,7 +1,7 @@
 """Arm 2 of the schema-change check: does the committed record survive it?
 
-    gemdb findings/class-identity/migration_write.py    # run this first
-    gemdb findings/class-identity/migration_read.py
+    gemdb tests/class_identity/migration_write.py    # run this first
+    gemdb tests/class_identity/migration_read.py
 
 A fresh session, importing the edited source the ordinary way. The question is
 whether the class it compiles is the one the committed record points at.

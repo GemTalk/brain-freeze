@@ -30,9 +30,9 @@ htmlcov/
 # the way the document says to run it. Removed by the step that wrote it.
 _published_snippet.py
 
-# What finding 9 leaves between its two runs, if a cycle is interrupted.
-findings/.finding09_ran
-findings/_finding09_helper_*.py
 
 # The GemDB Code release ci/setup-gemdb/run.js unpacks to run its setup.
 ci/setup-gemdb/.gemdb-extension/
+
+# The throwaway package the class-identity test writes between its two sessions.
+tests/class_identity/tmp_migration/

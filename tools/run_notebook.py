@@ -107,7 +107,7 @@ def run_notebook():
     cells = code_cells()
     # One namespace for the whole document, as a kernel gives it. `__name__`
     # is not "__main__": every script this database has ever run shares that
-    # one namespace (findings/02_main_namespace.py), and a cell defining
+    # one namespace on builds before GemDB 1.5.2, and a cell defining
     # something there would collide with whatever ran last.
     namespace = {"__name__": "brain_freeze_notebook"}
 

@@ -38,7 +38,7 @@ class Claim:
     #: `analysis.denial_rules` does. The original reason for that was that a
     #: default declared after records were committed could not reach them --
     #: editing a class compiled a different one -- which is fixed upstream and
-    #: no longer true (findings/class-identity/). The defence stays because a
+    #: no longer true (tests/test_class_identity.py). The defence stays because a
     #: database seeded by an older checkout is still out there, and because
     #: `getattr` costs nothing.
     rule = None
@@ -423,7 +423,7 @@ class Book:
 
         (Until Grail bcedc68a a class-level default could not have reached an
         old book anyway, because editing a class compiled a different one.
-        That is fixed -- see findings/class-identity/ -- so the mutable-default
+        That is fixed -- see tests/test_class_identity.py -- so the mutable-default
         trap is now the only reason this is written the way it is.)
         """
         self.quotes[a_quote.quote_id] = a_quote

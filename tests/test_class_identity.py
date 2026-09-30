@@ -15,7 +15,7 @@ threatens is the record's relationship to its class -- which is what makes it
 findable by type, and what an application actually depends on.
 
 This drives two real sessions, because a genuine re-import needs a genuine new
-session; `findings/class-identity/` holds the scripts and says why. It is a
+session; `tests/class_identity/` holds the two scripts. It is a
 CPython-side test for that reason: it SPAWNS database sessions, so it cannot
 itself be one. `tools/run_db_tests.py` names its modules explicitly and does
 not pick this up.
@@ -30,7 +30,7 @@ import subprocess
 import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SCRIPTS = os.path.join(REPO, "findings", "class-identity")
+SCRIPTS = os.path.join(REPO, "tests", "class_identity")
 TMP_PKG = os.path.join(SCRIPTS, "tmp_migration")
 
 

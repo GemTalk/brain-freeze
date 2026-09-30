@@ -22,7 +22,7 @@ import sys
 
 #: The repository, spelled the way every other entry point here spells it. A
 #: helper that did this once for all of them would stop working the moment
-#: anything committed -- findings/09_imported_module_sys.py.
+#: anything committed (measured on builds before GemDB 1.5.2).
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if REPO not in sys.path:
     sys.path.insert(0, REPO)
