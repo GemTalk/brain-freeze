@@ -45,7 +45,7 @@ fi
 step "load the book, then the tests inside the database"
 gemdb tools/seed.py
 gemdb tools/run_db_tests.py
-gemdb tools/run_notebook_check.py
+gemdb tools/run_notebook.py
 
 step "the tutorial, from a brand-new database"
 .venv-acceptance/bin/behave

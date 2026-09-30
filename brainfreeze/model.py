@@ -402,7 +402,7 @@ class Book:
         #: Quotes given, by quote id. A separate mapping rather than a
         #: policy's field, because most quotes never become a policy -- and
         #: deliberately not in `policies`, which `len(self)` counts and
-        #: `verify_book.py` pins at 900.
+        #: tests/test_seed.py pins at 900.
         self.quotes = {}
 
     def add(self, policyholder):

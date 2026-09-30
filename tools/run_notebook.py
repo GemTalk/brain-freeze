@@ -30,11 +30,13 @@ import json
 import os
 import sys
 
-#: The repository, for the same reason and in the same way as every other
-#: script in here -- see `seed.py`.
+#: The repository, to find the notebook. Note what is NOT here: this runner
+#: does **not** put it on `sys.path`. A runner that did is how the notebook
+#: once shipped without a path cell of its own -- every cell ran here, and the
+#: first `import brainfreeze` in a real kernel raised ModuleNotFoundError. The
+#: notebook says where the repository is itself, in its first cell, and this
+#: runs the cells the way a kernel does.
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if REPO not in sys.path:
-    sys.path.insert(0, REPO)
 
 NOTEBOOK = os.path.join(REPO, "brain-freeze.ipynb")
 
@@ -122,8 +124,8 @@ def run_notebook():
             print()
             print("  CELL %d FAILED: %s: %s" % (number, type(error).__name__, error))
             print()
-            print("  The notebook is beat 5 of the demo. Fix the cell, then")
-            print("  regenerate with `python3 tools/make_notebook.py`.")
+            print("  The notebook is step 4 of the tutorial. Fix the cell in")
+            print("  tools/make_notebook.py, then regenerate the notebook.")
             return 1
 
     print()

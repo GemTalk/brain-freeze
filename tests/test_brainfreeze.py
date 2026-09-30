@@ -426,8 +426,7 @@ class QuotesAreObjects(unittest.TestCase):
         self.assertEqual(Book().quotes, {})
 
     def test_the_book_holds_quotes_without_counting_them_as_policies(self):
-        # verify_book.py and tests/test_seed.py pin policies, events and
-        # claims. A quote is none of those and must move none of them.
+        # tests/test_seed.py pins policies, events and claims. A quote is none of those and must move none of them.
         book = Book()
         self.assertIs(book.add_quote(self.saved), self.saved)
         self.assertEqual(len(book), 0)

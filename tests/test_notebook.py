@@ -8,7 +8,7 @@ three said `from brainfreeze import analysis` and raised
 database's working directory and a cell has no `__file__` to derive one from.
 
 Nothing caught it, and the reason is the interesting part.
-`tools/run_notebook_check.py` put the repository on `sys.path` and THEN
+The notebook runner put the repository on `sys.path` and THEN
 executed the cells. Every cell ran, every run was green, and the acceptance
 suite -- which drives the notebook through that same runner -- was green with
 it. The check had arranged a condition the thing being checked would not have.
@@ -33,7 +33,7 @@ import unittest
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NOTEBOOK = os.path.join(REPO, "brain-freeze.ipynb")
 GENERATOR = os.path.join(REPO, "tools", "make_notebook.py")
-RUNNER = os.path.join(REPO, "tools", "run_notebook_check.py")
+RUNNER = os.path.join(REPO, "tools", "run_notebook.py")
 
 
 def notebook():
@@ -92,7 +92,7 @@ class TheNotebookCanFindItsOwnModel(unittest.TestCase):
 
 
 class TheCheckerDoesNotArrangeWhatItChecks(unittest.TestCase):
-    """`run_notebook_check.py` used to put the repository on `sys.path` before
+    """The notebook runner used to put the repository on `sys.path` before
     executing the cells, which is exactly how the defect above survived. This
     is the test that would have caught that, and it is deliberately about the
     runner's source rather than its output."""

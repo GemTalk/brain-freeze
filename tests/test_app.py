@@ -278,7 +278,7 @@ class TheApp(unittest.TestCase):
         self.assertIsNone(saved.policy_id)
 
     def test_a_quote_does_not_count_as_a_policy(self):
-        # verify_book.py and tests/test_seed.py pin the policy count. A quote
+        # tests/test_seed.py pins the policy count. A quote
         # is not a policy and must not move it.
         before = len(self.book())
         self.a_quote()

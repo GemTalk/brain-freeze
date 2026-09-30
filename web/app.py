@@ -65,8 +65,8 @@ price computed a second time. Nothing in this file emits a hidden input; the
 plan a customer picks rides on the button that picks it.
 
 Quotes are kept in `Book.quotes`, which is deliberately not `Book.policies`:
-`len(book)` is the policy count that `verify_book.py` and `tests/test_seed.py`
-pin, and a quote must not move it.
+`len(book)` is the policy count `tests/test_seed.py` pins, and a quote must
+not move it.
 
 THE JSON API IS THE SAME OBJECTS, NOT A SECOND MODEL
 

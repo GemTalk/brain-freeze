@@ -93,7 +93,7 @@ def run_published(context, title_fragment):
 
 @when('the notebook is run inside the database')
 def run_the_notebook(context):
-    context.notebook_output = run_gemdb_script("tools/run_notebook_check.py")
+    context.notebook_output = run_gemdb_script("tools/run_notebook.py")
     context.notebook_figures = {
         name: int(value)
         for name, value in NOTEBOOK_FIGURE.findall(context.notebook_output)}
@@ -108,7 +108,7 @@ def run_the_notebook(context):
 @then('every one of its cells ran')
 def every_cell_ran(context):
     assert "FAILED" not in context.notebook_output, context.notebook_output[-2000:]
-    assert re.search(r"All \d+ code cells ran", context.notebook_output), (
+    assert re.search(r"OK -- \d+ cells, in order, in one session", context.notebook_output), (
         "the runner did not say every cell ran:\n%s"
         % context.notebook_output[-2000:])
 
