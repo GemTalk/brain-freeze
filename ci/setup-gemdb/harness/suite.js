@@ -1,9 +1,21 @@
-// Runs inside the headless editor: GemDB Code's setup, then waits for it.
+// Runs inside the headless editor: GemDB Code's setup, the way a reader goes
+// through it, then waits until the database runs Python.
 //
-// `gemdb.install` is the command behind the "Set Up GemDB" button a reader
-// clicks. It downloads the engine (or finds the one CI restored from its
-// cache), creates the database, installs Grail and writes ~/GemDB/bin/gemdb.
-// The one question it can ask -- configure shared memory? -- is not asked,
+// Two phases, and a reader goes through both:
+//
+// 1. Preparation, which GemDB starts BY ITSELF the first time it activates on a
+//    machine without it: download the engine (or find the one CI restored from
+//    its cache), create the database, stage Grail, write ~/GemDB/bin/gemdb.
+// 2. Start -- `gemdb.start`, the Start button -- which starts the database and
+//    files Python support into it, since that needs a running database.
+//
+// So this does not call `gemdb.install` alongside the first run: that command
+// does not wait for the first run's setup lock, and the two downloaded the
+// engine into one file at once ("The download ended early"), leaving setup
+// stopped short of Start. It is only the fallback, for a GemDB that does not
+// prepare itself on activation.
+//
+// The one question setup can ask -- configure shared memory? -- is not asked,
 // because CI runs GemDB's own shared-memory script with sudo first.
 
 const fs = require('fs');
@@ -14,7 +26,18 @@ const vscode = require('vscode');
 
 const ROOT = path.join(os.homedir(), 'GemDB');
 const GEMDB = path.join(ROOT, 'bin', 'gemdb');
-const LIMIT_MS = 25 * 60 * 1000;
+const GRAIL = path.join(ROOT, 'grail', 'GRAIL_VERSION');
+// GemDB's own setup lock (src/lock.ts), held for the whole first run.
+const SETUP_LOCK = path.join(ROOT, '.gemdb-setup.lock');
+const PREPARE_MS = 20 * 60 * 1000;
+const START_MS = 10 * 60 * 1000;
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const since = (t) => `${Math.round((Date.now() - t) / 1000)}s`;
+
+function prepared() {
+  return fs.existsSync(GEMDB) && fs.existsSync(GRAIL);
+}
 
 function answers() {
   try {
@@ -26,23 +49,44 @@ function answers() {
   }
 }
 
+async function waitFor(what, test, limit, started) {
+  while (Date.now() - started < limit) {
+    if (test()) return true;
+    await sleep(5000);
+  }
+  throw new Error(`GemDB setup: ${what} did not happen within ${limit / 60000} minutes`);
+}
+
 exports.run = async () => {
   const gemdb = vscode.extensions.getExtension('gemtalksystems.gemdb');
   if (!gemdb) throw new Error('GemDB Code is not installed in this editor');
-  await gemdb.activate();
-  console.log(`GemDB Code ${gemdb.packageJSON.version}: running setup`);
-
   const started = Date.now();
-  await vscode.commands.executeCommand('gemdb.install');
+  await gemdb.activate();
+  console.log(`GemDB Code ${gemdb.packageJSON.version} activated`);
 
-  // The command may return before the last step has finished; the proof is a
-  // gemdb command that runs Python, with the regex engine, in the database.
-  while (Date.now() - started < LIMIT_MS) {
-    if (fs.existsSync(GEMDB) && answers()) {
-      console.log(`setup done in ${Math.round((Date.now() - started) / 1000)}s: ${GEMDB} answers`);
-      return;
+  // Phase 1: GemDB's own first run, seen by the setup lock it holds.  Not by
+  // what it has produced so far: on a slow runner it can be well under way
+  // before ~/GemDB/db exists, and a second setup started then races it.  If
+  // nothing has taken the lock within a minute, this GemDB does not prepare
+  // itself on activation, so ask.
+  const firstRunBegan = await (async () => {
+    while (Date.now() - started < 60000) {
+      if (fs.existsSync(SETUP_LOCK) || prepared()) return true;
+      await sleep(1000);
     }
-    await new Promise((r) => setTimeout(r, 5000));
+    return false;
+  })();
+  if (!firstRunBegan) {
+    console.log('no first-run setup under way: running gemdb.install');
+    await vscode.commands.executeCommand('gemdb.install');
   }
-  throw new Error(`GemDB setup did not produce a working ${GEMDB} within ${LIMIT_MS / 60000} minutes`);
+  await waitFor('preparation (engine, database, gemdb command)',
+    () => prepared() && !fs.existsSync(SETUP_LOCK), PREPARE_MS, started);
+  console.log(`prepared in ${since(started)}`);
+
+  // Phase 2: Start, which files Python support into the running database.
+  const startClicked = Date.now();
+  await vscode.commands.executeCommand('gemdb.start');
+  await waitFor('Start (database running Python)', answers, START_MS, startClicked);
+  console.log(`setup done in ${since(started)}: ${GEMDB} answers`);
 };
