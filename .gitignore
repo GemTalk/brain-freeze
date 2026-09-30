@@ -17,9 +17,6 @@ artifacts/
 .coverage
 htmlcov/
 
-# Written at the root by the acceptance step that runs a published snippet,
-# and removed by it.
-_published_snippet.py
 
 # The GemDB Code release ci/setup-gemdb/run.js unpacks to run its setup.
 ci/setup-gemdb/.gemdb-extension/

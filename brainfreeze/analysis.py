@@ -95,8 +95,7 @@ def denial_reasons(book):
     Ties are broken alphabetically so the order does not wobble between runs.
 
     Prose can be reworded -- `denial_rules` groups the same refusals by an
-    identifier that cannot. This keeps its shape because
-    docs/mcp-questions.md publishes its output.
+    identifier that cannot.
     """
     counts = {}
     for claim in book.claims:

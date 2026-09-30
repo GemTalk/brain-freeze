@@ -61,9 +61,8 @@ class Aggregates(unittest.TestCase):
                          2172 - 1691)
 
     def test_the_published_answer_has_not_moved(self):
-        # docs/mcp-questions.md prints this list under question 4. Grouping
-        # by rule is a new question, not a new answer to this one, so this
-        # asserts the whole thing rather than its first two rows.
+        # The whole list, not its first two rows: grouping by rule is a
+        # separate question (DenialRules below), not a new answer to this one.
         self.assertEqual(analysis.denial_reasons(self.book), [
             ("Policy lapsed", 254),
             ("Exceeded annual claim limit", 183),
@@ -84,9 +83,7 @@ class Aggregates(unittest.TestCase):
 class DenialRules(unittest.TestCase):
     """The same refusals, grouped by identifier instead of by English.
 
-    `denial_reasons` stays exactly as it was -- its output is published in
-    docs/mcp-questions.md and an agent may already be reading it. This is a
-    sibling, because the two count different things: prose counts what
+    `denial_reasons` is unchanged. This is a sibling, because the two count different things: prose counts what
     claimants were told, including 44 refusals no rule produced.
     """
 

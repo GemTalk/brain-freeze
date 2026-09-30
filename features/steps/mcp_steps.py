@@ -13,19 +13,17 @@ someone has connected Claude Code to.
 """
 
 import glob
+import json
 import os
 import re
 import shutil
 import subprocess
-import sys
 import tempfile
+import urllib.request
 
 from behave import then, when
 
 from environment import REPO, gemdb_env, keep
-
-sys.path.insert(0, os.path.join(REPO, "tools"))
-from mcp_questions import Client, preamble     # noqa: E402
 
 PORT = 50391
 GRAIL_TOOLSET = "McpGrailToolset"
@@ -145,9 +143,18 @@ def offered_python(context):
     assert "eval_python" in names, "no eval_python among %s" % names
 
 
-#: What the agent is asked, after the preamble docs/mcp-questions.md tells an
-#: agent to run. The same code is then run directly in a session of its own,
-#: so the agent's answer is checked against the live book rather than against
+#: What an agent runs first. An MCP worker gem starts in the stone's
+#: directory, so the repository has to be put on the path before `brainfreeze`
+#: can be imported.
+PREAMBLE = (
+    "import sys\n"
+    "sys.path.insert(0, %r)\n"
+    "import gemdb\n"
+    "import brainfreeze.analysis as analysis\n"
+    "book = gemdb.root['brainfreeze']\n" % REPO)
+
+#: What the agent is asked. The same code is then run directly in a session of
+#: its own, so the answer is checked against the live book rather than against
 #: figures pinned before steps 2 and 4 bought policies.
 QUESTION = (
     "print(analysis.least_profitable_plan(book))\n"
@@ -156,13 +163,13 @@ QUESTION = (
 
 @when("the agent asks which plan is losing money")
 def agent_asks(context):
-    context.agent.python(preamble())
+    context.agent.python(PREAMBLE)
     context.agent_answer = context.agent.python(QUESTION)
 
 
 @then("it answers from the live book, as a session of its own would")
 def answers_from_the_live_book(context):
-    direct = subprocess.run(["gemdb", "-c", preamble() + QUESTION], cwd=REPO,
+    direct = subprocess.run(["gemdb", "-c", PREAMBLE + QUESTION], cwd=REPO,
                             env=gemdb_env(), capture_output=True, text=True)
     assert direct.returncode == 0, direct.stdout[-1500:] + direct.stderr[-1500:]
     expected = [line for line in direct.stdout.strip().splitlines() if line.strip()][-2:]
@@ -175,3 +182,65 @@ def answers_from_the_live_book(context):
         assert line.strip() in context.agent_answer, (
             "a session of its own answers %r, and the agent answered:\n%s"
             % (line, context.agent_answer))
+
+
+class Client:
+    """One MCP session, and only one.
+
+    Each client costs a worker gem and the router caps them at three, so a
+    check opens one session for every question rather than one per question.
+    """
+
+    def __init__(self, port):
+        self.url = "http://127.0.0.1:%d/mcp" % port
+        self.session = None
+        self.next_id = 1
+
+    def rpc(self, method, params=None, notify=False):
+        body = {"jsonrpc": "2.0", "method": method}
+        if params is not None:
+            body["params"] = params
+        if not notify:
+            body["id"] = self.next_id
+            self.next_id += 1
+        headers = {"Content-Type": "application/json",
+                   "Accept": "application/json, text/event-stream"}
+        if self.session:
+            headers["Mcp-Session-Id"] = self.session
+        request = urllib.request.Request(
+            self.url, data=json.dumps(body).encode(), headers=headers, method="POST")
+        with urllib.request.urlopen(request, timeout=300) as response:
+            got = response.headers.get("Mcp-Session-Id")
+            if got and not self.session:
+                self.session = got
+            raw = response.read().decode()
+        if not raw.strip():
+            return None
+        for line in raw.splitlines():
+            if line.startswith("data:"):
+                return json.loads(line[5:].strip())
+        return json.loads(raw)
+
+    def open(self):
+        hello = self.rpc("initialize", {
+            "protocolVersion": "2025-06-18", "capabilities": {},
+            "clientInfo": {"name": "brain-freeze", "version": "1"}})
+        if "error" in (hello or {}):
+            raise AssertionError("initialize refused: %s" % hello["error"].get("message"))
+        self.rpc("notifications/initialized", {}, notify=True)
+        return hello["result"]["serverInfo"]
+
+    def close(self):
+        try:
+            request = urllib.request.Request(
+                self.url, headers={"Mcp-Session-Id": self.session or ""}, method="DELETE")
+            urllib.request.urlopen(request, timeout=30).read()
+        except Exception:
+            pass                      # the router reaps it; never fail on cleanup
+
+    def python(self, code):
+        out = self.rpc("tools/call", {"name": "eval_python",
+                                      "arguments": {"code": code}})
+        result = out.get("result", out)
+        return "\n".join(part.get("text", "")
+                         for part in result.get("content", [])).strip()

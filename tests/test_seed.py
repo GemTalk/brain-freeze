@@ -480,7 +480,7 @@ class EventOrderIsTheLoadersJob(unittest.TestCase):
 
     def test_the_pinned_figures_do_not_move_when_the_input_is_shuffled(self):
         # Sorting must not change a single seeded number -- these are the ones
-        # pinned above, in tests/test_app.py and in docs/mcp-questions.md.
+        # pinned above and in tests/test_app.py.
         header, rows = self._claims_rows()
         rows = scrambled(rows)
         with tempfile.TemporaryDirectory() as directory:

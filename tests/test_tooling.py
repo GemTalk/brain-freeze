@@ -142,7 +142,6 @@ class TheDatabaseRunnerRunsEverything(unittest.TestCase):
         # only be slower there. Named rather than guessed at.
         cpython_only = {
             "test_refresh",         # reads app.py's syntax tree
-            "test_mcp_questions",   # parses markdown
             "test_quote_flow",      # reads the route modules' syntax trees
             "test_route_coverage",  # reads the route modules' syntax trees
             "test_imports",         # resolves imports without running them
@@ -178,48 +177,6 @@ class TheDatabaseRunnerRunsEverything(unittest.TestCase):
         stale = [m for m in listed if m not in present]
         self.assertEqual(stale, [], "MODULES names missing files: %s"
                          % ", ".join(stale))
-
-
-class ThePublishedQuestionsAreExecutable(unittest.TestCase):
-    """`make_mcp_questions.py` publishes a preamble and then runs the snippets
-    beneath it, so the preamble a reader pastes has to be able to run every
-    question."""
-
-    def test_the_preamble_binds_every_name_the_snippets_use(self):
-        import mcp_questions
-        with open(mcp_questions.DOC) as handle:
-            text = handle.read()
-        preamble = mcp_questions.published_preamble(text)
-        self.assertIsNotNone(preamble, "the document publishes no preamble")
-
-        # Parsed, not split on spaces: `import a.b as c` binds `c`, not `a`.
-        bound = set()
-        for node in ast.walk(ast.parse(preamble)):
-            if isinstance(node, ast.Import):
-                bound.update(a.asname or a.name.split(".")[0] for a in node.names)
-            elif isinstance(node, ast.ImportFrom):
-                bound.update(a.asname or a.name for a in node.names)
-            elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
-                bound.add(node.id)
-
-        used, locally_bound = set(), set()
-        for promise in mcp_questions.promises(text):
-            for node in ast.walk(ast.parse(promise.code.strip())):
-                if not isinstance(node, ast.Name):
-                    continue
-                if isinstance(node.ctx, ast.Load):
-                    used.add(node.id)
-                else:
-                    # A comprehension binds its own targets: `[r for r in xs]`
-                    # uses `r` but does not need the preamble to provide it.
-                    locally_bound.add(node.id)
-
-        import builtins
-        unbound = sorted(used - bound - locally_bound - set(dir(builtins)))
-        self.assertEqual(
-            unbound, [],
-            "the published preamble does not bind %s, so a reader who pastes "
-            "it cannot run the questions beneath it" % ", ".join(unbound))
 
 
 class TheTextFilesAreTidy(unittest.TestCase):
