@@ -309,7 +309,7 @@ def ensure_app_answering(context, why):
     """Restart the app if it stopped answering after `why` ran in another
     session, and count the restart.
 
-    A guard: on GemDB 1.5.2 another session's commit no longer stops the app,
+    A guard: since GemDB 1.5.2 another session's commit no longer stops the app,
     so this should not fire. Counted, so a scenario that says `the app was
     never restarted` cannot pass across one.
     """

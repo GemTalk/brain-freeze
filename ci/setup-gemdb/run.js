@@ -1,7 +1,7 @@
 // node run.js <path/to/gemdb-*.vsix>
 //
 // Set up GemDB the way a reader does -- GemDB Code's own first-run preparation,
-// then its own Start command -- without an editor. The extension's
+// which ends by starting the database -- without an editor. The extension's
 // out/extension.js is loaded in plain Node with a stand-in for the `vscode`
 // module (./vscode-stub.js), so no window opens, here or on CI, and the setup
 // that runs is GemDB's own code rather than a copy of it.
@@ -85,10 +85,10 @@ async function main() {
     () => prepared() && !fs.existsSync(SETUP_LOCK), 20 * 60000, started);
   console.log(`prepared in ${since(started)}`);
 
-  // Phase 2: Start, which files Python support into the running database.
-  const startPressed = Date.now();
-  await commands.execute('gemdb.start');
-  await waitFor('Start (the database running Python)', answers, 10 * 60000, startPressed);
+  // Phase 2: nothing to press. Preparation starts the database itself and
+  // installs Python support into it; a reader just waits for it to answer.
+  const ready = Date.now();
+  await waitFor('the database running Python', answers, 10 * 60000, ready);
   console.log(`setup done in ${since(started)}: ${GEMDB} answers`);
 }
 

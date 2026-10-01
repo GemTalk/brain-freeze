@@ -1,7 +1,7 @@
 # Findings
 
 Reproductions of GemDB and Grail bugs that are **still live** on GemDB Code
-1.5.2 (Grail `b86985f`). Each is here until the bug is fixed, or until an
+1.5.3 (Grail `84821c1`). Each is here until the bug is fixed, or until an
 upstream issue carries its reproduction. Then it goes: git keeps it.
 
 Run any of them with `gemdb findings/<name>`. Fixed findings were removed on

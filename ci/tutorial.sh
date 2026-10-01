@@ -11,7 +11,7 @@
 #
 # It uses $HOME/GemDB, so run it locally with HOME pointed somewhere empty:
 #
-#   HOME=/tmp/ci-home ci/tutorial.sh ~/Downloads/gemdb-darwin-arm64-1.5.2.vsix
+#   HOME=/tmp/ci-home ci/tutorial.sh ~/Downloads/gemdb-darwin-arm64-1.5.3.vsix
 #
 # Needs: shared memory already raised (GemDB's setSharedMemoryDarwin.sh, with
 # sudo -- CI does it first), node, python3, and port 5050 free.
