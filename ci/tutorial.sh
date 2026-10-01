@@ -24,6 +24,23 @@ cd "$REPO"
 
 step() { printf '\n==> %s\n' "$*"; }
 
+# The database setup makes is left running when the script ends, which on CI
+# goes with the runner but locally is a stone running until someone notices.
+# Stopped on the way out -- only when this script made it, so a run against a
+# GemDB that was already there leaves that one alone.
+GEMDB_ROOT="$HOME/GemDB"
+if [ ! -e "$GEMDB_ROOT" ]; then
+    stop_gemdb() {
+        local engine
+        engine="$(ls -d "$GEMDB_ROOT"/GemStone64Bit* 2>/dev/null | head -1)"
+        [ -n "$engine" ] || return 0
+        export GEMSTONE="$engine" GEMSTONE_GLOBAL_DIR="$GEMDB_ROOT"
+        "$engine/bin/stopnetldi" gemdbldi >/dev/null 2>&1 || true
+        "$engine/bin/stopstone" -i gemdb DataCurator swordfish >/dev/null 2>&1 || true
+    }
+    trap stop_gemdb EXIT
+fi
+
 step "the answer to step 3"
 # Step 3's feature applies the change the README asks for, kept on the branch
 # tutorial-step-3. A CI checkout fetches only the commit it tests.
