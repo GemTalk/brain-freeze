@@ -51,11 +51,13 @@ def shows_a_window(context):
 @when('I go to the next page')
 def go_to_next_page(context):
     context.page.click("text=next")
+    context.page.wait_for_load_state("load")
 
 
 @when('I go back to the previous page')
 def go_to_previous_page(context):
     context.page.click("text=previous")
+    context.page.wait_for_load_state("load")
 
 
 @then('I am shown the customers after the ones I have seen')
@@ -86,6 +88,7 @@ def look_up(context, wanted):
     context.wanted = wanted
     context.page.fill('input[name="policy"]', wanted)
     context.page.click("text=Find")
+    context.page.wait_for_load_state("load")
 
 
 @then('I am taken to that policy without having to choose it')
