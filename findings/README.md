@@ -9,4 +9,4 @@ Run any of them with `gemdb findings/<name>`. Fixed findings were removed on
 
 | Finding | What it shows | Upstream |
 |---|---|---|
-| [`06_statistics_decimal.py`](06_statistics_decimal.py) | `statistics.mean` and `median` over Decimals end the session instead of raising | not yet filed |
+| [`06_statistics_decimal.py`](06_statistics_decimal.py) | `statistics.mean` and `median` over Decimals end the session instead of raising | [Grail#1280](https://github.com/GemTalk/Grail/pull/1280) (fix) |

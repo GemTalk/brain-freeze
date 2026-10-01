@@ -2,7 +2,8 @@
 
     gemdb findings/06_statistics_decimal.py
 
-Live on GemDB Code 1.5.3 (Grail 84821c1). Not yet filed upstream.
+Live on GemDB Code 1.5.3 (Grail 84821c1). Fixed by GemTalk/Grail#1280, not yet
+in a GemDB release.
 
 `decimal` itself works inside the database as it does under CPython -- which is
 why money is a Decimal here (brainfreeze/money.py). But `statistics.mean` or
