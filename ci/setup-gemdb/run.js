@@ -27,6 +27,22 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const since = (t) => `${Math.round((Date.now() - t) / 1000)}s`;
 const prepared = () => fs.existsSync(GEMDB) && fs.existsSync(GRAIL);
 
+// Whether GemDB's own stone is up, asked of gslist rather than of `gemdb`:
+// running `gemdb` starts the stone itself, without Python support, and an
+// auto-start that then finds it running skips installing it (see Phase 2).
+function stoneUp() {
+  try {
+    const engine = fs.readdirSync(ROOT).find((d) => d.startsWith('GemStone64Bit'));
+    const out = cp.execFileSync(path.join(ROOT, engine, 'bin', 'gslist'), ['-cl'], {
+      encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
+      env: { ...process.env, GEMSTONE: path.join(ROOT, engine), GEMSTONE_GLOBAL_DIR: ROOT },
+    });
+    return /\bStone\s+gemdb\b/.test(out);
+  } catch (e) {
+    return false;
+  }
+}
+
 function answers() {
   try {
     const out = cp.execFileSync(GEMDB,
@@ -85,9 +101,13 @@ async function main() {
     () => prepared() && !fs.existsSync(SETUP_LOCK), 20 * 60000, started);
   console.log(`prepared in ${since(started)}`);
 
-  // Phase 2: nothing to press. Preparation starts the database itself and
-  // installs Python support into it; a reader just waits for it to answer.
+  // Phase 2: nothing to press. Setup ends by starting the database itself and
+  // installing Python support into it -- on 1.5.4 some seconds after the
+  // preparation above lets go of its lock -- and a reader waits for that.
+  // Asking `gemdb` in the meantime would start the stone without Python, and
+  // the auto-start would then find it running and install nothing.
   const ready = Date.now();
+  await waitFor("GemDB's own start", () => stoneUp() && !fs.existsSync(SETUP_LOCK), 10 * 60000, ready);
   await waitFor('the database running Python', answers, 10 * 60000, ready);
   console.log(`setup done in ${since(started)}: ${GEMDB} answers`);
 }
