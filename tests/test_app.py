@@ -13,6 +13,7 @@ deterministic and leaves the database in a known state afterwards.
 """
 
 import json
+import re
 import unittest
 from datetime import date
 
@@ -29,7 +30,7 @@ if gemdb is not None:
     import lookups
     import routes_html
     import seed
-    from brainfreeze.money import ZERO, usd
+    from brainfreeze.money import ZERO, format_usd, round_cents, usd
 
 
 # The database is shared across these tests and filing a claim mutates it, so
@@ -54,6 +55,12 @@ LAPSED = "BF-100746"
 #: Lapses in the future. Its stored policy_status is "Lapsed", but cover has
 #: not ended, and the app has to tell those apart.
 LAPSES_LATER = "BF-100539"
+
+
+def policy_in(location):
+    """The policy id in a redirect, wherever in the path it sits -- taking out
+    a policy lands on its ID card, `/policies/<id>/card`."""
+    return re.search(r"BF-\d{6}", location).group(0)
 
 
 @unittest.skipIf(gemdb is None, "needs the database -- run under gemdb")
@@ -94,7 +101,7 @@ class TheApp(unittest.TestCase):
     # -- the picker ------------------------------------------------------
 
     def test_the_picker_lists_real_policyholders(self):
-        r = self.client.get("/")
+        r = self.client.get("/policies")
         self.assertEqual(r.status_code, 200)
         body = r.data.decode()
         self.assertIn(str(len(self.book())), body)   # the count is the point
@@ -111,7 +118,7 @@ class TheApp(unittest.TestCase):
         self.assertNotIn("could not understand", r.data.decode())
 
     def test_a_page_that_is_not_a_number_starts_at_the_beginning(self):
-        r = self.client.get("/?from=abc")
+        r = self.client.get("/policies?from=abc")
         self.assertEqual(r.status_code, 200)
         first = sorted(self.book(), key=lambda p: p.policy_id)[0].policy_id
         self.assertIn(first, r.data.decode())
@@ -128,15 +135,15 @@ class TheApp(unittest.TestCase):
         self.assertIn("gemdb tools/seed.py", raised.exception.description)
 
     def test_the_picker_pages_rather_than_rendering_900_rows(self):
-        body = self.client.get("/").data.decode()
+        body = self.client.get("/policies").data.decode()
         shown = body.count('href="/policies/BF-')
         self.assertEqual(shown, routes_html.PAGE)
-        later = self.client.get("/?from=25").data.decode()
+        later = self.client.get("/policies?from=25").data.decode()
         self.assertIn("BF-100025", later)
         self.assertNotIn('href="/policies/BF-100000"', later)
 
     def test_looking_up_one_policy_goes_straight_to_it(self):
-        r = self.client.get("/?policy=%s" % LAPSES_LATER)
+        r = self.client.get("/policies?policy=%s" % LAPSES_LATER)
         self.assertEqual(r.status_code, 302)
         self.assertIn(LAPSES_LATER, r.headers["Location"])
 
@@ -296,7 +303,7 @@ class TheApp(unittest.TestCase):
         self.assertEqual(r.status_code, 302)     # POST/redirect/GET
         book = self.book()
         self.assertEqual(len(book), before + 1)
-        new_id = r.headers["Location"].rstrip("/").split("/")[-1]
+        new_id = policy_in(r.headers["Location"])
         policy = book[new_id]
         self.assertEqual(policy.plan_name, "Standard")
         self.assertEqual(policy.risk_tier, "High")
@@ -310,7 +317,7 @@ class TheApp(unittest.TestCase):
         saved = self.book().quotes[quote_id]
         r = self.client.post("/quote/%s/accept" % quote_id,
                              data={"plan": "Premium"})
-        policy = self.book()[r.headers["Location"].rstrip("/").split("/")[-1]]
+        policy = self.book()[policy_in(r.headers["Location"])]
         self.assertEqual(policy.annual_premium,
                          saved.plans["Premium"]["annual"])
         self.assertEqual(policy.annual_premium, usd("342.00"))
@@ -319,7 +326,7 @@ class TheApp(unittest.TestCase):
         quote_id, _ = self.a_quote()
         r = self.client.post("/quote/%s/accept" % quote_id,
                              data={"plan": "Basic"})
-        policy_id = r.headers["Location"].rstrip("/").split("/")[-1]
+        policy_id = policy_in(r.headers["Location"])
         saved = self.book().quotes[quote_id]
         self.assertEqual(saved.policy_id, policy_id)
         self.assertTrue(saved.is_accepted)
@@ -337,6 +344,101 @@ class TheApp(unittest.TestCase):
         r = self.client.post("/quote/QTE-999999/accept",
                              data={"plan": "Standard"})
         self.assertEqual(r.status_code, 404)
+
+
+    # -- the front door, the wizard and the ID card ------------------------
+
+    def test_the_home_page_starts_a_quote(self):
+        body = self.client.get("/").data.decode()
+        self.assertIn('href="/quote"', body)
+        self.assertIn("%s policyholders" % "{:,}".format(len(self.book())), body)
+
+    def test_the_home_page_prices_come_from_the_model(self):
+        # The lowest each plan comes to is its base at the cheapest band --
+        # read off underwriting, not typed into a template.
+        body = self.client.get("/").data.decode()
+        cheapest = min(brainfreeze.RISK_TIER_MULT,
+                       key=brainfreeze.RISK_TIER_MULT.get)
+        for name, plan in brainfreeze.COVERAGE_PLANS.items():
+            self.assertIn(name, body)
+            self.assertIn(format_usd(round_cents(
+                brainfreeze.annual_premium(name, cheapest))), body)
+            self.assertIn(format_usd(plan.coverage_limit_per_incident), body)
+
+    def test_change_the_answers_brings_them_back(self):
+        quote_id, _ = self.a_quote()
+        body = self.client.get("/quote?answers=%s" % quote_id).data.decode()
+        self.assertRegex(body, r'name="age" value="11"')
+        self.assertRegex(body, r'value="fast" checked')
+        self.assertRegex(body, r'value="slushie" checked')
+
+    def test_taking_out_a_policy_lands_on_its_id_card(self):
+        quote_id, _ = self.a_quote()
+        r = self.client.post("/quote/%s/accept" % quote_id,
+                             data={"plan": "Standard"})
+        self.assertTrue(r.headers["Location"].endswith("/card"))
+        policy_id = policy_in(r.headers["Location"])
+        card = self.client.get(r.headers["Location"]).data.decode()
+        self.assertIn(policy_id, card)
+        self.assertIn("$171.00 a year", card)    # the price the quote showed
+        self.assertIn('href="/policies/%s/claims/new"' % policy_id, card)
+
+    def test_a_quote_sells_one_policy_however_often_it_is_accepted(self):
+        quote_id, _ = self.a_quote()
+        first = self.client.post("/quote/%s/accept" % quote_id,
+                                 data={"plan": "Standard"})
+        before = len(self.book())
+        again = self.client.post("/quote/%s/accept" % quote_id,
+                                 data={"plan": "Premium"})
+        self.assertEqual(len(self.book()), before)
+        self.assertEqual(policy_in(again.headers["Location"]),
+                         policy_in(first.headers["Location"]))
+
+    def test_the_id_card_is_an_svg_of_the_policys_own_terms(self):
+        policy = self.book()[ACTIVE_READONLY]
+        r = self.client.get("/policies/%s/card.svg" % ACTIVE_READONLY)
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("image/svg+xml", r.headers["Content-Type"])
+        svg = r.data.decode()
+        self.assertTrue(svg.startswith("<svg"))
+        for figure in (policy.policy_id, policy.plan_name,
+                       format_usd(policy.coverage_limit),
+                       format_usd(policy.deductible),
+                       format_usd(policy.annual_premium)):
+            self.assertIn(figure, svg)
+
+    # -- browsing claims ---------------------------------------------------
+
+    def claim_ids_on(self, path):
+        return re.findall(r'href="/policies/BF-\d+/claims/(CLM-\d+)"',
+                          self.client.get(path).data.decode())
+
+    def test_the_claims_list_is_newest_first_a_page_at_a_time(self):
+        newest = sorted((c.claim_id for c in self.book().claims), reverse=True)
+        self.assertEqual(self.claim_ids_on("/claims"),
+                         newest[:routes_html.CLAIMS_PAGE])
+        self.assertEqual(self.claim_ids_on("/claims?from=%d" % routes_html.CLAIMS_PAGE),
+                         newest[routes_html.CLAIMS_PAGE:2 * routes_html.CLAIMS_PAGE])
+
+    def test_the_claims_list_filters_by_outcome(self):
+        claims = dict((c.claim_id, c) for c in self.book().claims)
+        refused = self.claim_ids_on("/claims?status=refused")
+        approved = self.claim_ids_on("/claims?status=approved")
+        self.assertTrue(refused and approved)
+        self.assertFalse(any(claims[i].is_approved for i in refused))
+        self.assertTrue(all(claims[i].is_approved for i in approved))
+
+    def test_the_claims_list_searches_by_policy(self):
+        ids = self.claim_ids_on("/claims?q=%s" % LAPSES_LATER)
+        self.assertEqual(sorted(ids, reverse=True), sorted(
+            (c.claim_id for c in self.book()[LAPSES_LATER].claims), reverse=True))
+
+    def test_a_claim_id_typed_in_goes_straight_to_it(self):
+        claim = self.book()[LAPSES_LATER].claims[0]
+        r = self.client.get("/claims?q=%s" % claim.claim_id)
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(r.headers["Location"].endswith(
+            "/policies/%s/claims/%s" % (LAPSES_LATER, claim.claim_id)))
 
     # -- history ---------------------------------------------------------
 
@@ -437,9 +539,9 @@ class TheApp(unittest.TestCase):
         self.assertEqual(later.policy_status, "Lapsed")
         # An 8-character prefix matches ten policies -- few enough to fit one
         # page, more than one so the lookup lists rather than redirecting.
-        page = self.client.get("/?policy=%s" % LAPSED[:8]).data.decode()
+        page = self.client.get("/policies?policy=%s" % LAPSED[:8]).data.decode()
         self.assertIn("Lapsed %s" % lapsed.policy_lapse_date, page)
-        page = self.client.get("/?policy=%s" % LAPSES_LATER[:8]).data.decode()
+        page = self.client.get("/policies?policy=%s" % LAPSES_LATER[:8]).data.decode()
         self.assertIn("Lapses %s" % later.policy_lapse_date, page)
 
     # -- filing a claim --------------------------------------------------
