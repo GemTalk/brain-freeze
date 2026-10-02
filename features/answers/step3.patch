@@ -1,0 +1,124 @@
+diff --git a/brainfreeze/model.py b/brainfreeze/model.py
+index 8b6b75a..5c7a2c9 100644
+--- a/brainfreeze/model.py
++++ b/brainfreeze/model.py
+@@ -25,6 +25,13 @@ from .underwriting import COVERAGE_PLANS, risk_score, risk_tier
+ class Claim:
+     """A claim filed against one cold-treat event."""
+ 
++    #: Step 3 of the tutorial: added after the book was committed. Class
++    #: attributes as well as instance ones, so a claim filed before the fields
++    #: existed reads the defaults through the class. That is the whole
++    #: migration.
++    flavour = None
++    toppings = ()
++
+     #: Which rule refused this claim, as a stable identifier, alongside
+     #: the sentence in `reason`. A class attribute as well as an instance one:
+     #: a claim written before the field existed has no slot of its own, and
+@@ -34,7 +41,7 @@ class Claim:
+     rule = None
+ 
+     def __init__(self, claim_id, requested, approved, status, reason=None,
+-                 rule=None):
++                 flavour=None, toppings=None, rule=None):
+         self.claim_id = claim_id
+         #: Through `usd`, which refuses a float outright. Money enters the
+         #: model only here, at Policyholder and at SavedQuote.
+@@ -44,6 +51,10 @@ class Claim:
+         self.reason = reason
+         if rule is not None:
+             self.rule = rule
++        if flavour is not None:
++            self.flavour = flavour
++        if toppings is not None:
++            self.toppings = tuple(toppings)
+ 
+     @property
+     def is_approved(self):
+diff --git a/web/forms.py b/web/forms.py
+index ec9da46..efce619 100644
+--- a/web/forms.py
++++ b/web/forms.py
+@@ -30,6 +30,11 @@ DURATION_BANDS = [
+ PAIN_LOCATIONS = ["Forehead", "Temple", "Back of the head", "All over"]
+ PAIN_QUALITIES = ["Stabbing", "Pulling", "Dull and pressing"]
+ 
++#: Step 3's questions: which flavour it was, and what was on top.
++FLAVOURS = ["Vanilla", "Chocolate", "Strawberry", "Mint choc chip",
++            "Cookie dough", "Something else"]
++TOPPINGS = ["Sprinkles", "Hot fudge", "Whipped cream", "Nuts", "Cherry"]
++
+ #: Labels for the speeds the risk model defines, not a second list of speeds.
+ SPEED_LABELS = {"slow": "Slowly", "moderate": "About normal",
+                 "fast": "All at once"}
+diff --git a/web/routes_html.py b/web/routes_html.py
+index 99fb995..7d28aea 100644
+--- a/web/routes_html.py
++++ b/web/routes_html.py
+@@ -169,7 +169,7 @@ def claim_form(policy_id):
+         templates.CLAIM_FORM, p=policy, triggers=forms.TRIGGERS, colds=forms.COLD_BANDS,
+         portions=forms.PORTION_BANDS, speeds=forms.SPEED_BANDS,
+         durations=forms.DURATION_BANDS, locations=forms.PAIN_LOCATIONS,
+-        qualities=forms.PAIN_QUALITIES,
++        qualities=forms.PAIN_QUALITIES, flavours=forms.FLAVOURS, toppings=forms.TOPPINGS,
+         warnings=warnings_for(policy, date.today()))
+ 
+ 
+@@ -201,7 +201,9 @@ def file_claim(policy_id):
+         approved=decision.amount,
+         status=decision.status,
+         reason=decision.reason,
+-        rule=decision.rule)
++        rule=decision.rule,
++        flavour=request.form.get("flavour") or None,
++        toppings=request.form.getlist("toppings") or None)
+     policy.add_event(brainfreeze.Event(
+         event_id=lookups.next_id([e.event_id for e in the_book.events],
+                           "EVT", 6, 1),
+diff --git a/web/templates.py b/web/templates.py
+index b60a7d4..19c4c0f 100644
+--- a/web/templates.py
++++ b/web/templates.py
+@@ -250,6 +250,17 @@ CLAIM_FORM = _STYLE + """
+     {% for q in qualities %}
+     <label class="opt"><input type="radio" name="quality" value="{{ q }}"
+       {% if loop.first %}checked{% endif %}> {{ q }}</label>{% endfor %}</fieldset>
++  <fieldset><legend>Which flavour? <span class="tag">new</span></legend>
++    {% for f in flavours %}
++    <label class="opt"><input type="radio" name="flavour" value="{{ f }}"
++      {% if loop.first %}checked{% endif %}> {{ f }}</label>{% endfor %}</fieldset>
++  <fieldset><legend>Anything on top? <span class="tag">new</span></legend>
++    {% for top in toppings %}
++    <label class="opt"><input type="checkbox" name="toppings"
++      value="{{ top }}"> {{ top }}</label>{% endfor %}
++    <div class="muted">These two questions went in after 900 policies and
++      4,993 episodes were already committed. No migration, nothing rewritten
++      &mdash; older claims simply have no flavour.</div></fieldset>
+   <button type="submit">Send the claim</button>
+ </form>
+ """
+@@ -261,6 +272,8 @@ DECISION = _STYLE + """
+ <h1>Not this time</h1>
+ {% endif %}
+ <p class="sub num">{{ c.claim_id }} &middot; {{ e.trigger }}
++  {%- if c.flavour %} ({{ c.flavour }}{% if c.toppings %},
++    {{ c.toppings|join(', ')|lower }}{% endif %}){% endif %}
+   &middot; {{ e.event_date }}</p>
+ 
+ <div class="card">
+diff --git a/web/wire.py b/web/wire.py
+index f673835..0bbf1a8 100644
+--- a/web/wire.py
++++ b/web/wire.py
+@@ -69,6 +69,10 @@ def claim(a_claim):
+         "is_approved": a_claim.is_approved,
+         # An agent can only explain a refusal from the reason that refused it.
+         "reason": a_claim.reason,
++        # Step 3. A claim written before these fields existed reads None and
++        # () through the class, and publishes as null and [].
++        "flavour": a_claim.flavour,
++        "toppings": list(a_claim.toppings),
+     }
+ 
+ 

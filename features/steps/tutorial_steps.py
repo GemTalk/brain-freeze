@@ -213,20 +213,16 @@ def one_more_policy(context):
 
 # -- step 3 -----------------------------------------------------------------
 
-#: The answer to step 3 -- the change the README asks for -- is the branch
-#: `tutorial-step-3`. Only the application's files are applied: the branch also
-#: carries the tests of the finished feature, and those are not the reader's.
-ANSWER = "tutorial-step-3"
-ANSWER_PATHS = ["brainfreeze", "web"]
+#: The answer to step 3 -- the change the README asks for, to brainfreeze/ and
+#: web/ -- as a patch. Committed beside the features rather than to the code,
+#: because the reader makes this change; tests/test_tutorial_answer.py says in
+#: a second when an edit to main has stopped it applying.
+ANSWER = os.path.join(REPO, "features", "answers", "step3.patch")
 
 
 def answer_diff():
-    finished = subprocess.run(
-        ["git", "diff", ANSWER + "^", ANSWER, "--"] + ANSWER_PATHS,
-        cwd=REPO, capture_output=True, text=True)
-    assert finished.returncode == 0 and finished.stdout, (
-        "no answer to apply: %s" % finished.stderr)
-    return finished.stdout
+    with open(ANSWER) as handle:
+        return handle.read()
 
 
 def put_the_code_back(context):

@@ -6,8 +6,8 @@ Feature: Step 3 -- change the schema
   it -- and the app, which never stops, serves it on the next request. The
   old claims still load.
 
-  The change applied is the answer to step 3, the branch tutorial-step-3, and
-  it is always taken back out afterwards.
+  The change applied is the answer to step 3, features/answers/step3.patch,
+  and it is always taken back out afterwards.
 
   BF-100186 is this scenario's own policy, per the rule at the top of
   `tests/test_app.py`: it writes.

@@ -41,13 +41,6 @@ if [ ! -e "$GEMDB_ROOT" ]; then
     trap stop_gemdb EXIT
 fi
 
-step "the answer to step 3"
-# Step 3's feature applies the change the README asks for, kept on the branch
-# tutorial-step-3. A CI checkout fetches only the commit it tests.
-if ! git rev-parse --verify --quiet tutorial-step-3 >/dev/null; then
-    git fetch --no-tags --depth=2 origin tutorial-step-3:tutorial-step-3
-fi
-
 step "set up GemDB, as a reader does"
 node ci/setup-gemdb/run.js "$VSIX"
 export PATH="$HOME/GemDB/bin:$PATH"
