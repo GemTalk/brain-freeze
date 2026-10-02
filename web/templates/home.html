@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui with context %}
+
+{% block content %}
+<div class="wrap">
+  <section class="hero">
+    <span class="flake" style="right:-2rem; top:-3rem">{{ ui.icon('snowflake', 200) }}</span>
+    <div class="hero-grid">
+      <div>
+        <p class="eyebrow">Make-believe insurance, real database</p>
+        <h1>Cover for the coldest moments.</h1>
+        <p class="sub">Brain Freeze insures kids against ice-cream headaches.
+          The cover is pretend; every quote, policy and claim is a real Python
+          object in GemDB, priced by the same rules the notebook and the agent
+          use.</p>
+        <div class="actions">
+          <a class="btn lg" href="{{ url_for('quote_form') }}">Start a quote {{ ui.icon('arrow') }}</a>
+          <a class="btn ghost" href="{{ url_for('claims') }}">Browse claims</a>
+        </div>
+      </div>
+      <ol class="how">
+        <li><b>1</b><div>Answer five questions<span>Age, eating speed, favourite treat, health</span></div></li>
+        <li><b>2</b><div>Pick from three prices<span>With how your risk score was worked out</span></div></li>
+        <li><b>3</b><div>Get your ID card<span>Saved straight away; download or print it</span></div></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section" style="margin-top:1.6rem">
+    <div class="row">
+      <h2>The plans</h2>
+      <p class="muted" style="margin:0">The book holds {{ stats.policies }} policyholders
+        and {{ stats.claims }} claims right now.</p>
+    </div>
+    <div class="plans">
+      {% for plan in plans %}
+      <div class="card{% if plan.popular %} pick{% endif %}">
+        {% if plan.popular %}<span class="tag ice badge">Most chosen</span>{% endif %}
+        <h3>{{ plan.name }}</h3>
+        <div class="price"><span class="big num">{{ usd(plan.monthly) }}</span>
+          <span class="muted">a month at {{ typical }} risk</span></div>
+        <p class="muted" style="margin:0">{{ usd(plan.lowest) }} to {{ usd(plan.highest) }}
+          a month, depending on your answers.</p>
+        <ul>
+          {{ ui.plan_terms(plan.limit, plan.deductible, claim_limit) }}
+          <li class="muted">{{ plan.holders }} policyholders on this plan</li>
+        </ul>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="actions">
+      <a class="btn lg" href="{{ url_for('quote_form') }}">Start a quote {{ ui.icon('arrow') }}</a>
+      <span class="muted">Takes about a minute. Nothing to sign up for.</span>
+    </div>
+  </section>
+</div>
+{% endblock %}

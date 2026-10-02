@@ -1,0 +1,42 @@
+{#- The frame every page shares. A page extends this, sets `nav` to the
+    header link it belongs under ('quote', 'policies', 'claims', or nothing),
+    and fills the `title` and `content` blocks, and `scripts` if it has any. -#}
+{%- import "_macros.html" as ui with context -%}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Brain Freeze Insurance{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap">
+<style>{% include "app.css" %}</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="{{ url_for('home') }}">
+      <span class="mark">{{ ui.icon('snowflake', 20) }}</span>
+      <span>Brain Freeze<small>Insurance</small></span>
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="{{ url_for('quote_form') }}" {% if nav == 'quote' %}class="on"{% endif %}>Get a quote</a>
+      <a href="{{ url_for('policies') }}" {% if nav == 'policies' %}class="on"{% endif %}>Policies</a>
+      <a href="{{ url_for('claims') }}" {% if nav == 'claims' %}class="on"{% endif %}>Claims</a>
+    </nav>
+  </div>
+</header>
+<main>
+{% block content %}{% endblock %}
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <p>Brain Freeze is a demo, not real insurance. Every quote, policy and
+    claim on these pages is a Python object stored in GemDB: the app reads and
+    writes them directly, with no ORM and no SQL in between.</p>
+  </div>
+</footer>
+{% block scripts %}{% endblock %}
+</body>
+</html>

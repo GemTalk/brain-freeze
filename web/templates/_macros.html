@@ -1,0 +1,54 @@
+{#- The pieces more than one page uses. Import them with
+
+        {% import "_macros.html" as ui with context %}
+
+    `with context` is not optional: Grail answers `dict.keys()` with a list,
+    and Jinja's plain import subtracts that from a set, which raises. -#}
+
+{#- A 24x24 stroked icon, by name. -#}
+{% macro icon(name, size=18) -%}
+{%- set paths = {
+  "snowflake": "M2 12h20M12 2v20m8-6-4-4 4-4M4 8l4 4-4 4m12-12-4 4-4-4m0 16 4-4 4 4",
+  "arrow": "M5 12h14m-6-6 6 6-6 6",
+  "back": "M19 12H5m6 6-6-6 6-6",
+  "check": "m5 12 5 5L20 7",
+  "download": "M12 3v12m-5-5 5 5 5-5M4 21h16",
+  "print": "M6 9V3h12v6M6 18H4v-7h16v7h-2M8 14h8v7H8z",
+  "card": "M3 5h18v14H3zM3 10h18M7 15h4",
+} -%}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ paths[name] }}"/></svg>
+{%- endmacro %}
+
+{#- One option of a radio question, drawn as a pill. -#}
+{% macro chip(name, value, label, checked=false) -%}
+<label class="chip"><input type="radio" name="{{ name }}" value="{{ value }}" {% if checked %}checked{% endif %}><span>{{ label }}</span></label>
+{%- endmacro %}
+
+{#- What a plan covers, as the list items of a plan card. -#}
+{% macro plan_terms(limit, deductible, claim_limit) -%}
+<li><strong class="num">{{ usd(limit) }}</strong> paid per episode</li>
+<li><strong class="num">{{ usd(deductible) }}</strong> deductible</li>
+<li>Up to {{ claim_limit }} approved claims a year</li>
+{%- endmacro %}
+
+{#- "Showing 1-25 of 900." with the links either side, from pages.pager(). -#}
+{% macro pager(window) -%}
+<div class="pager muted">
+  {% if window.previous is not none %}
+  <a href="{{ window.previous }}">&larr; previous</a>
+  {% endif %}
+  <span>Showing {{ window.first }}&ndash;{{ window.last }} of {{ window.total }}.</span>
+  {% if window.next is not none %}
+  <a href="{{ window.next }}">next &rarr;</a>
+  {% endif %}
+</div>
+{%- endmacro %}
+
+{#- Where the quote has got to: 1 is the questions, 2 the prices. -#}
+{% macro steps(step) -%}
+<ol class="steps" aria-label="Quote progress">
+  <li class="{{ 'now' if step == 1 else 'done' }}"><b>{% if step > 1 %}{{ icon('check', 14) }}{% else %}1{% endif %}</b> About the member</li>
+  <li class="{{ 'now' if step == 2 else '' }}"><b>2</b> Choose a plan</li>
+  <li><b>{{ icon('card', 14) }}</b> ID card</li>
+</ol>
+{%- endmacro %}

@@ -1,0 +1,46 @@
+{#- Every policyholder, a page at a time, with a search box. -#}
+{% extends "base.html" %}
+{% import "_macros.html" as ui with context %}
+{% set nav = 'policies' %}
+
+{% block title %}Policies &middot; Brain Freeze{% endblock %}
+
+{% block content %}
+<div class="wrap">
+  <h1>Policyholders</h1>
+  <p class="sub">{{ total }} policyholders, live in the database.</p>
+  <form method="get" action="{{ url_for('policies') }}" class="card search">
+    <label for="policy" class="q" style="margin:0">Go to a policy</label>
+    <input type="text" id="policy" name="policy" value="{{ wanted }}"
+           placeholder="BF-100539" autocomplete="off">
+    <button type="submit">Find</button>
+    {% if wanted %}<a href="{{ url_for('policies') }}">clear</a>{% endif %}
+  </form>
+  <div class="card">
+  {% if rows %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>Policy</th><th>Plan</th><th>Band</th><th>Cover</th>
+        <th class="r">Claims</th><th class="r">Paid</th></tr></thead>
+    <tbody>
+    {% for p, label, css in rows %}
+    <tr>
+      <td><a href="{{ url_for('history', policy_id=p.policy_id) }}"
+             class="id">{{ p.policy_id }}</a></td>
+      <td>{{ p.plan_name }}</td>
+      <td class="num">{{ p.risk_tier }}, {{ p.underwriting_risk_score }}</td>
+      <td><span class="tag {{ css }}">{{ label }}</span></td>
+      <td class="num r">{{ p.approved_claims|length }}/{{ p.claims|length }}</td>
+      <td class="num r">{{ usd(p.total_paid) }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% endif %}
+  {% if not wanted %}
+  {{ ui.pager(pager) }}
+  {% elif not rows %}
+  <p class="muted">Nothing matches &ldquo;{{ wanted }}&rdquo;.</p>
+  {% endif %}
+  </div>
+</div>
+{% endblock %}
