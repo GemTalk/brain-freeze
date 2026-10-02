@@ -20,7 +20,6 @@ import forms
 import gemdb
 import lookups
 import pages
-import templates
 from routes import Routes
 
 ROUTES = Routes(__name__)
@@ -50,13 +49,21 @@ def most_chosen(held):
     return max(held, key=held.get)
 
 
+def monthly_price(plan_name, band):
+    """What a plan costs a month in a band, rounded as `quote()` rounds it:
+    the annual price to the cent, then a twelfth of that."""
+    annual = money.round_cents(brainfreeze.annual_premium(plan_name, band))
+    return money.round_cents(annual / 12)
+
+
 @ROUTES.route("/")
 def home():
     """What this is, what the plans are, and the way into a quote.
 
-    The plan prices are the model's, not copy: the lowest each plan comes to
-    is its base premium at the cheapest risk band, so it moves when
-    `underwriting.py` does.
+    The plan prices are the model's, not copy. Each plan is shown at the band
+    that pays its base price (Medium: $7, $12, $19 a month), with the range
+    the other bands span, each worked out the way `quote()` works it out --
+    so they move when `underwriting.py` does.
 
     Counts only, no money totals: `book_summary` sums every premium and
     payout, which takes over three seconds under Grail -- too slow for the
@@ -64,20 +71,23 @@ def home():
     """
     the_book = lookups.book()
     held = plan_holders(the_book)
-    cheapest = min(brainfreeze.RISK_TIER_MULT,
-                   key=brainfreeze.RISK_TIER_MULT.get)
+    bands = brainfreeze.RISK_TIER_MULT
+    typical = [band for band in bands if bands[band] == 1][0]
     plans = []
     for name, plan in brainfreeze.COVERAGE_PLANS.items():
+        monthly = dict((band, monthly_price(name, band)) for band in bands)
         plans.append(dict(
             name=name,
-            from_annual=money.round_cents(
-                brainfreeze.annual_premium(name, cheapest)),
+            monthly=monthly[typical],
+            lowest=min(monthly.values()),
+            highest=max(monthly.values()),
             limit=plan.coverage_limit_per_incident,
             deductible=plan.deductible_per_incident,
             holders="{:,}".format(held[name]),
             popular=(name == most_chosen(held))))
     return pages.render(
-        templates.HOME, plans=plans, claim_limit=brainfreeze.ANNUAL_CLAIM_LIMIT,
+        "home.html", plans=plans, typical=typical,
+        claim_limit=brainfreeze.ANNUAL_CLAIM_LIMIT,
         stats=dict(policies="{:,}".format(len(the_book)),
                    claims="{:,}".format(len(the_book.claims))))
 
@@ -102,7 +112,7 @@ def policies():
     window = everyone[start:start + PAGE]
     rows = [(p,) + pages.cover_state(p, today) for p in window]
     return pages.render(
-        templates.POLICIES, rows=rows, total=len(lookups.book()), wanted=wanted,
+        "policies.html", rows=rows, total=len(lookups.book()), wanted=wanted,
         pager=pages.pager("policies", start, PAGE, len(everyone)))
 
 
@@ -118,7 +128,7 @@ def quote_form():
     if again:
         answers.update(lookups.quote_or_404(again).answers)
     return pages.render(
-        templates.QUOTE_FORM, a=answers, triggers=forms.TRIGGERS,
+        "quote_form.html", a=answers, triggers=forms.TRIGGERS,
         speeds=forms.SPEED_BANDS)
 
 
@@ -157,7 +167,7 @@ def saved_quote(quote_id):
     if saved.policy_id is not None:
         chosen = the_book[saved.policy_id].plan_name
     return pages.render(
-        templates.PLANS, q=saved, chosen=chosen,
+        "plans.html", q=saved, chosen=chosen,
         popular=most_chosen(plan_holders(the_book)),
         claim_limit=brainfreeze.ANNUAL_CLAIM_LIMIT,
         bands=dict(low="%g" % underwriting.LOW_MAX,
@@ -203,7 +213,7 @@ def history(policy_id):
     today = date.today()
     label, css = pages.cover_state(policy, today)
     return pages.render(
-        templates.HISTORY, p=policy, cover=label, cover_css=css,
+        "policy.html", p=policy, cover=label, cover_css=css,
         limit=brainfreeze.ANNUAL_CLAIM_LIMIT)
 
 
@@ -211,7 +221,7 @@ def history(policy_id):
 def id_card(policy_id):
     """The policy's ID card, where taking out a policy lands."""
     policy = lookups.policy_or_404(policy_id)
-    return pages.render(templates.CARD_PAGE, p=policy,
+    return pages.render("card.html", p=policy,
                         card=pages.id_card(policy, date.today()))
 
 
@@ -219,7 +229,7 @@ def id_card(policy_id):
 def id_card_svg(policy_id):
     """The same card on its own, as an image a person can keep."""
     policy = lookups.policy_or_404(policy_id)
-    svg = pages.render(templates.ID_CARD,
+    svg = pages.render("id_card.svg",
                        card=pages.id_card(policy, date.today()))
     return Response(svg, mimetype="image/svg+xml")
 
@@ -258,7 +268,7 @@ def warnings_for(policy, today):
 def claim_form(policy_id):
     policy = lookups.policy_or_404(policy_id)
     return pages.render(
-        templates.CLAIM_FORM, p=policy, triggers=forms.TRIGGERS, colds=forms.COLD_BANDS,
+        "claim_form.html", p=policy, triggers=forms.TRIGGERS, colds=forms.COLD_BANDS,
         portions=forms.PORTION_BANDS, speeds=forms.SPEED_BANDS,
         durations=forms.DURATION_BANDS, locations=forms.PAIN_LOCATIONS,
         qualities=forms.PAIN_QUALITIES,
@@ -323,7 +333,7 @@ def decision(policy_id, claim_id):
             claim = event.claim
             # Handlers do the sums; templates print them.
             trimmed = claim.requested - claim.approved - policy.deductible
-            return pages.render(templates.DECISION, p=policy, e=event, c=claim,
+            return pages.render("decision.html", p=policy, e=event, c=claim,
                           trimmed=max(money.ZERO, trimmed))
     abort(404)
 
@@ -372,7 +382,7 @@ def claims():
     rows.sort(key=lambda row: row[0].claim_id, reverse=True)
     start = pages.window_start(request.args)
     return pages.render(
-        templates.CLAIMS, rows=rows[start:start + CLAIMS_PAGE], status=status,
+        "claims.html", rows=rows[start:start + CLAIMS_PAGE], status=status,
         wanted=wanted, filters=CLAIM_FILTERS,
         pager=pages.pager("claims", start, CLAIMS_PAGE, len(rows),
                           status=status, q=wanted or None),

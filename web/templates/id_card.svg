@@ -1,0 +1,65 @@
+{#- The ID card's whole design: card.html shows it, "Download image" draws it
+    to a PNG, and /policies/<id>/card.svg serves it alone. To change the
+    design, replace this file with any SVG that reads the `card` fields
+    pages.id_card() provides. Keep to system fonts: a web font does not
+    load inside an SVG drawn onto a canvas, so the PNG would not match. -#}
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 856 540"
+  width="856" height="540" role="img"
+  aria-label="Brain Freeze ID card for policy {{ card.policy_id }}">
+<defs>
+  <linearGradient id="bf-sky" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#2f95e0"/><stop offset="1" stop-color="#174f88"/>
+  </linearGradient>
+  <clipPath id="bf-edge"><rect width="856" height="540" rx="34"/></clipPath>
+</defs>
+<g clip-path="url(#bf-edge)"
+   font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <rect width="856" height="540" fill="url(#bf-sky)"/>
+  <circle cx="770" cy="30" r="200" fill="#fff" fill-opacity=".07"/>
+  <circle cx="650" cy="250" r="90" fill="#fff" fill-opacity=".05"/>
+  <g transform="translate(600 -40) scale(11)" stroke="#fff" stroke-opacity=".10"
+     stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M2 12h20M12 2v20m8-6-4-4 4-4M4 8l4 4-4 4m12-12-4 4-4-4m0 16 4-4 4 4"/>
+  </g>
+  <rect x="52" y="48" width="56" height="56" rx="15" fill="#fff" fill-opacity=".16"/>
+  <g transform="translate(64 60) scale(1.33)" stroke="#fff" stroke-width="2.2"
+     stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M2 12h20M12 2v20m8-6-4-4 4-4M4 8l4 4-4 4m12-12-4 4-4-4m0 16 4-4 4 4"/>
+  </g>
+  <text x="126" y="76" fill="#fff" font-size="27" font-weight="800">Brain Freeze</text>
+  <text x="127" y="99" fill="#cfe5f8" font-size="13" font-weight="700"
+        letter-spacing="2.6">INSURANCE &#183; MEMBER ID CARD</text>
+  <rect x="628" y="54" width="176" height="44" rx="22" fill="#fff"/>
+  <text x="716" y="83" text-anchor="middle" fill="#174f88" font-size="19"
+        font-weight="800">{{ card.plan }} plan</text>
+
+  <text x="56" y="178" fill="#cfe5f8" font-size="13" font-weight="700"
+        letter-spacing="2.4">POLICY NUMBER</text>
+  <text x="54" y="236" fill="#fff" font-size="58" font-weight="700" letter-spacing="1"
+        font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">{{ card.policy_id }}</text>
+  <text x="56" y="278" fill="#e4f1fc" font-size="19" font-weight="600">{{ card.member }}</text>
+
+  <rect y="318" width="856" height="222" fill="#fff"/>
+  <g font-size="12" font-weight="700" letter-spacing="2" fill="#66778c">
+    <text x="56" y="362">COVER PER EPISODE</text>
+    <text x="268" y="362">DEDUCTIBLE</text>
+    <text x="440" y="362">PREMIUM</text>
+    <text x="640" y="362">RISK BAND</text>
+    <text x="56" y="438">VALID</text>
+    <text x="440" y="438">CLAIMS A YEAR</text>
+    <text x="640" y="438">STATUS</text>
+  </g>
+  <g font-size="25" font-weight="800" fill="#12223a">
+    <text x="56" y="394">{{ card.cover }}</text>
+    <text x="268" y="394">{{ card.deductible }}</text>
+    <text x="440" y="394">{{ card.premium }}<tspan font-size="15" font-weight="600" fill="#66778c"> /yr</tspan></text>
+    <text x="640" y="394">{{ card.risk_tier }}</text>
+    <text x="56" y="470" font-size="21">{{ card.valid_from }} &#8211; {{ card.valid_to }}</text>
+    <text x="440" y="470" font-size="21">Up to {{ card.claims_a_year }}</text>
+    <text x="640" y="470" font-size="21">{{ card.status }}</text>
+  </g>
+  <text x="56" y="514" fill="#8a99ab" font-size="13" font-weight="600">Stored in GemDB &#183; a demo, not real insurance</text>
+  <text x="800" y="514" text-anchor="end" fill="#8a99ab" font-size="13"
+        font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">brain-freeze</text>
+</g>
+</svg>

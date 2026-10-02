@@ -1,0 +1,43 @@
+{#- What a claim paid, and how. The acceptance steps read the table's rows
+    by their wording and the headline's figure, so keep both. -#}
+{% extends "base.html" %}
+{% import "_macros.html" as ui with context %}
+{% set nav = 'claims' %}
+
+{% block title %}Claim {{ c.claim_id }} &middot; Brain Freeze{% endblock %}
+
+{% block content %}
+<div class="wrap narrow">
+  <p class="eyebrow">{% if c.is_approved %}Approved{% else %}Refused{% endif %}</p>
+  {% if c.is_approved %}
+  <h1>{{ usd(c.approved) }} is yours</h1>
+  {% else %}
+  <h1>Not this time</h1>
+  {% endif %}
+  <p class="sub num">{{ c.claim_id }} &middot; {{ e.trigger }}
+    &middot; {{ e.event_date }}</p>
+
+  <div class="card">
+    <div class="table-wrap"><table>
+      <tr><td>What we worked it out at</td>
+          <td class="num r">{{ usd(c.requested) }}</td></tr>
+      {% if c.is_approved %}
+      <tr><td>Trimmed to your {{ usd(p.coverage_limit) }} episode cap</td>
+          <td class="num r">&minus;{{ usd(trimmed) }}</td></tr>
+      <tr><td>Your deductible</td>
+          <td class="num r">&minus;{{ usd(p.deductible) }}</td></tr>
+      {% else %}
+      <tr><td colspan="2"><span class="tag no">{{ c.reason }}</span></td></tr>
+      {% endif %}
+      <tr><td><strong>Paid to you</strong></td>
+          <td class="num r"><strong>{{ usd(c.approved) }}</strong></td></tr>
+    </table></div>
+  </div>
+
+  <p class="muted">It goes on the record either way.</p>
+  <div class="actions">
+    <a class="btn ghost" href="{{ url_for('history', policy_id=p.policy_id) }}">{{ ui.icon('back') }} Policy {{ p.policy_id }}</a>
+    <a href="{{ url_for('claims') }}">Browse all claims</a>
+  </div>
+</div>
+{% endblock %}

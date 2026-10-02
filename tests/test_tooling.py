@@ -192,7 +192,7 @@ class TheTextFilesAreTidy(unittest.TestCase):
 
     #: Everything tracked that is text, by extension, so a binary file added
     #: later is not read as mojibake.
-    TEXT = (".py", ".md", ".feature", ".ini", ".json", ".csv", ".html",
+    TEXT = (".py", ".md", ".feature", ".ini", ".json", ".csv", ".html", ".css", ".svg",
             ".ipynb", ".txt", ".js")
 
     def files(self):

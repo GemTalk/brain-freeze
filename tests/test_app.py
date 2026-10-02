@@ -354,16 +354,17 @@ class TheApp(unittest.TestCase):
         self.assertIn("%s policyholders" % "{:,}".format(len(self.book())), body)
 
     def test_the_home_page_prices_come_from_the_model(self):
-        # The lowest each plan comes to is its base at the cheapest band --
+        # Each plan a month in every band, rounded as a quote rounds it --
         # read off underwriting, not typed into a template.
         body = self.client.get("/").data.decode()
-        cheapest = min(brainfreeze.RISK_TIER_MULT,
-                       key=brainfreeze.RISK_TIER_MULT.get)
         for name, plan in brainfreeze.COVERAGE_PLANS.items():
             self.assertIn(name, body)
-            self.assertIn(format_usd(round_cents(
-                brainfreeze.annual_premium(name, cheapest))), body)
+            for band in brainfreeze.RISK_TIER_MULT:
+                annual = round_cents(brainfreeze.annual_premium(name, band))
+                self.assertIn(format_usd(round_cents(annual / 12)), body)
             self.assertIn(format_usd(plan.coverage_limit_per_incident), body)
+        for headline in ("$7.00", "$12.00", "$19.00"):
+            self.assertIn(headline, body)
 
     def test_change_the_answers_brings_them_back(self):
         quote_id, _ = self.a_quote()

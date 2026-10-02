@@ -104,9 +104,11 @@ class Claim:
 ```
 
 Then show them in the app: the choices go in [`web/forms.py`](web/forms.py),
-the two questions and the line on the claim page in
-[`web/templates.py`](web/templates.py), and the answers into the new `Claim`
-where [`web/routes_html.py`](web/routes_html.py) files it.
+the two questions in
+[`web/templates/claim_form.html`](web/templates/claim_form.html) and the line
+on the claim page in [`web/templates/decision.html`](web/templates/decision.html),
+and the answers into the new `Claim` where
+[`web/routes_html.py`](web/routes_html.py) files it.
 
 Now load what you changed into the database:
 

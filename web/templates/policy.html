@@ -1,0 +1,65 @@
+{#- One policy and everything that has happened under it.
+
+    The acceptance steps read this page: `p.sub` holds the cover terms and
+    one `.tag`, and each `.card.row` tile is a `.big` figure over a `.muted`
+    label. Keep those if you rework the layout. -#}
+{% extends "base.html" %}
+{% import "_macros.html" as ui with context %}
+{% set nav = 'policies' %}
+
+{% block title %}{{ p.policy_id }} &middot; Brain Freeze{% endblock %}
+
+{% block content %}
+<div class="wrap">
+  <p class="eyebrow">Policy</p>
+  <h1 class="id">{{ p.policy_id }}</h1>
+  <p class="sub">{{ p.plan_name }} &middot; {{ p.risk_tier }} band,
+    <span class="num">{{ p.underwriting_risk_score }}</span> &middot;
+    {{ usd(p.annual_premium) }} a year &middot;
+    {{ usd(p.coverage_limit) }} an episode,
+    {{ usd(p.deductible) }} deductible &middot;
+    <span class="tag {{ cover_css }}">{{ cover }}</span>
+  </p>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('claim_form', policy_id=p.policy_id) }}">File a claim</a>
+    <a class="btn ghost" href="{{ url_for('id_card', policy_id=p.policy_id) }}">{{ ui.icon('card') }} ID card</a>
+  </div>
+
+  <div class="card row">
+    <div><div class="big num">{{ p.events|length }}</div><div class="muted">cold treats</div></div>
+    <div><div class="big num">{{ p.brain_freeze_events|length }}</div><div class="muted">gave a headache</div></div>
+    <div><div class="big num">{{ p.claims|length }}</div><div class="muted">claims sent</div></div>
+    <div><div class="big num">{{ usd(p.total_paid) }}</div><div class="muted">paid out</div></div>
+    <div><div class="big num">{{ p.approved_claims|length }}/{{ limit }}</div><div class="muted">claims used</div></div>
+  </div>
+
+  <div class="card">
+    <h2>Every cold treat on record</h2>
+    {% if not p.events %}
+    <p class="muted">Nothing yet. When something cold causes trouble, file it
+       and it will appear here.</p>
+    {% else %}
+    <div class="table-wrap"><table>
+      <thead><tr><th>Date</th><th>Treat</th><th>Claim</th><th>Outcome</th></tr></thead>
+      <tbody>
+      {% for e in p.events %}
+      <tr>
+        <td class="num">{{ e.event_date }}</td>
+        <td>{{ e.trigger }}{% if not e.brain_freeze %}
+            <span class="muted">&middot; no headache</span>{% endif %}</td>
+        <td>{% if e.claim %}<a class="id" href="{{ url_for('decision', policy_id=p.policy_id, claim_id=e.claim.claim_id) }}">{{ e.claim.claim_id }}</a>{% endif %}</td>
+        <td>{% if not e.claim %}<span class="muted">not claimed</span>
+            {% elif e.claim.is_approved %}
+              <span class="tag ok num">{{ usd(e.claim.approved) }}</span>
+            {% else %}<span class="tag no">{{ e.claim.reason }}</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% endif %}
+  </div>
+  <p class="muted">The treats that caused no headache are here too. They are
+    the denominator &mdash; without them, how often a slushie causes brain
+    freeze is not a question the data can answer.</p>
+</div>
+{% endblock %}

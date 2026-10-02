@@ -1,0 +1,54 @@
+{#- Every claim on the book, newest first, filtered and a page at a time. -#}
+{% extends "base.html" %}
+{% import "_macros.html" as ui with context %}
+{% set nav = 'claims' %}
+
+{% block title %}Claims &middot; Brain Freeze{% endblock %}
+
+{% block content %}
+<div class="wrap">
+  <h1>Claims</h1>
+  <p class="sub">{{ summary.claims }} claims on the book: {{ summary.approved }}
+    approved, {{ summary.refused }} refused. Newest first.</p>
+  <form method="get" action="{{ url_for('claims') }}" class="card search">
+    <label for="q" class="q" style="margin:0">Find a claim</label>
+    <input type="text" id="q" name="q" value="{{ wanted }}"
+           placeholder="CLM-001285 or BF-100539" autocomplete="off">
+    <button type="submit">Search</button>
+    {% if wanted %}<a href="{{ url_for('claims') }}">clear</a>{% endif %}
+  </form>
+  <div class="card">
+    <div class="filters">
+      {% for value, label in filters %}
+      <a class="tag{% if value == status %} on{% endif %}"
+         href="{{ url_for('claims', status=value, q=wanted or None) }}">{{ label }}</a>
+      {% endfor %}
+    </div>
+    {% if rows %}
+    <div class="table-wrap"><table>
+      <thead><tr><th>Claim</th><th>Episode</th><th>Policy</th><th>Treat</th>
+          <th>Outcome</th><th class="r">Assessed</th><th class="r">Paid</th></tr></thead>
+      <tbody>
+      {% for c, e, p in rows %}
+      <tr>
+        <td><a class="id" href="{{ url_for('decision', policy_id=p.policy_id, claim_id=c.claim_id) }}">{{ c.claim_id }}</a></td>
+        <td class="num">{{ e.event_date }}</td>
+        <td><a class="id" href="{{ url_for('history', policy_id=p.policy_id) }}">{{ p.policy_id }}</a>
+          <div class="muted">{{ p.plan_name }}</div></td>
+        <td>{{ e.trigger }}</td>
+        <td>{% if c.is_approved %}<span class="tag ok">Approved</span>
+            {% else %}<span class="tag no">Refused</span>
+            <div class="muted">{{ c.reason }}</div>{% endif %}</td>
+        <td class="num r">{{ usd(c.requested) }}</td>
+        <td class="num r">{{ usd(c.approved) }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {{ ui.pager(pager) }}
+    {% else %}
+    <p class="muted">No claims match{% if wanted %} &ldquo;{{ wanted }}&rdquo;{% endif %}.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
