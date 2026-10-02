@@ -52,6 +52,24 @@ Standard 179.97
 There is no schema file and no save method. `gemdb.root` is a dictionary that
 persists, and `gemdb.commit()` is the only call that writes.
 
+The loader is ordinary Python: the standard `csv` module, the model's
+classes, and those two. Trimmed from [`tools/seed.py`](tools/seed.py):
+
+```python
+book = Book()
+with open("data/policyholders.csv", newline="") as handle:
+    for row in csv.DictReader(handle):
+        book.add(Policyholder(
+            policy_id=row["policy_id"],
+            age=int(row["age"]),
+            plan_name=row["coverage_plan"],
+            ...
+        ))
+
+gemdb.root["brainfreeze"] = book
+gemdb.commit()
+```
+
 ## 2. Launch the web app
 
 ```sh
