@@ -168,6 +168,7 @@ function makeVscode(packageJSON, extensionPath) {
       onDidChange: event(),
     },
     lm: { registerMcpServerDefinitionProvider: () => disposable() },
+    debug: { registerDebugAdapterDescriptorFactory: () => disposable(), breakpoints: [] },
     notebooks: { createNotebookController: () => anything() },
     l10n: { t: (s) => s },
     Uri: { file: uri, parse: (s) => ({ ...uri(s), toString: () => s }), joinPath: (u, ...p) => uri(path.join(u.fsPath, ...p)) },
@@ -181,6 +182,8 @@ function makeVscode(packageJSON, extensionPath) {
       cancel() { this.token.isCancellationRequested = true; }
       dispose() {}
     },
+    DebugAdapterInlineImplementation: Plain, SourceBreakpoint: Plain,
+    InputBoxValidationSeverity: { Info: 1, Warning: 2, Error: 3 },
     ProgressLocation: { SourceControl: 1, Window: 10, Notification: 15 },
     StatusBarAlignment: { Left: 1, Right: 2 },
     ConfigurationTarget: { Global: 1, Workspace: 2, WorkspaceFolder: 3 },
@@ -191,10 +194,18 @@ function makeVscode(packageJSON, extensionPath) {
     UIKind: { Desktop: 1, Web: 2 },
   };
 
-  // Anything setup never touches still has to exist when the bundle reads it.
-  return new Proxy(api, {
+  // Anything setup never touches still has to exist when the bundle reads it:
+  // a call a release adds to a namespace defined here (1.5.4's
+  // window.createTreeView, say). A whole name has to be defined above, not
+  // left to this: the bundle copies the module's own properties when it loads
+  // it, so a name this object does not have is undefined there, not a no-op.
+  const orAnything = (object) => new Proxy(object, {
     get(target, prop) { return prop in target ? target[prop] : anything(); },
   });
+  for (const name of ['commands', 'window', 'workspace', 'env', 'extensions', 'lm', 'notebooks', 'debug']) {
+    api[name] = orAnything(api[name]);
+  }
+  return orAnything(api);
 }
 
 function makeContext(vscode, packageJSON, extensionPath, storage) {

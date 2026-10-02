@@ -80,7 +80,7 @@ jobs:
       matrix:
         # The GemDB Code release a reader installs. Its engine is pinned by
         # the release, so this is also the engine cache's key.
-        gemdb: ["1.5.3"]
+        gemdb: ["1.5.4"]
     env:
       VSIX: gemdb-darwin-arm64-${{ matrix.gemdb }}.vsix
       GH_TOKEN: ${{ github.token }}
