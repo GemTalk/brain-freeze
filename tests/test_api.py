@@ -172,7 +172,7 @@ class Payloads(unittest.TestCase):
         payload = wire.policy(self.book[EXAMPLE], date(2026, 9, 9))
         self.assert_wire_safe(payload)
         self.assertEqual(payload["policy_id"], EXAMPLE)
-        self.assertEqual(payload["plan_name"], "Standard")
+        self.assertEqual(payload["plan_name"], "Sundae")
         self.assertEqual(payload["total_paid"], "179.97")
         self.assertEqual(payload["claim_count"], 8)
         self.assertEqual(payload["approved_claim_count"], 4)
@@ -240,9 +240,9 @@ class Payloads(unittest.TestCase):
         self.assert_wire_safe(payload)
         self.assertEqual(payload["score"], 75.0)
         self.assertEqual(payload["risk_tier"], "High")
-        self.assertEqual(payload["plans"]["Standard"]["annual"], "171.00")
-        self.assertEqual(payload["plans"]["Standard"]["monthly"], "14.25")
-        self.assertEqual(payload["plans"]["Premium"]["deductible"], "0.00")
+        self.assertEqual(payload["plans"]["Sundae"]["annual"], "273.60")
+        self.assertEqual(payload["plans"]["Sundae"]["monthly"], "22.80")
+        self.assertEqual(payload["plans"]["Parfait"]["deductible"], "0.00")
         # explaining a price needs the breakdown, not just the total
         self.assertEqual(payload["breakdown"][0],
                          {"label": "Everyone starts here", "points": 45.0})
@@ -254,12 +254,12 @@ class Payloads(unittest.TestCase):
         self.assertEqual(payload["event_count"], 4993)
         self.assertEqual(payload["claim_count"], 2172)
         self.assertEqual(payload["approved_claim_count"], 1691)
-        self.assertEqual(payload["premium"], "92081.22")
+        self.assertEqual(payload["premium"], "142787.97")
         self.assertEqual(payload["paid"], "54671.44")
-        self.assertEqual(payload["loss_ratio"], 0.594)
+        self.assertEqual(payload["loss_ratio"], 0.383)
         self.assertEqual(payload["claim_approval_rate"], 0.7785)
         self.assertEqual(payload["loss_ratio_by_tier"],
-                         {"Low": 0.409, "Medium": 0.729, "High": 0.501})
+                         {"Low": 0.258, "Medium": 0.466, "High": 0.327})
         self.assertEqual(payload["denial_reasons"][0],
                          {"reason": "Policy lapsed", "claims": 254})
 
@@ -268,7 +268,7 @@ class Payloads(unittest.TestCase):
         # measurement and it is honestly a float -- see brainfreeze.analysis.
         payload = wire.stats(self.book)
         self.assertIsInstance(payload["loss_ratio"], float)
-        self.assertIsInstance(payload["loss_ratio_by_plan"]["Basic"], float)
+        self.assertIsInstance(payload["loss_ratio_by_plan"]["Sprinkle"], float)
 
     def test_nothing_anywhere_in_the_book_survives_as_a_decimal(self):
         # A Decimal that reached a payload would raise inside json.dumps, so

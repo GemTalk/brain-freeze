@@ -328,10 +328,10 @@ class SavedQuote:
     def __repr__(self):
         # `.get`, because a repr that raises is worse than a repr that says
         # less -- and `format_usd(None)` is already "--".
-        standard = self.plans.get("Standard")
+        middle = self.plans.get("Sundae")
         return "<SavedQuote %s %s %s%s>" % (
             self.quote_id, self.risk_tier,
-            format_usd(standard["annual"] if standard else None),
+            format_usd(middle["annual"] if middle else None),
             " -> %s" % self.policy_id if self.policy_id else "")
 
 

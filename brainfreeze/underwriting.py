@@ -62,11 +62,14 @@ class Plan(NamedTuple):
     deductible_per_incident: Decimal
 
 
-#: The three plans on offer.
+#: The three plans on offer, smallest first. A Medium-band member pays the
+#: base, so these are $7, $12 and $19 a month at Medium; the band scales
+#: them from there. The order is the generator's: it draws a plan by
+#: position, so reordering these reshuffles the sample book.
 COVERAGE_PLANS = {
-    "Basic": Plan(usd("45.00"), usd("25.00"), usd("10.00")),
-    "Standard": Plan(usd("90.00"), usd("60.00"), usd("5.00")),
-    "Premium": Plan(usd("180.00"), usd("150.00"), usd("0.00")),
+    "Sprinkle": Plan(usd("84.00"), usd("25.00"), usd("10.00")),
+    "Sundae": Plan(usd("144.00"), usd("60.00"), usd("5.00")),
+    "Parfait": Plan(usd("228.00"), usd("150.00"), usd("0.00")),
 }
 
 

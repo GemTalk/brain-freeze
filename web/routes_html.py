@@ -176,7 +176,7 @@ def accept_quote(quote_id):
         # Taken up already: a second press, or a refresh. One quote sells one
         # policy, so show the one it sold rather than minting another.
         return redirect(url_for("id_card", policy_id=saved.policy_id))
-    plan_name = request.form.get("plan", "Standard")
+    plan_name = request.form.get("plan", "Sundae")
     if plan_name not in saved.plans:
         abort(404)
 
