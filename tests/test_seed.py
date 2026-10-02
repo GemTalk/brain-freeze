@@ -48,9 +48,9 @@ class TheLoad(unittest.TestCase):
         self.assertEqual(sum(len(p.events) for p in self.book), 4993)
 
     def test_money_matches_the_generator(self):
-        self.assertEqual(self.book.total_premium, usd("92081.22"))
+        self.assertEqual(self.book.total_premium, usd("142787.97"))
         self.assertEqual(self.book.total_paid, usd("54671.44"))
-        self.assertEqual(self.book.loss_ratio, 0.594)
+        self.assertEqual(self.book.loss_ratio, 0.383)
 
     def test_claim_counts(self):
         claims = self.book.claims
@@ -324,13 +324,13 @@ class BF100539(unittest.TestCase):
 
     def test_the_shape_the_screens_show(self):
         p = self.policy
-        self.assertEqual(p.plan_name, "Standard")
+        self.assertEqual(p.plan_name, "Sundae")
         self.assertEqual(p.risk_tier, "Medium")
         self.assertEqual(p.underwriting_risk_score, 65.2)
         self.assertEqual(p.coverage_limit, 60.0)
         self.assertEqual(p.deductible, 5.0)
-        self.assertEqual(p.annual_premium, usd("98.10"))
-        self.assertEqual(p.monthly_premium, usd("8.18"))
+        self.assertEqual(p.annual_premium, usd("156.96"))
+        self.assertEqual(p.monthly_premium, usd("13.08"))
         self.assertEqual(p.policy_status, "Lapsed")
         self.assertEqual(p.policy_lapse_date, date(2027, 3, 10))
 
@@ -373,7 +373,7 @@ class BF100539(unittest.TestCase):
         self.assertEqual(dates, sorted(dates))
 
     def test_this_policy_loses_money(self):
-        self.assertGreater(self.policy.loss_ratio, 1.5)
+        self.assertGreater(self.policy.loss_ratio, 1.0)
 
 
 def scrambled(rows):
@@ -487,8 +487,8 @@ class EventOrderIsTheLoadersJob(unittest.TestCase):
             book = seed.load(seed.POLICYHOLDERS_CSV,
                              self._rewritten(directory, rows, header))
         self.assertEqual(book.total_paid, usd("54671.44"))
-        self.assertEqual(book.total_premium, usd("92081.22"))
-        self.assertEqual(book.loss_ratio, 0.594)
+        self.assertEqual(book.total_premium, usd("142787.97"))
+        self.assertEqual(book.loss_ratio, 0.383)
         policy = book["BF-100539"]
         self.assertEqual(policy.total_paid, usd("179.97"))
         self.assertEqual([c.approved for c in policy.claims],

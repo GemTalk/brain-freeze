@@ -31,24 +31,24 @@ class Aggregates(unittest.TestCase):
         self.assertEqual(s["events"], 4993)
         self.assertEqual(s["claims"], 2172)
         self.assertEqual(s["approved"], 1691)
-        self.assertEqual(s["premium"], usd("92081.22"))
+        self.assertEqual(s["premium"], usd("142787.97"))
         self.assertEqual(s["paid"], usd("54671.44"))
-        self.assertEqual(s["loss_ratio"], 0.594)
+        self.assertEqual(s["loss_ratio"], 0.383)
 
     def test_loss_ratio_by_tier(self):
         # The headline finding: the 1.9x High loading over-prices the risk, so
-        # the riskiest customers are the most profitable and Medium is the
-        # band losing money relative to its price.
+        # High pays out less of its premium than Medium does, and Medium is
+        # the band paying out the most relative to its price.
         self.assertEqual(analysis.loss_ratio_by_tier(self.book),
-                         {"Low": 0.409, "Medium": 0.729, "High": 0.501})
+                         {"Low": 0.258, "Medium": 0.466, "High": 0.327})
 
     def test_loss_ratio_by_plan(self):
         self.assertEqual(analysis.loss_ratio_by_plan(self.book),
-                         {"Basic": 0.493, "Standard": 0.771, "Premium": 0.455})
+                         {"Sprinkle": 0.264, "Sundae": 0.482, "Parfait": 0.359})
 
     def test_least_profitable_plan(self):
         self.assertEqual(analysis.least_profitable_plan(self.book),
-                         ("Standard", 0.771))
+                         ("Sundae", 0.482))
 
     def test_claim_approval_rate(self):
         self.assertEqual(analysis.claim_approval_rate(self.book), 0.7785)
@@ -119,8 +119,8 @@ class DenialRules(unittest.TestCase):
             policy_id="BF-TEST", age=10, sex=None, migraine_history=False,
             tension_type_headache_history=False,
             typical_consumption_speed="fast", favourite_trigger="slushie",
-            underwriting_base=45.0, plan_name="Standard",
-            annual_premium=usd("171.00"), policy_start_date=date(2026, 1, 1))
+            underwriting_base=45.0, plan_name="Sundae",
+            annual_premium=usd("273.60"), policy_start_date=date(2026, 1, 1))
         book.add(policy)
         for n, claim in enumerate((
                 Claim("CLM-1", usd("10.00"), usd("0.00"), "Denied",
@@ -160,7 +160,7 @@ class Rankings(unittest.TestCase):
         top = analysis.top_n_by_loss_ratio(self.book, 3)
         self.assertEqual([p.policy_id for p, _ in top],
                          ["BF-100813", "BF-100367", "BF-100495"])
-        self.assertEqual(top[0][1], 2.728)
+        self.assertEqual(top[0][1], 1.705)
 
     def test_rankings_are_stable(self):
         # Ties are broken by policy_id, so an agent asked the same question

@@ -25,7 +25,7 @@ Feature: Step 2 -- launch the web app
     Then the quote prices all three plans
     And I capture "a quote"
 
-    When I accept the Standard plan
+    When I accept the Sundae plan
     Then I am shown a policy
     And I am shown its ID card
     And I capture "the policy I bought"

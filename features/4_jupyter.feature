@@ -13,7 +13,7 @@ Feature: Step 4 -- Jupyter
 
     When I open the quote page
     And I answer age 9, no migraine, no tension headaches, eating fast, on slushies
-    And I accept the Standard plan
+    And I accept the Sundae plan
     Then I am shown a policy
     And I capture "a policy bought while the notebook is open"
 

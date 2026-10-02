@@ -46,7 +46,7 @@ gemdb -c 'import gemdb; p = gemdb.root["brainfreeze"]["BF-100539"]; print(p.plan
 ```
 
 ```console
-Standard 179.97
+Sundae 179.97
 ```
 
 There is no schema file and no save method. `gemdb.root` is a dictionary that

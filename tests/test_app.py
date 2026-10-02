@@ -35,7 +35,7 @@ if gemdb is not None:
 
 # The database is shared across these tests and filing a claim mutates it, so
 # every test that writes gets a policy of its own. All three are Active,
-# Standard plan, with three approvals used -- one more pays out.
+# Sundae plan, with three approvals used -- one more pays out.
 ACTIVE = "BF-100092"          # written by: a claim is paid and persisted
 ACTIVE_RULES = "BF-100150"    # written by: the payout matches adjudicate()
 ACTIVE_READONLY = "BF-100184" # never written -- for the "no warning" checks
@@ -210,7 +210,7 @@ class TheApp(unittest.TestCase):
 
     #: The five answers of the example quote: age 11, eats fast,
     #: favourite is a slushie, no headache history. Scores 75.0, High tier,
-    #: $171.00 a year on Standard -- all three pinned in test_brainfreeze.
+    #: $273.60 a year on Sundae -- all three pinned in test_brainfreeze.
     #:
     #: Spelled the way the risk model spells them, which is also how the form
     #: names its fields and how the JSON body names its keys. One vocabulary
@@ -244,9 +244,9 @@ class TheApp(unittest.TestCase):
         self.assertEqual(offer.risk_tier, "High")
         self.assertIn("75", body)
         self.assertIn("High", body)
-        for plan in ("Basic", "Standard", "Premium"):
+        for plan in ("Sprinkle", "Sundae", "Parfait"):
             self.assertIn(plan, body)
-        self.assertIn("171.00", body)            # Standard at the High loading
+        self.assertIn("273.60", body)            # Sundae at the High loading
         self.assertIn(quote_id, body)            # and it says which quote
 
     def test_the_quote_explains_itself(self):
@@ -268,7 +268,7 @@ class TheApp(unittest.TestCase):
             tension_type_headache_history=False,
             typical_consumption_speed="fast", favourite_trigger="slushie"))
         self.assertEqual(saved.risk_tier, "High")
-        self.assertEqual(saved.plans["Standard"]["annual"], usd("171.00"))
+        self.assertEqual(saved.plans["Sundae"]["annual"], usd("273.60"))
         self.assertEqual(saved.quoted_on, date.today())
         self.assertIsNone(saved.policy_id)
 
@@ -299,15 +299,15 @@ class TheApp(unittest.TestCase):
         before = len(self.book())
         quote_id, _ = self.a_quote()
         r = self.client.post("/quote/%s/accept" % quote_id,
-                             data={"plan": "Standard"})
+                             data={"plan": "Sundae"})
         self.assertEqual(r.status_code, 302)     # POST/redirect/GET
         book = self.book()
         self.assertEqual(len(book), before + 1)
         new_id = policy_in(r.headers["Location"])
         policy = book[new_id]
-        self.assertEqual(policy.plan_name, "Standard")
+        self.assertEqual(policy.plan_name, "Sundae")
         self.assertEqual(policy.risk_tier, "High")
-        self.assertEqual(policy.annual_premium, usd("171.00"))
+        self.assertEqual(policy.annual_premium, usd("273.60"))
         self.assertEqual(policy.events, [])
 
     def test_the_policy_is_sold_at_the_price_that_was_quoted(self):
@@ -316,16 +316,16 @@ class TheApp(unittest.TestCase):
         quote_id, _ = self.a_quote()
         saved = self.book().quotes[quote_id]
         r = self.client.post("/quote/%s/accept" % quote_id,
-                             data={"plan": "Premium"})
+                             data={"plan": "Parfait"})
         policy = self.book()[policy_in(r.headers["Location"])]
         self.assertEqual(policy.annual_premium,
-                         saved.plans["Premium"]["annual"])
-        self.assertEqual(policy.annual_premium, usd("342.00"))
+                         saved.plans["Parfait"]["annual"])
+        self.assertEqual(policy.annual_premium, usd("433.20"))
 
     def test_an_accepted_quote_remembers_what_it_became(self):
         quote_id, _ = self.a_quote()
         r = self.client.post("/quote/%s/accept" % quote_id,
-                             data={"plan": "Basic"})
+                             data={"plan": "Sprinkle"})
         policy_id = policy_in(r.headers["Location"])
         saved = self.book().quotes[quote_id]
         self.assertEqual(saved.policy_id, policy_id)
@@ -342,7 +342,7 @@ class TheApp(unittest.TestCase):
 
     def test_accepting_a_quote_that_does_not_exist_is_a_404(self):
         r = self.client.post("/quote/QTE-999999/accept",
-                             data={"plan": "Standard"})
+                             data={"plan": "Sundae"})
         self.assertEqual(r.status_code, 404)
 
 
@@ -375,21 +375,21 @@ class TheApp(unittest.TestCase):
     def test_taking_out_a_policy_lands_on_its_id_card(self):
         quote_id, _ = self.a_quote()
         r = self.client.post("/quote/%s/accept" % quote_id,
-                             data={"plan": "Standard"})
+                             data={"plan": "Sundae"})
         self.assertTrue(r.headers["Location"].endswith("/card"))
         policy_id = policy_in(r.headers["Location"])
         card = self.client.get(r.headers["Location"]).data.decode()
         self.assertIn(policy_id, card)
-        self.assertIn("$171.00 a year", card)    # the price the quote showed
+        self.assertIn("$273.60 a year", card)    # the price the quote showed
         self.assertIn('href="/policies/%s/claims/new"' % policy_id, card)
 
     def test_a_quote_sells_one_policy_however_often_it_is_accepted(self):
         quote_id, _ = self.a_quote()
         first = self.client.post("/quote/%s/accept" % quote_id,
-                                 data={"plan": "Standard"})
+                                 data={"plan": "Sundae"})
         before = len(self.book())
         again = self.client.post("/quote/%s/accept" % quote_id,
-                                 data={"plan": "Premium"})
+                                 data={"plan": "Parfait"})
         self.assertEqual(len(self.book()), before)
         self.assertEqual(policy_in(again.headers["Location"]),
                          policy_in(first.headers["Location"]))
@@ -684,7 +684,7 @@ class TheJsonApi(unittest.TestCase):
         answers = {q["name"]: q["default"] for q in questions}
         body = self.post("/api/quote", answers)
         self.assertEqual(body["answers"], answers)
-        self.assertIn("Standard", body["quote"]["plans"])
+        self.assertIn("Sundae", body["quote"]["plans"])
 
     # -- pricing ----------------------------------------------------------
 
@@ -697,7 +697,7 @@ class TheJsonApi(unittest.TestCase):
         offer = brainfreeze.quote(11, False, False, "fast", "slushie")
         self.assertEqual(body["quote"]["score"], offer.score)
         self.assertEqual(body["quote"]["risk_tier"], "High")
-        self.assertEqual(body["quote"]["plans"]["Standard"]["annual"], "171.00")
+        self.assertEqual(body["quote"]["plans"]["Sundae"]["annual"], "273.60")
 
     def test_money_in_a_body_is_a_string_and_not_a_number(self):
         # The decision the JSON surface turns on: an exact string to the cent,
@@ -705,10 +705,10 @@ class TheJsonApi(unittest.TestCase):
         # which would put back the disagreement exact money removed.
         plan = self.post("/api/quote", {
             "age": 11, "typical_consumption_speed": "fast",
-            "favourite_trigger": "slushie"})["quote"]["plans"]["Standard"]
+            "favourite_trigger": "slushie"})["quote"]["plans"]["Sundae"]
         for key in ("annual", "monthly", "limit", "deductible"):
             self.assertIsInstance(plan[key], str, key)
-        self.assertEqual(plan["annual"], "171.00")
+        self.assertEqual(plan["annual"], "273.60")
         self.assertEqual(plan["deductible"], "5.00")
 
     def test_a_figure_from_the_wire_goes_back_into_the_model_unchanged(self):

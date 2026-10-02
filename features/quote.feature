@@ -24,7 +24,7 @@ Feature: Getting a quote and buying a policy
     Then the quote prices all three plans
     And I capture "the same quote, re-opened"
 
-    When I accept the Standard plan
+    When I accept the Sundae plan
     Then I am shown a policy
     And I am shown its ID card
     And the policy was sold at the price the quote showed
