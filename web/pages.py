@@ -1,17 +1,19 @@
-"""What every page needs: rendering, and how to describe a policy's cover.
+"""What every page needs: rendering, how to describe a policy's cover, the
+fields of an ID card, and a window onto a long list.
 
 Here rather than in app.py so the routes reach them by name on every
 request -- `pages.render(...)` -- and pick up a loaded change. See routes.py.
 """
 
-from flask import render_template_string
+from flask import render_template_string, url_for
 
 import brainfreeze
 import brainfreeze.money as money
+import templates
 
 
 def render(template, **context):
-    """Render, with `usd` available to every template to format money.
+    """Render, with `usd` to format money and `css` for the page's styles.
 
     `format_usd` gives `$170.10` whatever places the Decimal carries, and
     copes with `None`.
@@ -20,8 +22,13 @@ def render(template, **context):
     global: Grail's `cached_property` does not cache, so each read of
     `app.jinja_env` builds a fresh Environment and a registration on it is
     discarded.
+
+    The stylesheet arrives the same way, as a value the head writes out,
+    rather than as text inside every template, where Jinja would lex it on
+    each render.
     """
-    return render_template_string(template, usd=money.format_usd, **context)
+    return render_template_string(template, usd=money.format_usd,
+                                  css=templates.STYLE, **context)
 
 
 def cover_state(policy, today):
@@ -56,3 +63,54 @@ def refuse(code, message):
     refusal.description = message
     raise refusal
 
+
+
+def id_card(policy, today):
+    """What the ID card prints, as display strings.
+
+    The only thing `templates.ID_CARD` reads, so a new design for the card
+    is a new SVG over these fields and nothing else. Every figure is the
+    policy's own, formatted the way every other page formats it.
+    """
+    label, _css = cover_state(policy, today)
+    return {
+        "policy_id": policy.policy_id,
+        "plan": policy.plan_name,
+        "member": "Age %d \u00b7 favourite treat: %s"
+                  % (policy.age, policy.favourite_trigger),
+        "cover": money.format_usd(policy.coverage_limit),
+        "deductible": money.format_usd(policy.deductible),
+        "premium": money.format_usd(policy.annual_premium),
+        "risk_tier": policy.risk_tier,
+        "valid_from": str(policy.policy_start_date),
+        "valid_to": str(policy.policy_end_date),
+        "claims_a_year": brainfreeze.ANNUAL_CLAIM_LIMIT,
+        "status": label,
+    }
+
+
+def window_start(args):
+    """Where a paged list starts, from `?from=`; the beginning if it is not
+    a number."""
+    try:
+        return max(0, int(args.get("from", 0)))
+    except ValueError:
+        return 0
+
+
+def pager(endpoint, start, size, total, **arguments):
+    """Which slice of a list is showing, and the links either side of it.
+
+    `templates._PAGER` prints this. The links keep `arguments` -- a filter,
+    say -- so paging does not drop it.
+    """
+    def link(where):
+        return url_for(endpoint, **dict(arguments, **{"from": where}))
+
+    return {
+        "first": min(start + 1, total),
+        "last": min(start + size, total),
+        "total": total,
+        "previous": link(max(0, start - size)) if start > 0 else None,
+        "next": link(start + size) if start + size < total else None,
+    }

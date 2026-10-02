@@ -6,9 +6,13 @@ Feature: Step 2 -- launch the web app
   still there. Nothing was saved, because nothing needed to be.
 
   Scenario: a policy bought and a claim filed are still there after a restart
-    When I open the customer picker page
+    When I open the home page
     Then the address step 2 of the README says to open is where the app serves
     And the page says how many policyholders there are
+    And I capture "the front door"
+
+    When I open the customer picker page
+    Then the page says how many policyholders there are
     And I capture "the customers"
     And the app said it was running, and logged that request
 
@@ -23,6 +27,7 @@ Feature: Step 2 -- launch the web app
 
     When I accept the Standard plan
     Then I am shown a policy
+    And I am shown its ID card
     And I capture "the policy I bought"
 
     When I go to file a claim

@@ -100,6 +100,17 @@ def shown_a_policy(context):
     context.policy_id = match.group(1)
 
 
+@then('I am shown its ID card')
+def shown_its_id_card(context):
+    """Taking out a policy lands on the card, drawn for this policy."""
+    assert context.page.url.endswith("/policies/%s/card" % context.policy_id), (
+        "expected the new policy's ID card, got %s" % context.page.url)
+    card = context.page.locator("#id-card svg")
+    assert card.count() == 1, "the ID card page has no card on it"
+    assert context.policy_id in card.text_content(), (
+        "the ID card does not carry the policy number %s" % context.policy_id)
+
+
 @then('the policy was sold at the price the quote showed')
 def sold_at_the_quoted_price(context):
     quoted = context.quoted[context.accepted_plan]

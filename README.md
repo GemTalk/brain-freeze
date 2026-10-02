@@ -78,9 +78,11 @@ gemdb web/app.py
 
 Open <http://127.0.0.1:5050/>.
 
-Pick a policyholder and look at their history. Get a quote at `/quote`, buy
-the policy, and file a claim against it: say how bad it was and how long it
-lasted, and the rules decide what it pays.
+Start a quote from the home page: answer five questions, pick one of three
+prices, and the policy you bought comes back as its ID card. File a claim
+against it: say how bad it was and how long it lasted, and the rules decide
+what it pays. Every policyholder is under **Policies** and every claim under
+**Claims**.
 
 Now stop the app (Ctrl-C) and start it again. The policy you bought and the
 claim you filed are still there. Nothing was saved, because nothing needed to

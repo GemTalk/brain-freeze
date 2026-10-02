@@ -426,8 +426,9 @@ class TheRouteContract(unittest.TestCase):
         # replace it. Selling a quote happens at the quote's own address
         # (`/quote/<quote_id>/accept`), not by re-pricing a posted form.
         found = self.routes()
-        for path in ("/", "/quote", "/quote/<quote_id>",
+        for path in ("/", "/policies", "/claims", "/quote", "/quote/<quote_id>",
                      "/quote/<quote_id>/accept", "/policies/<policy_id>",
+                     "/policies/<policy_id>/card",
                      "/policies/<policy_id>/claims/new",
                      "/policies/<policy_id>/claims",
                      "/policies/<policy_id>/claims/<claim_id>"):

@@ -1,6 +1,7 @@
 Feature: Getting a quote and buying a policy
 
-  Five questions, three priced plans, and a policy at the end of it.
+  Five questions, three priced plans, and a policy at the end of it -- shown
+  as its ID card.
 
   The quote is an object. It has an id, it can be re-opened, and accepting it
   sells at the price it showed -- none of that state goes through the
@@ -25,6 +26,7 @@ Feature: Getting a quote and buying a policy
 
     When I accept the Standard plan
     Then I am shown a policy
+    And I am shown its ID card
     And the policy was sold at the price the quote showed
     And I capture "the policy that was bought"
 
