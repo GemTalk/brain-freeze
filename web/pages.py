@@ -48,7 +48,8 @@ def refuse(code, message):
 
     What `abort(code, message)` should do, but Grail's werkzeug `abort`
     drops the message. Setting it on the exception works there and in real
-    Werkzeug. Remove once Grail's `abort` keeps its description.
+    Werkzeug. Removing it is GemTalk/brain-freeze#87, once GemTalk/Grail#1290
+    ships.
     """
     from werkzeug.exceptions import default_exceptions
     refusal = default_exceptions[code]()

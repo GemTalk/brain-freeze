@@ -66,7 +66,6 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if REPO not in sys.path:
     sys.path.insert(0, REPO)
 
-import jinja2
 from flask import Flask
 from werkzeug.serving import WSGIRequestHandler
 
@@ -112,29 +111,12 @@ def take_new_view():
     gemdb.commit()
     gemdb.refresh()
 
-def restore_template_class():
-    """Put back what jinja2 sets at the bottom of its own module.
-
-    Every session after the one that deployed Jinja gets an Environment with
-    no `template_class`, so every render raises AttributeError and every page
-    is a 500 (GemTalk/Grail#1242). The store is session-local (Grail#1240),
-    so it has to happen in every session.
-
-    A function rather than a module-level statement because an unchanged
-    committed module is restored without re-running its top level (#1242
-    again). Delete this once #1242 ships.
-    """
-    if not hasattr(jinja2.Environment, "template_class"):
-        jinja2.Environment.template_class = jinja2.Template
-
-
 def create_app():
     """Build the app and register both surfaces onto it.
 
     A loaded change to a page, a template or the model is live on the next
     request (routes.py). A change to this file needs a restart.
     """
-    restore_template_class()
     app = Flask(__name__)
 
     @app.before_request
@@ -162,9 +144,7 @@ def serve(host="127.0.0.1", port=None):
     write-write conflict that repeats on every request. Committing before
     `run` closes that window.
 
-    `port` is `BRAINFREEZE_PORT` if set, else 5050 -- read here rather than at
-    module scope, which does not re-run while this file is unchanged (see
-    `restore_template_class`).
+    `port` is `BRAINFREEZE_PORT` if set, else 5050, read when the app starts.
     """
     if port is None:
         try:
