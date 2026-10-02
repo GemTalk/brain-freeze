@@ -1,0 +1,48 @@
+{#- Step 1 of the quote: the five questions. `a` is the answers to start
+    from -- the defaults, or a saved quote's when changing them. -#}
+{% extends "base.html" %}
+{% import "_macros.html" as ui with context %}
+{% set nav = 'quote' %}
+
+{% block title %}Get a quote &middot; Brain Freeze{% endblock %}
+
+{% block content %}
+<div class="wrap narrow">
+  {{ ui.steps(1) }}
+  <h1>Tell us about the member</h1>
+  <p class="sub">Five questions. We work the price out from the answers.</p>
+  <form method="post" action="{{ url_for('quote_result') }}" class="card">
+    <div class="qgrid">
+      <fieldset><legend>How old are they?</legend>
+        <input type="number" name="age" value="{{ a.age }}" min="5" max="19" required>
+        <div class="hint">Cover is for ages 5 to 19.</div></fieldset>
+      <fieldset><legend>Diagnosed with migraine?</legend>
+        <div class="chips">
+          {{ ui.chip('migraine_history', 'no', 'No', not a.migraine_history) }}
+          {{ ui.chip('migraine_history', 'yes', 'Yes', a.migraine_history) }}
+        </div></fieldset>
+      <fieldset><legend>Diagnosed with tension headaches?</legend>
+        <div class="chips">
+          {{ ui.chip('tension_type_headache_history', 'no', 'No', not a.tension_type_headache_history) }}
+          {{ ui.chip('tension_type_headache_history', 'yes', 'Yes', a.tension_type_headache_history) }}
+        </div></fieldset>
+    </div>
+    <fieldset><legend>How fast do they usually eat something cold?</legend>
+      <div class="chips">
+      {% for label, value in speeds %}
+        {{ ui.chip('typical_consumption_speed', value, label, value == a.typical_consumption_speed) }}
+      {% endfor %}
+      </div></fieldset>
+    <fieldset><legend>Favourite cold treat</legend>
+      <div class="chips">
+      {% for t in triggers %}
+        {{ ui.chip('favourite_trigger', t, t|capitalize, t == a.favourite_trigger) }}
+      {% endfor %}
+      </div></fieldset>
+    <div class="row" style="align-items:center">
+      <span class="muted">Your quote is saved, so you can come back to it.</span>
+      <button type="submit">See my prices {{ ui.icon('arrow') }}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

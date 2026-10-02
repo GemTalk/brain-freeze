@@ -1,0 +1,61 @@
+{#- Describing an episode. Nobody types a figure: the answers imply it. -#}
+{% extends "base.html" %}
+{% import "_macros.html" as ui with context %}
+{% set nav = 'claims' %}
+
+{% block title %}File a claim on {{ p.policy_id }} &middot; Brain Freeze{% endblock %}
+
+{% block content %}
+<div class="wrap narrow">
+  <p class="eyebrow">Claim on <a class="id" href="{{ url_for('history', policy_id=p.policy_id) }}">{{ p.policy_id }}</a></p>
+  <h1>What happened?</h1>
+  <p class="sub">Tell us about the episode. We work the money out from your
+    answers &mdash; there is no figure to type in.</p>
+
+  {% for note in warnings %}<div class="warn">{{ note }}</div>{% endfor %}
+
+  <form method="post" action="{{ url_for('file_claim', policy_id=p.policy_id) }}"
+        class="card">
+    <fieldset><legend>What did they have?</legend>
+      <div class="chips">{% for t in triggers %}
+        {{ ui.chip('trigger', t, t|capitalize, loop.first) }}{% endfor %}
+      </div></fieldset>
+    <fieldset><legend>How cold was it?</legend>
+      <div class="chips">{% for label, value in colds %}
+        {{ ui.chip('cold', label, label, loop.first) }}{% endfor %}
+      </div>
+      <div class="hint">A band, not a reading &mdash; nobody owns a
+        thermometer for this.</div></fieldset>
+    <fieldset><legend>How much of it?</legend>
+      <div class="chips">{% for label, value in portions %}
+        {{ ui.chip('portion', label, label, loop.index0 == 2) }}{% endfor %}
+      </div></fieldset>
+    <fieldset><legend>How fast?</legend>
+      <div class="chips">{% for label, value in speeds %}
+        {{ ui.chip('speed', label, label, loop.index0 == 1) }}{% endfor %}
+      </div></fieldset>
+    <div class="qgrid">
+      <fieldset><legend>How bad was it?</legend>
+        <input type="number" name="pain" value="5" min="0" max="10">
+        <div class="hint">0 is barely noticed, 10 is the worst ever.</div></fieldset>
+      <fieldset><legend>Where did it hurt?</legend>
+        <div class="chips">{% for l in locations %}
+          {{ ui.chip('location', l, l, loop.first) }}{% endfor %}
+        </div></fieldset>
+    </div>
+    <fieldset><legend>How long did it last?</legend>
+      <div class="chips">{% for label, value in durations %}
+        {{ ui.chip('duration', label, label, loop.index0 == 2) }}{% endfor %}
+      </div></fieldset>
+    <fieldset><legend>What did it feel like?</legend>
+      <div class="chips">{% for q in qualities %}
+        {{ ui.chip('quality', q, q, loop.first) }}{% endfor %}
+      </div></fieldset>
+    <div class="row" style="align-items:center">
+      <span class="muted">{{ p.plan_name }}: {{ usd(p.coverage_limit) }} an episode,
+        {{ usd(p.deductible) }} deductible.</span>
+      <button type="submit">Send the claim {{ ui.icon('arrow') }}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

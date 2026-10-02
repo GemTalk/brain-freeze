@@ -1,0 +1,68 @@
+{#- Step 2 of the quote: three prices, and a button on each to take it.
+
+    Which plan was picked rides on the button that picks it, not on a hidden
+    input -- what a button's `value` is for. There is no hidden field on any
+    page, and tests/test_app.py pins that for this one. -#}
+{% extends "base.html" %}
+{% import "_macros.html" as ui with context %}
+{% set nav = 'quote' %}
+
+{% block title %}Your quote {{ q.quote_id }} &middot; Brain Freeze{% endblock %}
+
+{% block content %}
+<div class="wrap">
+  {{ ui.steps(2) }}
+  <h1>Choose a plan</h1>
+  <p class="sub">Risk band <strong>{{ q.risk_tier }}</strong>, scored
+     <span class="num">{{ q.score }}</span> out of 100.</p>
+  <p class="muted">Quote <span class="id">{{ q.quote_id }}</span>, given
+     {{ q.quoted_on }}, is saved at
+     <a href="{{ url_for('saved_quote', quote_id=q.quote_id) }}" class="id">/quote/{{ q.quote_id }}</a>.
+     <a href="{{ url_for('quote_form', answers=q.quote_id) }}">Change the answers</a></p>
+
+  {% if q.policy_id %}
+  <div class="note">This quote was taken up as policy
+    <a href="{{ url_for('history', policy_id=q.policy_id) }}" class="id">{{ q.policy_id }}</a>.
+    <a href="{{ url_for('id_card', policy_id=q.policy_id) }}">See its ID card</a></div>
+  {% endif %}
+
+  <div class="plans">
+  {% for name, plan in q.plans.items() %}
+    {% if q.policy_id %}
+    <div class="card{% if name == chosen %} chosen{% endif %}">
+      {% if name == chosen %}<span class="tag ok badge">Chosen</span>{% endif %}
+    {% else %}
+    <form method="post" action="{{ url_for('accept_quote', quote_id=q.quote_id) }}"
+          class="card{% if name == popular %} pick{% endif %}">
+      {% if name == popular %}<span class="tag ice badge">Most chosen</span>{% endif %}
+    {% endif %}
+      <h3>{{ name }}</h3>
+      <div class="price"><span class="big num">{{ usd(plan.annual) }}</span>
+        <span class="muted">a year &middot; {{ usd(plan.monthly) }} a month</span></div>
+      <ul>
+        {{ ui.plan_terms(plan.limit, plan.deductible, claim_limit) }}
+      </ul>
+    {% if q.policy_id %}
+    </div>
+    {% else %}
+      <button type="submit" name="plan" value="{{ name }}">Choose {{ name }}</button>
+    </form>
+    {% endif %}
+  {% endfor %}
+  </div>
+
+  <details class="card">
+    <summary><strong>How we worked out the score</strong></summary>
+    <div class="table-wrap"><table>
+      {% for label, points in q.breakdown %}
+      <tr><td>{{ label }}</td>
+          <td class="num r">{{ '%+.1f'|format(points) }}</td></tr>
+      {% endfor %}
+      <tr><td><strong>Score</strong></td>
+          <td class="num r"><strong>{{ q.score }}</strong></td></tr>
+    </table></div>
+    <p class="muted">Below {{ bands.low }} is Low, below {{ bands.medium }} is
+      Medium, anything higher is High. The band sets the price.</p>
+  </details>
+</div>
+{% endblock %}

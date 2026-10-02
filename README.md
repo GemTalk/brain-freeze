@@ -46,7 +46,7 @@ gemdb -c 'import gemdb; p = gemdb.root["brainfreeze"]["BF-100539"]; print(p.plan
 ```
 
 ```console
-Standard 179.97
+Sundae 179.97
 ```
 
 There is no schema file and no save method. `gemdb.root` is a dictionary that
@@ -60,9 +60,11 @@ gemdb web/app.py
 
 Open <http://127.0.0.1:5050/>.
 
-Pick a policyholder and look at their history. Get a quote at `/quote`, buy
-the policy, and file a claim against it: say how bad it was and how long it
-lasted, and the rules decide what it pays.
+Start a quote from the home page: answer five questions, pick one of three
+prices, and the policy you bought comes back as its ID card. File a claim
+against it: say how bad it was and how long it lasted, and the rules decide
+what it pays. Every policyholder is under **Policies** and every claim under
+**Claims**.
 
 Now stop the app (Ctrl-C) and start it again. The policy you bought and the
 claim you filed are still there. Nothing was saved, because nothing needed to
@@ -84,9 +86,11 @@ class Claim:
 ```
 
 Then show them in the app: the choices go in [`web/forms.py`](web/forms.py),
-the two questions and the line on the claim page in
-[`web/templates.py`](web/templates.py), and the answers into the new `Claim`
-where [`web/routes_html.py`](web/routes_html.py) files it.
+the two questions in
+[`web/templates/claim_form.html`](web/templates/claim_form.html) and the line
+on the claim page in [`web/templates/decision.html`](web/templates/decision.html),
+and the answers into the new `Claim` where
+[`web/routes_html.py`](web/routes_html.py) files it.
 
 Now load what you changed into the database:
 

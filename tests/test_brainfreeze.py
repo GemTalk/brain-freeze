@@ -43,17 +43,24 @@ class Underwriting(unittest.TestCase):
         q = quote(11, False, False, "fast", "slushie")
         self.assertEqual(q.score, 75.0)          # 45 + 18 + 12
         self.assertEqual(q.risk_tier, "High")
-        self.assertEqual(q.plans["Basic"]["annual"], 85.50)
-        self.assertEqual(q.plans["Standard"]["annual"], 171.00)
-        self.assertEqual(q.plans["Premium"]["annual"], 342.00)
-        self.assertEqual(q.plans["Standard"]["monthly"], 14.25)
+        self.assertEqual(q.plans["Sprinkle"]["annual"], usd("159.60"))
+        self.assertEqual(q.plans["Sundae"]["annual"], usd("273.60"))
+        self.assertEqual(q.plans["Parfait"]["annual"], usd("433.20"))
+        self.assertEqual(q.plans["Sundae"]["monthly"], usd("22.80"))
+
+    def test_a_medium_member_pays_seven_twelve_or_nineteen_a_month(self):
+        # The plan prices the site advertises: Medium pays the base.
+        for name, monthly in (("Sprinkle", "7.00"), ("Sundae", "12.00"),
+                              ("Parfait", "19.00")):
+            annual = round_cents(annual_premium(name, "Medium"))
+            self.assertEqual(round_cents(annual / 12), usd(monthly))
 
     def test_low_tier_prices(self):
         # Not `round(x, 2)`, which rounds half to even: money rounds half-up,
         # and brainfreeze.money is where that rule lives.
-        self.assertEqual(round_cents(annual_premium("Basic", "Low")), usd("31.50"))
-        self.assertEqual(round_cents(annual_premium("Standard", "Low")), usd("63.00"))
-        self.assertEqual(round_cents(annual_premium("Premium", "Low")), usd("126.00"))
+        self.assertEqual(round_cents(annual_premium("Sprinkle", "Low")), usd("58.80"))
+        self.assertEqual(round_cents(annual_premium("Sundae", "Low")), usd("100.80"))
+        self.assertEqual(round_cents(annual_premium("Parfait", "Low")), usd("159.60"))
 
     def test_band_edges(self):
         self.assertEqual(risk_tier(33.9), "Low")
@@ -74,7 +81,7 @@ class Underwriting(unittest.TestCase):
 
 class Adjudication(unittest.TestCase):
     def test_clm_001288_approved(self):
-        # BF-100539, Standard: $60 limit, $5 deductible, three approvals used
+        # BF-100539, Sundae: $60 limit, $5 deductible, three approvals used
         d = adjudicate(usd("64.32"), usd("60.0"), usd("5.0"), 3)
         self.assertEqual(d.status, "Approved")
         self.assertEqual(d.amount, usd("55.00"))
@@ -162,8 +169,8 @@ class EventOrderSurvivesAdding(unittest.TestCase):
             policy_id="BF-TEST", age=10, sex=None, migraine_history=False,
             tension_type_headache_history=False,
             typical_consumption_speed="fast", favourite_trigger="slushie",
-            underwriting_base=45.0, plan_name="Standard",
-            annual_premium=usd("171.00"), policy_start_date=date(2026, 1, 1),
+            underwriting_base=45.0, plan_name="Sundae",
+            annual_premium=usd("273.60"), policy_start_date=date(2026, 1, 1),
             policy_term_months=24)
 
     def test_an_event_added_out_of_order_lands_in_order(self):
@@ -365,25 +372,25 @@ class QuotesAreObjects(unittest.TestCase):
         # **saved.answers)`, with nothing restated and nothing recomputed.
         policy = Policyholder(
             policy_id="BF-100900", sex=None, underwriting_base=45.0,
-            plan_name="Standard",
-            annual_premium=self.saved.plans["Standard"]["annual"],
+            plan_name="Sundae",
+            annual_premium=self.saved.plans["Sundae"]["annual"],
             policy_start_date=date(2026, 9, 10), **self.saved.answers)
         self.assertEqual(policy.risk_tier, "High")
-        self.assertEqual(policy.annual_premium, usd("171.00"))
+        self.assertEqual(policy.annual_premium, usd("273.60"))
 
     def test_it_keeps_the_price_it_quoted(self):
         self.assertEqual(self.saved.risk_tier, "High")
         self.assertEqual(self.saved.score, 75.0)
-        self.assertEqual(self.saved.plans["Standard"]["annual"], usd("171.00"))
-        self.assertEqual(self.saved.plans["Standard"]["monthly"], usd("14.25"))
-        self.assertEqual(self.saved.plans["Basic"]["annual"], usd("85.50"))
-        self.assertEqual(self.saved.plans["Premium"]["deductible"], usd("0.00"))
+        self.assertEqual(self.saved.plans["Sundae"]["annual"], usd("273.60"))
+        self.assertEqual(self.saved.plans["Sundae"]["monthly"], usd("22.80"))
+        self.assertEqual(self.saved.plans["Sprinkle"]["annual"], usd("159.60"))
+        self.assertEqual(self.saved.plans["Parfait"]["deductible"], usd("0.00"))
 
     def test_the_money_on_a_quote_is_decimal(self):
         # A quote holds money, so it holds Decimal, and a committed Decimal
         # keeps its value, ordering and equality. What it must never hold is
         # a float -- see brainfreeze.money.
-        for name in ("Basic", "Standard", "Premium"):
+        for name in ("Sprinkle", "Sundae", "Parfait"):
             for field in ("annual", "monthly", "limit", "deductible"):
                 amount = self.saved.plans[name][field]
                 self.assertIsInstance(amount, Decimal,
@@ -392,7 +399,7 @@ class QuotesAreObjects(unittest.TestCase):
     def test_a_float_price_is_refused_rather_than_quietly_converted(self):
         # Money enters the model through `usd`, at Claim, at Policyholder and
         # here, and nowhere else. That is the whole guarantee.
-        plans = {"Basic": {"annual": 85.5, "monthly": 7.13,
+        plans = {"Sprinkle": {"annual": 159.6, "monthly": 13.3,
                            "limit": 25.0, "deductible": 10.0}}
         with self.assertRaises(TypeError):
             SavedQuote(quote_id="QTE-000002", quoted_on=date(2026, 9, 10),
@@ -433,7 +440,7 @@ def a_policyholder(**overrides):
         policy_id="BF-100900", age=11, sex=None, migraine_history=False,
         tension_type_headache_history=False, typical_consumption_speed="fast",
         favourite_trigger="slushie", underwriting_base=45.0,
-        plan_name="Standard", annual_premium=usd("171.00"),
+        plan_name="Sundae", annual_premium=usd("273.60"),
         policy_start_date=date(2026, 9, 10))
     fields.update(overrides)
     return Policyholder(**fields)
@@ -457,7 +464,7 @@ class WhatTheNotebookShows(unittest.TestCase):
 
     def test_a_policyholder_says_who_on_what_plan(self):
         self.assertEqual(repr(a_policyholder()),
-                         "<Policyholder BF-100900 age 11 Standard/High 0 events>")
+                         "<Policyholder BF-100900 age 11 Sundae/High 0 events>")
 
     def test_a_quote_says_its_id_band_and_standard_price(self):
         offer = quote(11, False, False, "fast", "slushie")
@@ -466,7 +473,7 @@ class WhatTheNotebookShows(unittest.TestCase):
                            offer.breakdown, offer.plans)
         said = repr(saved)
         self.assertTrue(said.startswith("<SavedQuote QTE-000001 High"), said)
-        self.assertIn("$171.00", said)
+        self.assertIn("$273.60", said)
 
     def test_a_book_says_its_size_and_loss_ratio(self):
         book = Book()

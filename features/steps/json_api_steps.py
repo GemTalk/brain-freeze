@@ -165,7 +165,7 @@ def quoted_three_plans(context):
     quote = last(context)["quote"]
     assert isinstance(quote["score"], float), quote["score"]
     assert quote["risk_tier"] in ("Low", "Medium", "High"), quote["risk_tier"]
-    assert sorted(quote["plans"]) == ["Basic", "Premium", "Standard"], quote["plans"]
+    assert sorted(quote["plans"]) == ["Parfait", "Sprinkle", "Sundae"], quote["plans"]
     assert quote["breakdown"], "a price with no reasoning cannot be explained"
 
 

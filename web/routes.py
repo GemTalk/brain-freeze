@@ -11,11 +11,11 @@ the name up in the module on each request. Load a changed route module with
 `gemdb tools/load.py` and the next request runs the new function. An ADDED
 route still needs a restart: Flask builds its rule table once.
 
-Anything a view uses has to be reached the same way -- `templates.DECISION`,
-`lookups.book()`, `pages.render(...)` -- because `from templates import
-DECISION` is a copy too.
+Anything a view uses has to be reached the same way -- `lookups.book()`,
+`pages.render(...)` -- because `from pages import render` is a copy too.
 """
 
+import importlib
 import sys
 
 
@@ -37,7 +37,14 @@ class Routes:
         # `sys.modules` per request: a committed module is not guaranteed to
         # stay there. Holding it loses nothing, because a loaded change
         # rebuilds the module in place.
-        module = sys.modules[self.module]
+        #
+        # And not always there even now: a session that imports a committed,
+        # unchanged module can find no entry for it, so every `register` was
+        # a KeyError on a second test run. Importing it again hands back the
+        # same committed module.
+        module = sys.modules.get(self.module)
+        if module is None:
+            module = importlib.import_module(self.module)
         for rule, methods, name in self.table:
             app.add_url_rule(rule, endpoint=name,
                              view_func=self.dispatcher(module, name),
