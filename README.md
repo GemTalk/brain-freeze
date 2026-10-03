@@ -143,6 +143,10 @@ gemdb.refresh()
 
 and run the cell again. Now it has.
 
+(The toolbar button arrives once
+[GemTalk/GemDB_Code#97](https://github.com/GemTalk/GemDB_Code/pull/97) is
+merged and released; until then, `gemdb.refresh()` is the way.)
+
 ## 5. MCP
 
 GemDB's MCP server is off until you turn it on. From the GemDB Code sidebar's
