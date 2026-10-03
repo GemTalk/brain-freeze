@@ -134,7 +134,8 @@ connection string.
 
 Keep it open, buy a policy in the browser, and run the policy-count cell again.
 It has not changed: the notebook sees the database as of its last transaction,
-so an analysis does not shift under you halfway through. Run
+so an analysis does not shift under you halfway through. Click **↻ Refresh
+Notebook View** in the notebook's toolbar, or run
 
 ```python
 gemdb.refresh()
