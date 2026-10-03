@@ -144,7 +144,10 @@ and run the cell again. Now it has.
 
 ## 5. MCP
 
-Turn on GemDB's MCP server and connect Claude Code to it. Then ask:
+GemDB's MCP server is off until you turn it on. From the GemDB Code sidebar's
+**⋯** menu, choose **Connect an AI Agent to GemDB**: choose **Turn It On**, then
+**Claude Code**, and GemDB connects Claude Code to this folder. Start a new
+Claude Code conversation here, and ask:
 
 > Which plan is losing money?
 
