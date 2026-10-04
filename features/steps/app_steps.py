@@ -29,6 +29,7 @@ def open_named_page(context, page):
     paths = {
         "home": "/",
         "customer picker": "/policies",
+        "claims": "/claims",
         "quote": "/quote",
     }
     assert page in paths, "no such named page: %s (have %s)" % (page, sorted(paths))
