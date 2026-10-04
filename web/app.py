@@ -12,13 +12,14 @@ LAYOUT
 
 This file is the factory and the entry point. The pages are in
 `routes_html.py`, the payloads in `routes_api.py` (serialised by `wire.py`),
-the markup in `templates.py`, the questionnaire in `forms.py`, finding an
-object in `lookups.py`, rendering in `pages.py`, serving in `serving.py`, and
-the route table that keeps loaded code live in `routes.py`.
+the markup in `templates/` (Jinja files), the questionnaire in `forms.py`,
+finding an object in `lookups.py`, rendering in `pages.py`, serving in
+`serving.py`, and the route table that keeps loaded code live in `routes.py`.
 
 An edit to any of them except this one is live in the running app once it is
 loaded with `gemdb tools/load.py`, because the routes look everything up by
-name on each request (routes.py). `web/` is not a package because
+name on each request (routes.py). An edit to a template is live on the next
+request with no load at all: the templates are files, read as they change. `web/` is not a package because
 `from package import module` is still served stale after an edit
 (GemTalk/Grail#1223).
 
@@ -41,8 +42,11 @@ CONSTRAINTS FROM GRAIL
 2. One request per connection, via CloseAfterResponseHandler. A
    single-threaded server parked reading a kept-alive connection cannot accept
    the next one, so a second tab or a favicon fetch hangs everything.
-3. Inline templates only. `render_template_string` is exercised in Grail's own
-   suite; file-based `render_template` is not. Templates are module constants.
+3. Not Flask's `render_template`. Grail's `cached_property` does not cache,
+   so `app.jinja_env` is a new Environment on every read, which compiles every
+   template on every render. The app keeps one Environment of its own over
+   `templates/` instead (pages.py). And `{% import %}` needs `with context`:
+   plain import subtracts `dict.keys()` from a set, and Grail's is a list.
 
 WRITES AND PAYLOADS
 
@@ -70,6 +74,7 @@ from flask import Flask
 from werkzeug.serving import WSGIRequestHandler
 
 import gemdb
+import pages
 import routes_api
 import routes_html
 import serving
@@ -118,6 +123,8 @@ def create_app():
     request (routes.py). A change to this file needs a restart.
     """
     app = Flask(__name__)
+    app.extensions[pages.TEMPLATES] = pages.environment(
+        os.path.join(REPO, "web", "templates"))
 
     @app.before_request
     def before_every_request():

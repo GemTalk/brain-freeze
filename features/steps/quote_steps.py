@@ -6,7 +6,7 @@ these did the same they would be a slower copy of it. What only a browser can
 say is that a person is *shown* the right thing.
 
 The one exception is the price check, which compares two things the browser
-showed at different moments -- the quote's Standard price, and the premium on
+showed at different moments -- the quote's Sundae price, and the premium on
 the policy that quote became. Nothing is read from the book to do it.
 """
 
@@ -58,7 +58,7 @@ def quote_prices_all_plans(context):
     while comparing something that is not the premium.
     """
     context.quoted = {}
-    for plan in ("Basic", "Standard", "Premium"):
+    for plan in ("Sprinkle", "Sundae", "Parfait"):
         card = context.page.locator("form.card", has_text=plan)
         assert card.count() == 1, (
             "expected exactly one %s card, found %d" % (plan, card.count()))
@@ -98,6 +98,35 @@ def shown_a_policy(context):
     match = re.search(r"/policies/(BF-\d+)", context.page.url)
     assert match, "expected to land on a policy, got %s" % context.page.url
     context.policy_id = match.group(1)
+
+
+@then('I am shown its ID card')
+def shown_its_id_card(context):
+    """Taking out a policy lands on the card, drawn for this policy."""
+    assert context.page.url.endswith("/policies/%s/card" % context.policy_id), (
+        "expected the new policy's ID card, got %s" % context.page.url)
+    card = context.page.locator("#id-card svg")
+    assert card.count() == 1, "the ID card page has no card on it"
+    assert context.policy_id in card.text_content(), (
+        "the ID card does not carry the policy number %s" % context.policy_id)
+
+
+@then('its card can be kept as an SVG of the same policy')
+def card_as_svg(context):
+    """The "Download SVG" link serves the card on its own, as an image.
+
+    Opened rather than clicked: the link's `download` attribute would hand
+    it to the browser's downloads, and what matters is what it serves.
+    """
+    link = context.page.locator('a[download$=".svg"]')
+    assert link.count() == 1, "the ID card page has no SVG download"
+    response = context.page.goto(context.base_url + link.get_attribute("href"),
+                                 wait_until="load")
+    assert response.ok, "the card's SVG answered %d" % response.status
+    assert response.headers["content-type"].startswith("image/svg+xml"), (
+        "the card's SVG is served as %s" % response.headers["content-type"])
+    assert context.policy_id in response.text(), (
+        "the SVG card does not carry the policy number %s" % context.policy_id)
 
 
 @then('the policy was sold at the price the quote showed')

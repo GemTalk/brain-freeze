@@ -1,6 +1,6 @@
 Feature: Finding one customer among nine hundred
 
-  The front door lists the book, and the whole book is too big for one page:
+  The policies page lists the book, and the whole book is too big for one page:
   rendering all 900 rows takes the best part of a minute, because Grail runs
   each template in a forked green thread. So the page states the total and
   shows a window onto it.

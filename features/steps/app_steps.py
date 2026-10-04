@@ -27,7 +27,9 @@ def the_app_is_running(context):
 @given('I open the {page} page')
 def open_named_page(context, page):
     paths = {
-        "customer picker": "/",
+        "home": "/",
+        "customer picker": "/policies",
+        "claims": "/claims",
         "quote": "/quote",
     }
     assert page in paths, "no such named page: %s (have %s)" % (page, sorted(paths))

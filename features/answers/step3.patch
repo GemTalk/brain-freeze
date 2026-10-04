@@ -1,5 +1,5 @@
 diff --git a/brainfreeze/model.py b/brainfreeze/model.py
-index 8b6b75a..5c7a2c9 100644
+index cfad9e4..9683ce5 100644
 --- a/brainfreeze/model.py
 +++ b/brainfreeze/model.py
 @@ -25,6 +25,13 @@ from .underwriting import COVERAGE_PLANS, risk_score, risk_tier
@@ -53,11 +53,11 @@ index ec9da46..efce619 100644
  SPEED_LABELS = {"slow": "Slowly", "moderate": "About normal",
                  "fast": "All at once"}
 diff --git a/web/routes_html.py b/web/routes_html.py
-index 99fb995..7d28aea 100644
+index 509db72..e5a55b6 100644
 --- a/web/routes_html.py
 +++ b/web/routes_html.py
-@@ -169,7 +169,7 @@ def claim_form(policy_id):
-         templates.CLAIM_FORM, p=policy, triggers=forms.TRIGGERS, colds=forms.COLD_BANDS,
+@@ -271,7 +271,7 @@ def claim_form(policy_id):
+         "claim_form.html", p=policy, triggers=forms.TRIGGERS, colds=forms.COLD_BANDS,
          portions=forms.PORTION_BANDS, speeds=forms.SPEED_BANDS,
          durations=forms.DURATION_BANDS, locations=forms.PAIN_LOCATIONS,
 -        qualities=forms.PAIN_QUALITIES,
@@ -65,7 +65,7 @@ index 99fb995..7d28aea 100644
          warnings=warnings_for(policy, date.today()))
  
  
-@@ -201,7 +201,9 @@ def file_claim(policy_id):
+@@ -303,7 +303,9 @@ def file_claim(policy_id):
          approved=decision.amount,
          status=decision.status,
          reason=decision.reason,
@@ -76,37 +76,41 @@ index 99fb995..7d28aea 100644
      policy.add_event(brainfreeze.Event(
          event_id=lookups.next_id([e.event_id for e in the_book.events],
                            "EVT", 6, 1),
-diff --git a/web/templates.py b/web/templates.py
-index b60a7d4..19c4c0f 100644
---- a/web/templates.py
-+++ b/web/templates.py
-@@ -250,6 +250,17 @@ CLAIM_FORM = _STYLE + """
-     {% for q in qualities %}
-     <label class="opt"><input type="radio" name="quality" value="{{ q }}"
-       {% if loop.first %}checked{% endif %}> {{ q }}</label>{% endfor %}</fieldset>
-+  <fieldset><legend>Which flavour? <span class="tag">new</span></legend>
-+    {% for f in flavours %}
-+    <label class="opt"><input type="radio" name="flavour" value="{{ f }}"
-+      {% if loop.first %}checked{% endif %}> {{ f }}</label>{% endfor %}</fieldset>
-+  <fieldset><legend>Anything on top? <span class="tag">new</span></legend>
-+    {% for top in toppings %}
-+    <label class="opt"><input type="checkbox" name="toppings"
-+      value="{{ top }}"> {{ top }}</label>{% endfor %}
-+    <div class="muted">These two questions went in after 900 policies and
-+      4,993 episodes were already committed. No migration, nothing rewritten
-+      &mdash; older claims simply have no flavour.</div></fieldset>
-   <button type="submit">Send the claim</button>
- </form>
- """
-@@ -261,6 +272,8 @@ DECISION = _STYLE + """
- <h1>Not this time</h1>
- {% endif %}
- <p class="sub num">{{ c.claim_id }} &middot; {{ e.trigger }}
-+  {%- if c.flavour %} ({{ c.flavour }}{% if c.toppings %},
-+    {{ c.toppings|join(', ')|lower }}{% endif %}){% endif %}
-   &middot; {{ e.event_date }}</p>
+diff --git a/web/templates/claim_form.html b/web/templates/claim_form.html
+index e8918a0..44bc961 100644
+--- a/web/templates/claim_form.html
++++ b/web/templates/claim_form.html
+@@ -51,6 +51,17 @@
+       <div class="chips">{% for q in qualities %}
+         {{ ui.chip('quality', q, q, loop.first) }}{% endfor %}
+       </div></fieldset>
++    <fieldset><legend>Which flavour? <span class="tag">new</span></legend>
++      <div class="chips">{% for f in flavours %}
++        {{ ui.chip('flavour', f, f, loop.first) }}{% endfor %}
++      </div></fieldset>
++    <fieldset><legend>Anything on top? <span class="tag">new</span></legend>
++      <div class="chips">{% for top in toppings %}
++        <label class="chip"><input type="checkbox" name="toppings" value="{{ top }}"><span>{{ top }}</span></label>{% endfor %}
++      </div>
++      <div class="hint">These two questions went in after 900 policies and
++        4,993 episodes were already committed. No migration, nothing
++        rewritten &mdash; older claims simply have no flavour.</div></fieldset>
+     <div class="row" style="align-items:center">
+       <span class="muted">{{ p.plan_name }}: {{ usd(p.coverage_limit) }} an episode,
+         {{ usd(p.deductible) }} deductible.</span>
+diff --git a/web/templates/decision.html b/web/templates/decision.html
+index 7c589b8..1c2817e 100644
+--- a/web/templates/decision.html
++++ b/web/templates/decision.html
+@@ -15,6 +15,8 @@
+   <h1>Not this time</h1>
+   {% endif %}
+   <p class="sub num">{{ c.claim_id }} &middot; {{ e.trigger }}
++    {%- if c.flavour %} ({{ c.flavour }}{% if c.toppings %},
++      {{ c.toppings|join(', ')|lower }}{% endif %}){% endif %}
+     &middot; {{ e.event_date }}</p>
  
- <div class="card">
+   <div class="card">
 diff --git a/web/wire.py b/web/wire.py
 index f673835..0bbf1a8 100644
 --- a/web/wire.py
