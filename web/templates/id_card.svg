@@ -1,67 +1,82 @@
-{#- The ID card's whole design: card.html shows it, "Download image" draws it
-    to a PNG, and /policies/<id>/card.svg serves it alone. To change the
-    design, replace this file with any SVG that reads the `card` fields
-    pages.id_card() provides; the name and the mark come from _brand.html.
-    Keep to system fonts: a web font does not load inside an SVG drawn onto
-    a canvas, so the PNG would not match. BRANDING.md has the rest. -#}
+{#- The ID card's whole design: card.html shows it, "Download image" and
+    "Share" draw it to a PNG, and /policies/<id>/card.svg serves it alone.
+    It is the GemDB brand guidelines' "Insurance Cards": the lockup, the plan
+    as the headline, and the fields set between rules.
+
+    It reads the `card` fields pages.id_card() provides and `style`, the
+    colourway's name; the colourways themselves are in _brand.html. Colour
+    comes only through the --bf-* custom properties on the root, so the card
+    page can recolour it without asking the server.
+
+    1200 x 640 is close to the 1.91:1 that X, LinkedIn, Bluesky and Threads
+    show a shared image at uncropped. Keep every element inside it.
+
+    The fonts are web fonts. The card page inlines them before it draws the
+    PNG, because an SVG drawn onto a canvas cannot fetch anything; opened on
+    its own, the @import below fetches them. -#}
 {%- import "_brand.html" as brand with context -%}
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 856 540"
-  width="856" height="540" role="img"
-  aria-label="{{ brand.short_name }} ID card for policy {{ card.policy_id }}">
-<defs>
-  <linearGradient id="bf-sky" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#2f95e0"/><stop offset="1" stop-color="#174f88"/>
-  </linearGradient>
-  <clipPath id="bf-edge"><rect width="856" height="540" rx="34"/></clipPath>
-</defs>
-<g clip-path="url(#bf-edge)"
-   font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
-  <rect width="856" height="540" fill="url(#bf-sky)"/>
-  <circle cx="770" cy="30" r="200" fill="#fff" fill-opacity=".07"/>
-  <circle cx="650" cy="250" r="90" fill="#fff" fill-opacity=".05"/>
-  <g transform="translate(600 -40) scale(11)" stroke="#fff" stroke-opacity=".10"
-     stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none">
-    <path d="{{ brand.mark_path }}"/>
-  </g>
-  <rect x="52" y="48" width="56" height="56" rx="15" fill="#fff" fill-opacity=".16"/>
-  <g transform="translate(64 60) scale(1.33)" stroke="#fff" stroke-width="2.2"
-     stroke-linecap="round" stroke-linejoin="round" fill="none">
-    <path d="{{ brand.mark_path }}"/>
-  </g>
-  <text x="126" y="76" fill="#fff" font-size="27" font-weight="800">{{ brand.short_name }}</text>
-  <text x="127" y="99" fill="#cfe5f8" font-size="13" font-weight="700"
-        letter-spacing="2.6">INSURANCE &#183; MEMBER ID CARD</text>
-  <rect x="628" y="54" width="176" height="44" rx="22" fill="#fff"/>
-  <text x="716" y="83" text-anchor="middle" fill="#174f88" font-size="19"
-        font-weight="800">{{ card.plan }} plan</text>
+{%- set way = brand.colorway_for(style, card.plan) -%}
+{%- set name_size = 30 if card.subscriber|length <= 16 else (30 * 16 / card.subscriber|length)|round(1) -%}
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 640"
+  width="1200" height="640" role="img" data-colorway="{{ way }}"
+  style="{{ brand.colorway_vars(way) }}"
+  aria-label="{{ brand.name }} ID card for policy {{ card.policy_id }}">
+<style>
+@import url("{{ brand.fonts_url }}");
+.bfc-bg { fill: var(--bf-bg, #0F9EE1); }
+.bfc-ink { fill: var(--bf-ink, #F2F5F4); }
+.bfc-rule { stroke: var(--bf-ink, #F2F5F4); stroke-width: 3; }
+.bfc-s1 { fill: var(--bf-s1, #F2F5F4); }
+.bfc-s2 { fill: var(--bf-s2, #F2F5F4); }
+.bfc-s3 { fill: var(--bf-s3, #F2F5F4); }
+.bfc-sans { font-family: Inter, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+.bfc-mark { font-family: "Barlow Semi Condensed", "Arial Narrow", Inter, sans-serif; font-weight: 700; }
+.bfc-mono { font-family: "Roboto Mono", ui-monospace, Menlo, Consolas, monospace; font-weight: 500; }
+.bfc-label { font-size: 26px; font-weight: 400; }
+.bfc-value { font-size: 30px; font-weight: 500; }
+</style>
+<rect class="bfc-bg" width="1200" height="640"/>
 
-  <text x="56" y="178" fill="#cfe5f8" font-size="13" font-weight="700"
-        letter-spacing="2.4">POLICY NUMBER</text>
-  <text x="54" y="236" fill="#fff" font-size="58" font-weight="700" letter-spacing="1"
-        font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">{{ card.policy_id }}</text>
-  <text x="56" y="278" fill="#e4f1fc" font-size="19" font-weight="600">{{ card.member }}</text>
+<g transform="translate(54 27) scale(.912)">
+{{ brand.scoop_paths("bfc-s1", "bfc-s2", "bfc-s3", attr="class") }}
+</g>
+<g class="bfc-ink">
+  <text class="bfc-mark" x="238" y="74" font-size="56">Brain</text>
+  <text class="bfc-mark" x="238" y="122" font-size="56">Freeze</text>
+  <text class="bfc-mono" x="240" y="139" font-size="10.5" letter-spacing="2.4">ICE CREAM INSURANCE</text>
+</g>
 
-  <rect y="318" width="856" height="222" fill="#fff"/>
-  <g font-size="12" font-weight="700" letter-spacing="2" fill="#66778c">
-    <text x="56" y="362">COVER PER EPISODE</text>
-    <text x="268" y="362">DEDUCTIBLE</text>
-    <text x="440" y="362">PREMIUM</text>
-    <text x="640" y="362">RISK BAND</text>
-    <text x="56" y="438">VALID</text>
-    <text x="440" y="438">CLAIMS A YEAR</text>
-    <text x="640" y="438">STATUS</text>
-  </g>
-  <g font-size="25" font-weight="800" fill="#12223a">
-    <text x="56" y="394">{{ card.cover }}</text>
-    <text x="268" y="394">{{ card.deductible }}</text>
-    <text x="440" y="394">{{ card.premium }}<tspan font-size="15" font-weight="600" fill="#66778c"> /yr</tspan></text>
-    <text x="640" y="394">{{ card.risk_tier }}</text>
-    <text x="56" y="470" font-size="21">{{ card.valid_from }} &#8211; {{ card.valid_to }}</text>
-    <text x="440" y="470" font-size="21">Up to {{ card.claims_a_year }}</text>
-    <text x="640" y="470" font-size="21">{{ card.status }}</text>
-  </g>
-  <text x="56" y="514" fill="#8a99ab" font-size="13" font-weight="600">Stored in GemDB &#183; a demo, not real insurance</text>
-  <text x="800" y="514" text-anchor="end" fill="#8a99ab" font-size="13"
-        font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">brain-freeze</text>
+<text class="bfc-ink bfc-sans" x="470" y="134" font-size="96" font-weight="600"
+      letter-spacing="-3">{{ card.plan }} Plan</text>
+
+<g class="bfc-rule">
+  <line x1="51" y1="190" x2="391" y2="190"/>
+  <line x1="470" y1="190" x2="1146" y2="190"/>
+  <line x1="51" y1="408" x2="391" y2="408"/>
+  <line x1="470" y1="408" x2="1146" y2="408"/>
+  <line x1="51" y1="552" x2="391" y2="552"/>
+  <line x1="470" y1="552" x2="1146" y2="552"/>
+</g>
+
+<g class="bfc-ink bfc-sans">
+  <text class="bfc-label" x="64" y="252">Subscriber Name</text>
+  <text class="bfc-value" x="64" y="296" id="bfc-subscriber"
+        style="font-size:{{ name_size }}px">{{ card.subscriber|upper }}</text>
+  <text class="bfc-label" x="64" y="347">Identification Number</text>
+  <text class="bfc-value" x="64" y="389">{{ card.policy_id }}</text>
+  <text class="bfc-label" x="64" y="452">Annual Premium</text>
+  <text class="bfc-value" x="64" y="497">{{ card.premium }}</text>
+
+  <text class="bfc-label" x="499" y="252">Coverage Period<tspan font-size="20" dx="14" opacity=".8">{{ card.status|upper }}</tspan></text>
+  <text class="bfc-value" x="499" y="296">{{ card.valid_from }} TO {{ card.valid_to }}</text>
+  <text class="bfc-label" x="499" y="347">Scoop Amount Coverage</text>
+  <text class="bfc-value" x="499" y="389">{{ card.cover }} AN EPISODE, {{ card.deductible }} DEDUCTIBLE</text>
+  <text class="bfc-label" x="499" y="452">Covered Within</text>
+  <text class="bfc-value" x="499" y="497">ANYWHERE SERVING THE COLD STUFF</text>
+
+  <text x="59" y="616" font-size="27" font-weight="800" letter-spacing="-.5">GemDB</text>
+  <text x="205" y="596" font-size="13">Your Code is the Schema.</text>
+  <text x="205" y="614" font-size="13">The Database That Humans and Agents Love to Change</text>
+  <text x="1146" y="614" font-size="13" text-anchor="end">Fictional. This is not real insurance.</text>
 </g>
 </svg>

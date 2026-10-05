@@ -1,86 +1,89 @@
 # Branding
 
-The web app's look is three files in `web/templates/`. Swap them and the app
-is someone else's: no Python changes, no restart (an edited template is live
-on the next request).
+The web app's whole look is three files in `web/templates/`. Swap them and
+the app is someone else's: no Python changes, no restart (an edited template
+is live on the next request).
 
 | File | What it holds |
 |---|---|
-| `brand.css` | The tokens: colours, fonts, radii and shadows, as CSS custom properties. `app.css` takes every colour, font, radius and shadow from these names. |
-| `_brand.html` | The name and the marks, as Jinja variables and macros: the app's `name` and `short_name`, the `fonts_url`, the `mark_path`, the `icon`, the header's `lockup` and the `favicon`. |
+| `brand.css` | The tokens: colours, fonts, radii, as CSS custom properties. `app.css` styles every page with these names and nothing else. |
+| `_brand.html` | The marks and the brand's data, as Jinja macros and variables: the app's `name`, the `icon`, the `lockup`, the `favicon`, the `fonts_url`, and the ID card's `colorways`. |
 | `id_card.svg` | The ID card, an SVG template over the fields `pages.id_card()` provides. |
 
-`app.css` is the layout and the shape of every component, written only in
-the token names. A brand that needs different shapes, not just different
-colours, type and marks, restyles `app.css` too. That is a bigger job, and
-the three files above are still where the brand itself lives.
-
-The brand on `main` is Brain Freeze Insurance: ice blue `#2a8bd8` on a cool
-white, Plus Jakarta Sans and JetBrains Mono, and a snowflake for a mark.
-
-For a worked example, the `bfi-visual-rebrand` branch rebrands the app as Ice
-Cream Brain Freeze Insurance from a set of brand guidelines. It goes further
-than this guide: it restyles `app.css` and adds styles and sharing to the
-ID card.
+This branch's brand is Ice Cream Brain Freeze Insurance, from the GemDB brand
+guidelines: the "Micro brand" slide (the one-two-three scoop icon, the
+wordmark, red `#FF3700` / yellow `#FFE200` / blue `#0F9EE1` on GemDB's ink
+`#0D1321` and paper `#F2F5F4`) and the "Insurance Cards" slide.
 
 ## Making a brand of your own
 
-These steps are written for a person or an agent working in this repo. An
-agent can also use the `rebrand` skill in `.claude/skills/`, which follows
-them.
+These are written for a person or an agent working in this repo.
 
 1. **Tokens.** In `brand.css`, set the colours. Keep every name: `app.css`
-   uses them all. The names are roles, not colours: `--ice` is the brand's
-   main colour, whatever it is, and `--mint`, `--berry` and `--amber-*` say
-   yes, no and careful.
-   - `--ice-deep`, `--mint`, `--berry`, `--amber-ink`, `--muted` and
-     `--ink-2` are used for small text. Aim for 4.5:1 or better on `--bg`
-     and `--surface`, the contrast WCAG asks for text that size.
-   - Buttons put `--on-ice` on `--ice`, and on `--ice-hover` under the
-     pointer. Check that pair too.
-   - `python3 .claude/skills/rebrand/contrast.py` prints every pair the
-     pages use and flags those under 4.5:1. The stock brand has five:
-     `--mint` and `--muted` on `--bg`, `--mint` on `--mint-soft`, and
-     the white button text on `--ice` (3.6:1) and `--ice-hover`. Don't
-     copy them.
+   uses all of them. Fills (`--red`, `--blue`, `--yellow`) can be any
+   colour. The `-text` shades and `--muted` must read at 4.5:1 or better on
+   `--paper` and `--surface`, because they are used for small text.
+   Buttons put `--ink` on `--blue`, so check that pair too.
 2. **Fonts.** Put one Google Fonts css2 URL in `fonts_url` in `_brand.html`
-   and name its families in `--font` and `--mono` in `brand.css`. The ID
-   card can't use them (see step 5).
-3. **Name.** Set `name` and `short_name` in `_brand.html`. Page titles, the
-   header, the footer, the home page and the card read them from there.
-   The startup banner in `web/serving.py` is the one other place the name
-   is written out, and `features/steps/app_steps.py` checks the banner's
-   words: change both, or neither.
-4. **Marks.** `mark_path` is the mark as one stroked path on a 24 × 24
-   grid. `icon` draws it in the text colour: in the header's tile (`.mark`
-   in `app.css`) and as the big faint mark behind the home page's hero.
-   `lockup` is the header's mark plus the name, and `favicon` is the mark
-   on a tile, as a data URL. The tile's colour is written into `favicon`
-   as hex, because a data URL can't read `brand.css`, so update it with
-   `--ice`.
-   - For a filled or many-coloured logo, rewrite `icon` with your own SVG.
-     Keep its `size` argument and `aria-hidden`, and draw the favicon and
-     the card's two marks from the same shapes.
-5. **The ID card.** `id_card.svg` is 856 × 540, a payment card's
-   proportions. It reads the `card` fields from `pages.id_card()`:
-   `policy_id`, `plan`, `member`, `cover`, `deductible`, `premium`,
-   `risk_tier`, `valid_from`, `valid_to`, `claims_a_year` and `status`.
-   The card page shows it, **Download image** draws it to a PNG, and
-   `/policies/<id>/card.svg` serves it on its own.
-   - Write its colours into the SVG. It is served on its own, so it can't
-     read `brand.css`.
-   - Use system fonts only. **Download image** draws the SVG onto a
-     canvas, and an SVG drawn that way cannot fetch a web font, so the PNG
-     would not match the page.
-   - Keep `<svg` as the first thing it outputs: put anything before it in
-     Jinja comments, or tags that trim their whitespace (`{%- ... -%}`).
+   (Google Fonts serves CSS cross-origin, so the card's PNG export can
+   inline the fonts). Name the families in `--font`, `--display`, `--wordmark`
+   and `--mono`, and in the `.bfc-*` font rules in `id_card.svg`.
+3. **Name.** Set `name` and `short_name` in `_brand.html`. Page titles,
+   the header, the footer, the home page and the card read them from there.
+   The startup banner in `web/serving.py` is the one other place the name is
+   written out.
+4. **Marks.** `scoop_paths` draws the icon in a 182 × 122 box. Replace the
+   paths, and the `viewBox` in `icon` and `stack`, with your own SVG.
+   Write shapes that don't overlap: drop the gaps into the paths rather
+   than masking them, so the icon stays one colour per shape and draws the
+   same inline, in the downloaded SVG and in the PNG. `favicon` is a data
+   URL; `lockup` is the header's mark plus wordmark.
+5. **The ID card.** `id_card.svg` is 1200 × 640, near the 1.91:1 that X,
+   LinkedIn, Bluesky and Threads show uncropped. Colour it only through
+   `var(--bf-bg)`, `--bf-ink` and `--bf-s1`…`--bf-s3`, by class, so the
+   card page can recolour it without asking the server. Define each
+   colourway in `colorways` and list it in `colorway_order`;
+   `plan_colorways` picks a plan's default.
+   - Keep `id="bfc-subscriber"` on the name's `<text>`: the card page writes
+     the typed name into it.
+   - Keep a `<style>` element whose first rule is
+     `@import url("{{ brand.fonts_url }}");`: the PNG export swaps that line
+     for the inlined fonts.
    - Print the policy id, plan name, cover, deductible and premium:
      `tests/test_app.py` and the acceptance suite look for them.
-   - Keep everything inside the canvas. If you change its size, change the
-     `viewBox`, the `clipPath` and the corner radius on `.idcard svg` in
-     `app.css`, which is a percentage of a 856 × 540 card.
+   - Keep inside the canvas. The longest text is the subscriber name, up to
+     24 characters, which shrinks past 16.
 6. **Check it.** Run the app (`gemdb web/app.py`) and look at `/`,
-   `/quote`, `/policies`, `/claims`, `/policies/BF-100539` and
-   `/policies/BF-100539/card` at desktop and phone widths. On the card
-   page, **Download image** and check the PNG matches the page. Then run
-   `python3 -m unittest discover` and `gemdb tools/run_db_tests.py`.
+   `/quote`, `/policies/BF-100539` and `/policies/BF-100539/card` at desktop
+   and phone widths. On the card page, try every colourway with a long name,
+   then **Download image** and confirm the PNG matches the page, fonts
+   included. Then run `python3 -m unittest discover`.
+
+## Sharing the card
+
+**Share** on the card page posts the card's PNG with editable text.
+
+- **Phones** (and any browser where `navigator.canShare({files})` is true)
+  get **Share image…**, which opens the device's share sheet with the
+  picture attached.
+- **X, Bluesky, Threads and LinkedIn** have no way to take a picture through
+  a link. Their buttons copy the PNG to the clipboard (or download it, where
+  the browser won't copy), then open the network's composer with the text
+  filled in, so the reader pastes the picture into the post. The composer
+  links are `x.com/intent/post`, `bsky.app/intent/compose`,
+  `threads.com/intent/post` and `linkedin.com/feed/?shareActive=true`, all
+  with `text=`.
+- A link preview (an `og:image`) would need the card on a public URL. The
+  app runs on `127.0.0.1`, so the picture travels with the post instead.
+
+The name on a card is the reader's own and is never stored. It and the
+colourway ride in the URL (`?name=&style=`), so a reload and **Download
+SVG** draw the same card.
+
+## Keeping this branch
+
+`bfi-visual-rebrand` lives alongside `main` and is not merged. To pick up
+`main`, merge it in. Conflicts will be in `web/templates/`. Take `main`'s
+content and structure (new fields, pages, test hooks such as `.card.row`,
+`.big`, `#id-card svg`, `a[download$=".svg"]`) and keep this branch's
+classes, brand imports and the `brand.name` titles.

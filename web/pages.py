@@ -91,17 +91,35 @@ def refuse(code, message):
 
 
 
-def id_card(policy, today):
+#: The longest name the ID card prints. Longer is cut, not wrapped: the
+#: card is an image, and a name that runs into the next column spoils it.
+CARD_NAME_LIMIT = 24
+
+
+def card_name(wanted, policy):
+    """The subscriber name on a card: what the holder typed, tidied, or a
+    stand-in from the policy when they typed nothing.
+
+    The book records no names, so a name is the reader's, for the card they
+    share, and goes no further than the card: it is never stored.
+    """
+    name = " ".join((wanted or "").split())[:CARD_NAME_LIMIT].strip()
+    return name or "Member, age %d" % policy.age
+
+
+def id_card(policy, today, name=None):
     """What the ID card prints, as display strings.
 
     The only thing `templates/id_card.svg` reads, so a new design for the card
     is a new SVG over these fields and nothing else. Every figure is the
-    policy's own, formatted the way every other page formats it.
+    policy's own, formatted the way every other page formats it. `name` is
+    the subscriber name the holder typed, if any.
     """
     label, _css = cover_state(policy, today)
     return {
         "policy_id": policy.policy_id,
         "plan": policy.plan_name,
+        "subscriber": card_name(name, policy),
         "member": "Age %d \u00b7 favourite treat: %s"
                   % (policy.age, policy.favourite_trigger),
         "cover": money.format_usd(policy.coverage_limit),

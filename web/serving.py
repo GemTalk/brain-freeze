@@ -92,8 +92,8 @@ def refusal(host, port, holder):
     thing -- and only one of them can be provoked by a test holding its own
     socket.
     """
-    lines = ["Brain Freeze can't start: something is already using %s:%d."
-             % (host, port), ""]
+    lines = ["Ice Cream Brain Freeze Insurance can't start: something is "
+             "already using %s:%d." % (host, port), ""]
 
     pid, command = holder["pid"], holder["command"]
     if pid is None:
@@ -108,7 +108,7 @@ def refusal(host, port, holder):
                   "    kill %d" % pid]
     else:
         lines += ["  PID %d   %s" % (pid, command or "?"), "",
-                  "That isn't Brain Freeze, so don't kill it without looking."]
+                  "That isn't this app, so don't kill it without looking."]
     return "\n".join(lines)
 
 
@@ -128,7 +128,7 @@ def banner(host, port):
     told what to expect reads an idle terminal as a broken one.
     """
     return "\n".join([
-        "Brain Freeze Insurance is running.",
+        "Ice Cream Brain Freeze Insurance is running.",
         "",
         "  Open:  http://%s:%d/" % (host, port),
         "  Stop:  Ctrl-C",

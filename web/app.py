@@ -1,4 +1,4 @@
-"""Brain Freeze Insurance, as a web app running inside the database.
+"""Ice Cream Brain Freeze Insurance, as a web app running inside the database.
 
     gemdb web/app.py            # serves on http://127.0.0.1:5050/
     BRAINFREEZE_PORT=8080 gemdb web/app.py    # or anywhere else

@@ -11,8 +11,9 @@
 {#- A page's `title` block is its own name; the app's follows it. -#}
 {%- if false %}{% block title %}{% endblock %}{% endif -%}
 {%- set page_title = self.title()|trim %}
-<title>{% if page_title %}{{ page_title }} &middot; {{ brand.short_name }}{% else %}{{ brand.name }}{% endif %}</title>
+<title>{% if page_title %}{{ page_title }} &middot; {% endif %}{{ brand.name }}</title>
 <link rel="icon" href="{{ brand.favicon() }}">
+<meta name="theme-color" content="#F2F5F4">
 {{ brand.font_links() }}
 <style>{% include "brand.css" %}
 {% include "app.css" %}</style>
@@ -20,7 +21,7 @@
 <body>
 <header class="top">
   <div class="wrap">
-    <a class="brand" href="{{ url_for('home') }}">
+    <a class="brand" href="{{ url_for('home') }}" aria-label="{{ brand.name }}, home">
       {{ brand.lockup() }}
     </a>
     <nav class="nav" aria-label="Main">
@@ -35,9 +36,12 @@
 </main>
 <footer class="foot">
   <div class="wrap">
-    <p>{{ brand.short_name }} is a demo, not real insurance. Every quote,
-    policy and claim on these pages is a Python object stored in GemDB: the
-    app reads and writes them directly, with no ORM and no SQL in between.</p>
+    {{ brand.icon(28, mono=brand.colors.paper) }}
+    <p><strong>{{ brand.name }}</strong> is a demo, not real insurance. Every
+    quote, policy and claim on these pages is a Python object stored in GemDB:
+    the app reads and writes them directly, with no ORM and no SQL in
+    between.</p>
+    <div class="gemdb"><b>GemDB</b>Your code is the schema.</div>
   </div>
 </footer>
 {% block scripts %}{% endblock %}

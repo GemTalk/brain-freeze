@@ -1,7 +1,15 @@
-{#- Where taking out a policy lands: its ID card, and ways to keep it. The
-    card's design is id_card.svg, and this page only frames it. -#}
+{#- Where taking out a policy lands: its ID card, ways to make it yours, and
+    ways to keep it and share it. The card's design is id_card.svg, and this
+    page only frames it.
+
+    The name and colourway are the reader's, for the picture: they ride in
+    the URL (`?name=&style=`), so the SVG download and a reload draw the same
+    card, and nothing about them is stored. -#}
 {% extends "base.html" %}
 {% import "_macros.html" as ui with context %}
+{% import "_brand.html" as brand with context %}
+
+{% set way = brand.colorway_for(style, card.plan) %}
 
 {% block title %}ID card {{ card.policy_id }}{% endblock %}
 
@@ -11,45 +19,259 @@
   <h1>Your ID card</h1>
   <p class="sub">{{ p.plan_name }} plan, <span class="num">{{ usd(p.annual_premium) }} a year</span>
     &middot; {{ usd(p.coverage_limit) }} an episode, {{ usd(p.deductible) }} deductible.</p>
-  <div class="idcard" id="id-card">{% include "id_card.svg" %}</div>
-  <div class="actions no-print">
-    <button type="button" id="save-png" data-filename="{{ card.policy_id }}-id-card.png">
-      {{ ui.icon('download') }} Download image</button>
-    <a class="btn ghost" href="{{ url_for('id_card_svg', policy_id=p.policy_id) }}"
-       download="{{ card.policy_id }}-id-card.svg">Download SVG</a>
-    <button type="button" class="btn ghost" onclick="window.print()">{{ ui.icon('print') }} Print</button>
+
+  <div class="card-layout">
+    <div class="idcard" id="id-card" data-fonts="{{ brand.fonts_url }}"
+         data-fallback-name="Member, age {{ p.age }}">{% include "id_card.svg" %}</div>
+
+    <form class="styler no-print" id="card-style" method="get"
+          action="{{ url_for('id_card', policy_id=p.policy_id) }}">
+      <h2>Make it yours</h2>
+      <fieldset><legend><label for="card-name">Name on the card</label></legend>
+        <input type="text" id="card-name" name="name" maxlength="24" autocomplete="name"
+               value="{{ card.subscriber if named else '' }}" placeholder="Member, age {{ p.age }}">
+        <div class="hint">Only on the picture. It is never saved.</div></fieldset>
+      <fieldset><legend>Colourway</legend>
+        <div class="chips">
+        {% for key in brand.colorway_order %}{% set c = brand.colorways[key] %}
+          <label class="chip"><input type="radio" name="style" value="{{ key }}"
+            data-vars="{{ brand.colorway_vars(key) }}" {% if key == way %}checked{% endif %}><span>
+            <i class="swatch" style="background:radial-gradient(circle, {{ c.ink }} 0 30%, {{ c.bg }} 33%)"></i>
+            {{ c.label }}</span></label>
+        {% endfor %}
+        </div></fieldset>
+      <button type="submit" class="ghost" id="apply">Redraw the card</button>
+      <div class="actions">
+        <button type="button" id="share">{{ ui.icon('share') }} Share</button>
+        <button type="button" class="ghost" id="save-png" data-filename="{{ card.policy_id }}-id-card.png">
+          {{ ui.icon('download') }} Download image</button>
+      </div>
+      <div class="actions">
+        <a class="btn ghost" id="save-svg"
+           data-base="{{ url_for('id_card_svg', policy_id=p.policy_id) }}"
+           href="{{ url_for('id_card_svg', policy_id=p.policy_id, style=way, name=card.subscriber if named else None) }}"
+           download="{{ card.policy_id }}-id-card.svg">Download SVG</a>
+        <button type="button" class="ghost" onclick="window.print()">{{ ui.icon('print') }} Print</button>
+      </div>
+    </form>
   </div>
+
   <div class="actions no-print">
     <a href="{{ url_for('history', policy_id=p.policy_id) }}">See the policy</a>
     <a href="{{ url_for('claim_form', policy_id=p.policy_id) }}">File a claim</a>
   </div>
 </div>
+
+<dialog class="share" id="share-dialog" aria-labelledby="share-title">
+  <div class="inner">
+    <header>
+      <h2 id="share-title">Share your card</h2>
+      <button type="button" class="close" id="share-close" aria-label="Close">&times;</button>
+    </header>
+    <img id="share-preview" alt="Your ID card, as the image you will post">
+    <label for="share-text" class="muted">What the post says</label>
+    <textarea id="share-text">I&rsquo;m covered! 🍦 My {{ brand.name }} card: the {{ p.plan_name }} plan, {{ usd(p.coverage_limit) }} for every brain freeze. Fictional insurance, real database &mdash; every policy is a live Python object in GemDB. https://github.com/GemTalk/brain-freeze #GemDB</textarea>
+    <p class="muted count" id="share-count"></p>
+    <div class="networks">
+      <button type="button" id="share-native" hidden>{{ ui.icon('share') }} Share image&hellip;</button>
+      <button type="button" class="ghost" data-network="x">Post to X</button>
+      <button type="button" class="ghost" data-network="bluesky">Post to Bluesky</button>
+      <button type="button" class="ghost" data-network="threads">Post to Threads</button>
+      <button type="button" class="ghost" data-network="linkedin">Post to LinkedIn</button>
+    </div>
+    <p class="status" id="share-status" role="status"></p>
+    <p class="muted" style="margin:.8rem 0 0">Posting opens the network with your
+      words filled in, and puts the card on your clipboard: paste it into the
+      post before you send. Links can carry text but not pictures.</p>
+  </div>
+</dialog>
 {% endblock %}
 
 {% block scripts %}
 <script>
-// Draw the card's own SVG onto a canvas and save that, so the image is
-// always the card on the page and never a second copy of its design.
-document.getElementById('save-png').addEventListener('click', function () {
-  var button = this;
-  var svg = document.querySelector('#id-card svg');
-  var box = svg.viewBox.baseVal, scale = 2;
-  var image = new Image();
-  image.onload = function () {
-    var canvas = document.createElement('canvas');
-    canvas.width = box.width * scale;
-    canvas.height = box.height * scale;
-    canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
-    canvas.toBlob(function (blob) {
+(function () {
+  var holder = document.getElementById('id-card');
+  var form = document.getElementById('card-style');
+  var nameInput = document.getElementById('card-name');
+  var svgLink = document.getElementById('save-svg');
+  var fontsUrl = holder.dataset.fonts;
+  var nameLimit = nameInput.maxLength;
+  var png = null;
+
+  function svg() { return holder.querySelector('svg'); }
+  function style() { return form.querySelector('input[name=style]:checked'); }
+  function typedName() {
+    return nameInput.value.replace(/\s+/g, ' ').trim().slice(0, nameLimit).trim();
+  }
+
+  // Redraw the card as the form says, the way id_card.svg would: the
+  // colourway through its custom properties, the name sized to its column.
+  function redraw() {
+    var card = svg(), way = style(), name = typedName();
+    card.setAttribute('style', way.dataset.vars);
+    card.setAttribute('data-colorway', way.value);
+    var shown = name || holder.dataset.fallbackName;
+    var text = card.querySelector('#bfc-subscriber');
+    text.textContent = shown.toUpperCase();
+    text.style.fontSize = (shown.length <= 16 ? 30
+                           : Math.round(300 * 16 / shown.length) / 10) + 'px';
+    var query = new URLSearchParams({style: way.value});
+    if (name) query.set('name', name);
+    svgLink.href = svgLink.dataset.base + '?' + query;
+    history.replaceState(null, '', location.pathname + '?' + query);
+    png = null;
+  }
+  document.getElementById('apply').hidden = true;
+  form.addEventListener('input', redraw);
+  form.addEventListener('submit', function (event) { event.preventDefault(); redraw(); });
+
+  // An SVG drawn onto a canvas cannot fetch its fonts, so fetch them here
+  // (the Latin faces only) and write them into the copy that is drawn.
+  var fonts = null;
+  function dataUrl(blob) {
+    return new Promise(function (resolve) {
+      var reader = new FileReader();
+      reader.onload = function () { resolve(reader.result); };
+      reader.readAsDataURL(blob);
+    });
+  }
+  function fontFaces() {
+    if (!fonts) {
+      var files = {};
+      fonts = fetch(fontsUrl).then(function (r) { return r.text(); }).then(function (css) {
+        var faces = css.split('/* ').filter(function (block) {
+          return block.indexOf('latin */') === 0;
+        }).map(function (block) { return block.slice(block.indexOf('@font-face')); });
+        return Promise.all(faces.map(function (face) {
+          var url = face.match(/url\((https:[^)]+)\)/)[1];
+          files[url] = files[url] || fetch(url).then(function (r) { return r.blob(); }).then(dataUrl);
+          return files[url].then(function (data) { return face.replace(url, data); });
+        }));
+      }).then(function (faces) { return faces.join('\n'); }, function () { return ''; });
+    }
+    return fonts;
+  }
+
+  // The card as a PNG, twice its size: drawn from the card on the page, so
+  // the image is always what the reader sees and never a second design.
+  function cardPng() {
+    if (!png) {
+      png = fontFaces().then(function (faces) {
+        var copy = svg().cloneNode(true);
+        var sheet = copy.querySelector('style');
+        sheet.textContent = faces + '\n' + sheet.textContent.replace(/@import url\("[^"]*"\);/, '');
+        var box = svg().viewBox.baseVal, scale = 2;
+        var image = new Image();
+        image.src = 'data:image/svg+xml;charset=utf-8,' +
+          encodeURIComponent(new XMLSerializer().serializeToString(copy));
+        return image.decode().then(function () {
+          var canvas = document.createElement('canvas');
+          canvas.width = box.width * scale;
+          canvas.height = box.height * scale;
+          canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+          return new Promise(function (resolve) { canvas.toBlob(resolve, 'image/png'); });
+        });
+      });
+      png.catch(function () { png = null; });
+    }
+    return png;
+  }
+  var filename = document.getElementById('save-png').dataset.filename;
+  function download() {
+    return cardPng().then(function (blob) {
       var link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = button.dataset.filename;
+      link.download = filename;
       link.click();
       setTimeout(function () { URL.revokeObjectURL(link.href); }, 1000);
-    }, 'image/png');
+    });
+  }
+  document.getElementById('save-png').addEventListener('click', download);
+
+  // Sharing. No network takes a picture through a link, so the post opens
+  // with its words filled in and the picture goes on the clipboard -- or,
+  // where the device can share files (phones, mostly), through its own
+  // share sheet, picture and all.
+  var dialog = document.getElementById('share-dialog');
+  var words = document.getElementById('share-text');
+  var count = document.getElementById('share-count');
+  var status = document.getElementById('share-status');
+  var preview = document.getElementById('share-preview');
+  var native = document.getElementById('share-native');
+  var intents = {
+    x: ['X', 'https://x.com/intent/post?text='],
+    bluesky: ['Bluesky', 'https://bsky.app/intent/compose?text='],
+    threads: ['Threads', 'https://www.threads.com/intent/post?text='],
+    linkedin: ['LinkedIn', 'https://www.linkedin.com/feed/?shareActive=true&text=']
   };
-  image.src = 'data:image/svg+xml;charset=utf-8,' +
-    encodeURIComponent(new XMLSerializer().serializeToString(svg));
-});
+
+  function say(message, ok) {
+    status.className = 'status' + (ok ? ' ok' : '');
+    status.textContent = '';
+    if (typeof message === 'string') status.textContent = message;
+    else status.appendChild(message);
+  }
+  function counted() {
+    var n = Array.from(words.value).length;
+    count.textContent = n + ' characters' + (n > 280 ? ' — too long for X, which takes 280' : '');
+  }
+  words.addEventListener('input', counted);
+
+  function file(blob) { return new File([blob], filename, {type: 'image/png'}); }
+  var probe = new File([''], 'probe.png', {type: 'image/png'});
+  if (navigator.canShare && navigator.canShare({files: [probe]})) native.hidden = false;
+
+  document.getElementById('share').addEventListener('click', function () {
+    say('');
+    counted();
+    dialog.showModal();
+    cardPng().then(function (blob) {
+      if (preview.src) URL.revokeObjectURL(preview.src);
+      preview.src = URL.createObjectURL(blob);
+    });
+  });
+  document.getElementById('share-close').addEventListener('click', function () { dialog.close(); });
+  dialog.addEventListener('click', function (event) { if (event.target === dialog) dialog.close(); });
+
+  native.addEventListener('click', function () {
+    cardPng().then(function (blob) {
+      return navigator.share({files: [file(blob)], text: words.value});
+    }).catch(function (error) {
+      if (error && error.name !== 'AbortError') say('This device would not share the image. Try a network below.');
+    });
+  });
+
+  function copyImage() {
+    if (!navigator.clipboard || !window.ClipboardItem) return Promise.reject();
+    try {
+      return navigator.clipboard.write([new ClipboardItem({'image/png': cardPng()})]);
+    } catch (error) { return Promise.reject(error); }
+  }
+
+  Array.prototype.forEach.call(dialog.querySelectorAll('[data-network]'), function (button) {
+    button.addEventListener('click', function () {
+      var network = intents[button.dataset.network];
+      var url = network[1] + encodeURIComponent(words.value);
+      say('Getting the image ready…');
+      copyImage().then(function () { return true; }, function () {
+        return download().then(function () { return false; });
+      }).then(function (copied) {
+        var tab = window.open(url, '_blank');
+        if (tab) { try { tab.opener = null; } catch (error) {} }
+        var line = document.createElement('span');
+        line.textContent = copied
+          ? 'The card is on your clipboard. Paste it into the post on ' + network[0] + ' before you send. '
+          : 'Your browser would not copy the image, so it downloaded. Attach it to the post on ' + network[0] + '. ';
+        if (!tab) {
+          var link = document.createElement('a');
+          link.href = url; link.target = '_blank'; link.rel = 'noopener';
+          link.textContent = 'Open ' + network[0];
+          line.appendChild(link);
+        }
+        say(line, true);
+      });
+    });
+  });
+})();
 </script>
 {% endblock %}

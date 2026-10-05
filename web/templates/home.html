@@ -5,12 +5,11 @@
 {% block content %}
 <div class="wrap">
   <section class="hero">
-    <span class="flake" style="right:-2rem; top:-3rem">{{ brand.icon(200) }}</span>
     <div class="hero-grid">
       <div>
         <p class="eyebrow">Make-believe insurance, real database</p>
-        <h1>Cover for the coldest moments.</h1>
-        <p class="sub">{{ brand.short_name }} insures kids against ice-cream
+        <h1>Protection your inner sweet tooth can rely on.</h1>
+        <p class="sub">{{ brand.name }} covers kids against ice-cream
           headaches. The cover is pretend; every quote, policy and claim is a
           real Python object in GemDB, priced by the same rules the notebook
           and the agent use.</p>
@@ -19,15 +18,16 @@
           <a class="btn ghost" href="{{ url_for('claims') }}">Browse claims</a>
         </div>
       </div>
-      <ol class="how">
-        <li><b>1</b><div>Answer five questions<span>Age, eating speed, favourite treat, health</span></div></li>
-        <li><b>2</b><div>Pick from three prices<span>With how your risk score was worked out</span></div></li>
-        <li><b>3</b><div>Get your ID card<span>Saved straight away; download or print it</span></div></li>
-      </ol>
+      <div class="art">{{ brand.icon(220, label="One, two and three scoops") }}</div>
     </div>
+    <ol class="how">
+      <li><b>1</b><div>Answer five questions<span>Age, eating speed, favourite treat, health</span></div></li>
+      <li><b>2</b><div>Pick from three prices<span>With how your risk score was worked out</span></div></li>
+      <li><b>3</b><div>Get your ID card<span>Style it, download it, share it</span></div></li>
+    </ol>
   </section>
 
-  <section class="section" style="margin-top:1.6rem">
+  <section class="section">
     <div class="row">
       <h2>The plans</h2>
       <p class="muted" style="margin:0">The book holds {{ stats.policies }} policyholders
@@ -37,6 +37,7 @@
       {% for plan in plans %}
       <div class="card{% if plan.popular %} pick{% endif %}">
         {% if plan.popular %}<span class="tag ice badge">Most chosen</span>{% endif %}
+        {{ brand.stack(brand.plan_scoops.get(plan.name, 1)) }}
         <h3>{{ plan.name }}</h3>
         <div class="price"><span class="big num">{{ usd(plan.monthly) }}</span>
           <span class="muted">a month at {{ typical }} risk</span></div>

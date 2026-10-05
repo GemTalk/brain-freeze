@@ -5,6 +5,7 @@
     page, and tests/test_app.py pins that for this one. -#}
 {% extends "base.html" %}
 {% import "_macros.html" as ui with context %}
+{% import "_brand.html" as brand with context %}
 {% set nav = 'quote' %}
 
 {% block title %}Your quote {{ q.quote_id }}{% endblock %}
@@ -36,6 +37,7 @@
           class="card{% if name == popular %} pick{% endif %}">
       {% if name == popular %}<span class="tag ice badge">Most chosen</span>{% endif %}
     {% endif %}
+      {{ brand.stack(brand.plan_scoops.get(name, 1)) }}
       <h3>{{ name }}</h3>
       <div class="price"><span class="big num">{{ usd(plan.annual) }}</span>
         <span class="muted">a year &middot; {{ usd(plan.monthly) }} a month</span></div>

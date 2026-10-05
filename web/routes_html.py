@@ -224,15 +224,22 @@ def id_card(policy_id):
     """The policy's ID card, where taking out a policy lands."""
     policy = lookups.policy_or_404(policy_id)
     return pages.render("card.html", p=policy,
-                        card=pages.id_card(policy, date.today()))
+                        card=pages.id_card(policy, date.today(),
+                                           request.args.get("name")),
+                        named=bool(request.args.get("name")),
+                        style=request.args.get("style"))
 
 
 @ROUTES.route("/policies/<policy_id>/card.svg")
 def id_card_svg(policy_id):
-    """The same card on its own, as an image a person can keep."""
+    """The same card on its own, as an image a person can keep: in the
+    colourway `?style=` names and with the subscriber `?name=`, as the card
+    page draws it."""
     policy = lookups.policy_or_404(policy_id)
     svg = pages.render("id_card.svg",
-                       card=pages.id_card(policy, date.today()))
+                       card=pages.id_card(policy, date.today(),
+                                          request.args.get("name")),
+                       style=request.args.get("style"))
     return Response(svg, mimetype="image/svg+xml")
 
 

@@ -1,19 +1,60 @@
-{#- The brand: its name, its marks and its fonts, and nothing else. Import it
-    with
+{#- The brand: every mark, colour and font the pages and the ID card use,
+    and nothing else. Import it with
 
         {% import "_brand.html" as brand with context %}
 
-    This file, brand.css (the colours) and id_card.svg (the ID card) are the
-    whole of the brand. BRANDING.md says how to swap in one of your own. -#}
+    The design comes from the GemDB brand guidelines, "Micro brand" (the
+    icon, the wordmark and the three scoop colours) and "Insurance Cards"
+    (the ID card). BRANDING.md says how to swap in a brand of your own: this
+    file, brand.css and id_card.svg are the whole of it. -#}
 
-{#- The app's whole name, wherever a sentence needs it, and the short one
-    the header and the card set large. -#}
-{% set name = "Brain Freeze Insurance" %}
-{% set short_name = "Brain Freeze" %}
+{#- The three colours that stack on top of GemDB's own. -#}
+{% set colors = {
+  "red": "#FF3700",
+  "yellow": "#FFE200",
+  "blue": "#0F9EE1",
+  "ink": "#0D1321",
+  "paper": "#F2F5F4",
+} %}
 
-{#- The fonts, from Google Fonts: Plus Jakarta Sans for everything you read,
-    JetBrains Mono for ids. brand.css names the families. -#}
-{% set fonts_url = "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" %}
+{#- The ID card's colourways: its background, its type and rules, and the
+    three scoops of the icon, top to bottom. The first four are the card
+    slide's; midnight shows the icon in its own colours, as the micro-brand
+    slide does. -#}
+{% set colorways = {
+  "red": {"label": "Red", "bg": "#FF3700", "ink": "#F2F5F4",
+          "s1": "#F2F5F4", "s2": "#F2F5F4", "s3": "#F2F5F4"},
+  "blue": {"label": "Blue", "bg": "#0F9EE1", "ink": "#F2F5F4",
+           "s1": "#F2F5F4", "s2": "#F2F5F4", "s3": "#F2F5F4"},
+  "red-light": {"label": "Red on white", "bg": "#F2F5F4", "ink": "#FF3700",
+                "s1": "#FF3700", "s2": "#FF3700", "s3": "#FF3700"},
+  "blue-light": {"label": "Blue on white", "bg": "#F2F5F4", "ink": "#0F9EE1",
+                 "s1": "#0F9EE1", "s2": "#0F9EE1", "s3": "#0F9EE1"},
+  "midnight": {"label": "Midnight", "bg": "#0D1321", "ink": "#F2F5F4",
+               "s1": "#0F9EE1", "s2": "#FFE200", "s3": "#FF3700"},
+} %}
+{% set colorway_order = ["blue", "red", "blue-light", "red-light", "midnight"] %}
+
+{#- Which colourway a plan's card starts in, before anyone picks one. -#}
+{% set plan_colorways = {"Sprinkle": "blue-light", "Sundae": "blue",
+                         "Parfait": "red"} %}
+
+{#- The colourway called `style`, or the plan's own if there is no such. -#}
+{% macro colorway_for(style, plan) -%}
+{{ style if style in colorways else plan_colorways.get(plan, "blue") }}
+{%- endmacro %}
+
+{#- A colourway as the CSS custom properties id_card.svg reads. -#}
+{% macro colorway_vars(name) -%}
+{%- set c = colorways[name] -%}
+--bf-bg:{{ c.bg }};--bf-ink:{{ c.ink }};--bf-s1:{{ c.s1 }};--bf-s2:{{ c.s2 }};--bf-s3:{{ c.s3 }}
+{%- endmacro %}
+
+{#- The fonts, from Google Fonts: Inter for everything you read, Barlow Semi
+    Condensed for the wordmark, Roboto Mono for ids and small capitals. The
+    card page's PNG export reads this same URL, so a font added here reaches
+    the image too. -#}
+{% set fonts_url = "https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@700&family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@500&display=swap" %}
 
 {% macro font_links() -%}
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,25 +62,60 @@
 <link rel="stylesheet" href="{{ fonts_url }}">
 {%- endmacro %}
 
-{#- The mark: a snowflake, one stroked path on a 24 x 24 grid. -#}
-{% set mark_path = "M2 12h20M12 2v20m8-6-4-4 4-4M4 8l4 4-4 4m12-12-4 4-4-4m0 16 4-4 4 4" %}
-
-{#- The mark on its own, `size` pixels square, in the text colour. -#}
-{% macro icon(size=20) -%}
-<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ mark_path }}"/></svg>
+{#- The icon's shapes in its own 182 x 122 box: one scoop, two, three. Each
+    scoop is a circle (r 27) with the circle beside it, one unit larger,
+    cut away, which leaves the lens-shaped gap between them. `top`, `middle`
+    and `bottom` are the colours of the tallest column's scoops, top down --
+    or, with `attr="class"`, the classes that colour them. -#}
+{% macro scoop_paths(top, middle, bottom, attr="fill") -%}
+<circle cx="27" cy="95" r="27" {{ attr }}="{{ top }}"/>
+<path {{ attr }}="{{ top }}" d="M69.4 77.19A27 27 0 1 1 112.6 77.19A28 28 0 0 0 69.4 77.19Z"/>
+<path {{ attr }}="{{ middle }}" d="M69.4 78.81A28 28 0 0 0 112.6 78.81A27 27 0 1 1 69.4 78.81Z"/>
+<path {{ attr }}="{{ top }}" d="M133.4 43.19A27 27 0 1 1 176.6 43.19A28 28 0 0 0 133.4 43.19Z"/>
+<path {{ attr }}="{{ middle }}" d="M133.4 44.81A28 28 0 0 0 176.6 44.81A27 27 0 0 1 176.6 77.19A28 28 0 0 0 133.4 77.19A27 27 0 0 1 133.4 44.81Z"/>
+<path {{ attr }}="{{ bottom }}" d="M133.4 78.81A28 28 0 0 0 176.6 78.81A27 27 0 1 1 133.4 78.81Z"/>
 {%- endmacro %}
 
-{#- The header's lockup: the mark in its tile, then the name with its small
-    print beneath. -#}
-{% macro lockup() -%}
-<span class="mark">{{ icon(20) }}</span>
-<span>{{ short_name }}<small>Insurance</small></span>
+{#- The icon on its own, `height` pixels tall: in the scoop colours, or in
+    one colour (`mono`, say "currentColor") where it sits on a colour. -#}
+{% macro icon(height=32, mono=none, label=none) -%}
+<svg class="scoops" width="{{ (height * 182 / 122)|round(1) }}" height="{{ height }}" viewBox="0 0 182 122"
+  {% if label %}role="img" aria-label="{{ label }}"{% else %}aria-hidden="true"{% endif %}>
+{{ scoop_paths(mono or colors.blue, mono or colors.yellow, mono or colors.red) }}
+</svg>
 {%- endmacro %}
 
-{#- The favicon, as a data URL: the mark, white on an ice tile. -#}
+{#- One column of the icon: `scoops` 1, 2 or 3 high, `height` pixels tall
+    at the tallest, so stacks of different heights sit on one baseline. -#}
+{% macro stack(scoops, height=52) -%}
+<svg class="stack" width="{{ (height * 54 / 122)|round(1) }}" height="{{ height }}"
+  viewBox="{{ (scoops - 1) * 64 }} 0 54 122" aria-hidden="true">
+{{ scoop_paths(colors.blue, colors.yellow, colors.red) }}
+</svg>
+{%- endmacro %}
+
+{#- How many scoops each plan is: one, two, three. -#}
+{% set plan_scoops = {"Sprinkle": 1, "Sundae": 2, "Parfait": 3} %}
+
+{#- One scoop: the brand at its smallest, for favicons and bullets. -#}
+{% macro scoop(size=12, fill=none) -%}
+<svg class="scoop" width="{{ size }}" height="{{ size }}" viewBox="0 0 54 54" aria-hidden="true"><circle cx="27" cy="27" r="27" fill="{{ fill or colors.blue }}"/></svg>
+{%- endmacro %}
+
+{#- The favicon, as a data URL: one scoop. -#}
 {% macro favicon() -%}
-{%- set svg -%}
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#2a8bd8"/><path d="{{ mark_path }}" transform="translate(4.2 4.2) scale(.65)" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-{%- endset -%}
-data:image/svg+xml,{{ svg|urlencode }}
+data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 54 54'%3E%3Ccircle cx='27' cy='27' r='27' fill='%230F9EE1'/%3E%3C/svg%3E
 {%- endmacro %}
+
+{#- The lockup for the page header: icon, wordmark, and the name's small
+    print beneath it. -#}
+{% macro lockup() -%}
+<span class="lockup">
+  {{ icon(30) }}
+  <span class="wordmark">Brain Freeze<small>Ice Cream Insurance</small></span>
+</span>
+{%- endmacro %}
+
+{#- The app's whole name, wherever a sentence needs it. -#}
+{% set name = "Ice Cream Brain Freeze Insurance" %}
+{% set short_name = "Brain Freeze" %}
