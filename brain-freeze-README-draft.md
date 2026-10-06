@@ -1,14 +1,18 @@
 # Brain Freeze Insurance
 
-Brain Freeze is a demo app for a fictional insurer that offers friendly coverage for cold-stimulus headaches. It runs on GemDB, which supplies the Python environment and persistent database behind every quote, policy, and claim. Brain Freeze is a demo, not real insurance.
+Brain Freeze is a demo app for a fictional insurer that offers friendly coverage for cold-stimulus headaches. It runs on GemDB, which supplies the Python environment and a persistent, object-oriented database. The database stores the data for quotes, policies, and claims, such as each policyholder's age, plan, and premium, and each claim's amount and decision.
 
 <!-- TODO: short "what's in this repo" paragraph (per Sandeep): dataset generator/loader, the brainfreeze data model, and the web app. Write once those pieces have been walked through. -->
+
+Brain Freeze is a demo, not real insurance.
 
 **Note:** Found this repo on GitHub? To run the demo, install [GemDB Code](https://marketplace.visualstudio.com/items?itemName=GemTalkSystems.gemdb) and choose **Install Brain Freeze Demo** from its Getting Started page.
 
 ---
 
 ## Before you start
+
+These steps set up the Brain Freeze demo in VS Code, using the GemDB Code extension. GemDB Code installs the database and the demo for you.
 
 1. In VS Code, install **GemDB Code** and follow its Getting Started steps. Wait until the GemDB panel shows **Database: ready**.
 2. From the same Getting Started page, choose **Install Brain Freeze Demo**. GemDB Code clones this repo into `~/GemDB/brain-freeze` and opens it in VS Code.
@@ -19,7 +23,9 @@ Every command below runs in a VS Code terminal, from the `brain-freeze` folder. 
 
 ---
 
-## 1. Load data
+## Load the demo data
+
+In this step, you run `gemdb` commands in the terminal to load the demo data into the database and read some of it back.
 
 ```sh
 gemdb tools/seed.py
@@ -40,15 +46,19 @@ Ask for one policy back:
 gemdb -c 'import gemdb; p = gemdb.root["brainfreeze"]["BF-100539"]; print(p.plan_name, p.total_paid)'
 ```
 
+The command reads policy BF-100539 from the database and prints its plan and the total paid on its claims:
+
 ```console
 Sundae 179.97
 ```
 
-There is no schema file and no save method. `gemdb.root` is a dictionary that persists, and `gemdb.commit()` is the only call that writes.
+In a relational database, you define tables before you can store anything, and you convert your objects to rows and back. GemDB has no separate schema: the classes in `brainfreeze/model.py` define the data, and the database stores their instances as they are. `gemdb.root` is a dictionary that persists. Anything you store in it, or reach from it, becomes part of the database.
+
+Changes stay private to your session until you call `gemdb.commit()`. A commit saves them permanently and makes them visible to other sessions, such as the web app and the notebook. If your session ends before you commit, GemDB discards the changes. `tools/seed.py` commits for you, which is why its output ends with `Committed.`
 
 ---
 
-## 2. Launch the web app
+## Launch the web app
 
 ```sh
 gemdb web/app.py
@@ -60,7 +70,7 @@ Brain Freeze Insurance is running.
   Open:  http://127.0.0.1:5050/
 ```
 
-Leave this terminal running: it is the app. Open <http://127.0.0.1:5050/> in a web browser on the same computer.
+Leave this terminal running. To see the website that Brain Freeze customers use to get a quote, buy a policy, and file a claim, open <http://127.0.0.1:5050/> in a web browser on the same computer.
 
 Buy a policy:
 
@@ -75,19 +85,19 @@ File a claim against it:
 
 Every policyholder is listed under **Policies**, and every claim under **Claims**. As each page loads, the app's terminal lists the request.
 
-The app is plain Flask, and the insurance rules are plain Python. Each quote, policy, and claim is a Python object, and the app reads and writes those objects in the database directly, with no object-relational mapper (ORM) and no SQL in between.
+The app is built with Flask, a popular Python web framework, and the insurance rules are ordinary Python code. Both run inside the database, next to the data. Each quote, policy, and claim is a Python object, and the app reads and changes those objects directly, without an object-relational mapper (ORM) or SQL queries.
 
 <!-- TODO: the "stop the app and start it again" persistence check. On GemDB Code 1.5.4, Ctrl+C drops to a `topaz 1>` prompt instead of stopping the app (brain-freeze tests/test_ctrl_c.py). Users must not see topaz. Waiting on Steven / GemDB Code for a clean way to stop the app. -->
 
 ---
 
-## 3. Change the schema
+## Change the schema with code, not with a table update
 
-Claims should record which ice cream caused the brain freeze. In this step, you add two fields to the `Claim` class and two questions to the claim form, while the app keeps running.
+To improve the app, make each claim record the flavor of ice cream and the toppings that caused the brain freeze. In this step, you add two fields, `flavour` and `toppings`, to the `Claim` class and two questions to the claim form, while the app keeps running.
 
-Leave the app running in its terminal. Open a second terminal for this step: click **+** in the Terminal panel, or press **Ctrl+Shift+`**.
+To keep the app running in its existing terminal, open a second terminal for this step: click **+** in the Terminal panel, or press **Ctrl+Shift+`**.
 
-Make the following edits in VS Code, and save each file (**Ctrl+S**). To find each spot, search the file (**Ctrl+F**) for the line named in each edit.
+Use the VS Code editor to make the following edits to the app's Python files and page templates, and then save each file (**Ctrl+S**). To find each spot, search the file (**Ctrl+F**) for the line named in each edit. Keep the indentation shown in each edit, because Python uses indentation to structure code.
 
 **a. [`brainfreeze/model.py`](brainfreeze/model.py)** (three changes in the `Claim` class)
 
@@ -176,10 +186,10 @@ Reload the page: the running app serves what you loaded.
 Check the result in your browser:
 
 1. Reload the page. Open any policy under **Policies**, and click **File a claim**. The form now asks **Which flavour?** and **Anything on top?**
-2. Choose a flavour and one or more toppings, and click **Send the claim**. The decision page shows them after the claim number, for example `ice cream (Mint choc chip, hot fudge, whipped cream)`.
-3. Click **Browse all claims**, and open a claim dated before today. It loads as before, with no flavour or toppings shown.
+2. Choose a flavor and one or more toppings, and click **Send the claim**. The decision page shows them after the claim number, for example `ice cream (Mint choc chip, hot fudge, whipped cream)`.
+3. Click **Browse all claims**, and open a claim dated before today. It loads as before, with no flavor or toppings shown.
 
-You did not migrate any data, reload the book, or restart the app. `gemdb tools/load.py` loaded your changes into the database, and the running app used them on its next request. The 2,172 older claims are still instances of `Claim`, and they read the new fields' default values (`None` and `()`), so they show no flavour or toppings.
+You did not migrate any data, reload the book, or restart the app. `gemdb tools/load.py` loaded your changes into the database, and the running app used them on its next request. The 2,172 older claims are still instances of `Claim`, and they read the new fields' default values (`None` and `()`), so they show no flavor or toppings.
 
 If a page shows **Something went wrong. The terminal running this app has the traceback**, look at the app's terminal for the error. Usually a file is not saved or an edit is missing. Fix the file, save it, and run `gemdb tools/load.py` again.
 
@@ -193,10 +203,11 @@ Remaining sections, in Sandeep's order:
   5. MCP
 
 Verified on the VM (GemDB Code 1.5.4, brain-freeze e3b44fc): Before you start, steps 1, 2 (quote,
-buy, ID card, claim), and 3 (edits a-e by hand, load, new claim records flavour and toppings).
+buy, ID card, claim), and 3 (edits a-e by hand, load, new claim records flavor and toppings).
 
 Test compatibility (Steven's CI reads this README):
-- Keep the `## N. ` headings.
+- Steven agreed (2026-10-06) to drop the numbered headings; his tests find steps by `## N. `,
+  so the tests need updating to match before this merges.
 - Commands go in ```sh blocks; the ```console block after one must contain only lines that
   appear in the real output (no "..." lines). Other blocks (python, html) are not checked.
 - Step 4 must contain exactly one python block: `gemdb.refresh()`.
@@ -204,8 +215,9 @@ Test compatibility (Steven's CI reads this README):
 
 Open decisions:
 - Step 2: how to stop and restart the app without Ctrl+C (see the TODO in step 2).
-- Step 3: the code spells "flavour" (British); American readers may type "flavor". Keep, or ask
-  Steven to switch?
+- Spelling: README prose uses American "flavor"; code and on-screen labels keep the app's British
+  spelling (`flavour`, "Which flavour?", "Favourite cold treat"). Ask Steven whether to switch the
+  app to American spelling ("favourite" is in 15 files, including the data field `favourite_trigger`).
 - Step 3: Steven's answer (features/answers/step3.patch) also changes web/wire.py (the JSON API).
   Not needed for the tutorial; confirm with Steven whether step 5's agent needs it.
 - Seed output: the console block shows the first and last lines only. Show more as plain text?
