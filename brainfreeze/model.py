@@ -22,6 +22,21 @@ from .money import ZERO, format_usd, round_cents, round_half_up, usd
 from .underwriting import COVERAGE_PLANS, risk_score, risk_tier
 
 
+def highest_serial(identifiers, floor):
+    """The highest number in identifiers shaped `PREFIX-000123`, or `floor`.
+
+    One that does not parse is skipped rather than raising: an id typed by
+    hand into a notebook must not stop the app issuing the next one.
+    """
+    highest = floor
+    for identifier in identifiers:
+        try:
+            highest = max(highest, int(identifier.split("-")[1]))
+        except (IndexError, ValueError):
+            continue
+    return highest
+
+
 class Claim:
     """A claim filed against one cold-treat event."""
 
@@ -346,11 +361,47 @@ class Book:
         book.policies["BF-100539"].total_paid
     """
 
+    #: The last number issued in each identifier series, by prefix: see
+    #: `issue`. None on the class, as `Claim.rule` is, for a book committed
+    #: before the field existed; `issue` gives that book a dict of its own.
+    serials = None
+
     def __init__(self):
         self.policies = {}
         #: Quotes given, by quote id. Separate from `policies`, because most
         #: quotes never become a policy and `len(self)` counts policies.
         self.quotes = {}
+        self.serials = {}
+
+    def issue(self, prefix, width, start, taken):
+        """The next identifier in a series, recorded as issued.
+
+            book.issue("CLM", 6, 1, lambda: [c.claim_id for c in book.claims])
+            # "CLM-002173"
+
+        Several sessions can issue at once -- one per web app instance -- and
+        each sees the book as of its last transaction. Working the next number
+        out from the ids already filed gives two of them the same one, and
+        when the two land on different policies nothing collides: both
+        commit. So every issue writes the same object, `serials`, and the
+        second commit conflicts instead; the app retries it
+        (`writes.committed`) and draws the next number.
+
+        `taken` returns the ids already filed, and is called only for a
+        series this book has never issued from, such as the seeded ids read
+        from CSV: the first number is then one past the highest of them, and
+        never below `start`. A function rather than the list, because
+        listing every claim takes long enough under Grail that another
+        instance commits meanwhile, and a retry that lists them again loses
+        again.
+        """
+        if self.serials is None:
+            self.serials = {}
+        last = self.serials.get(prefix)
+        if last is None:
+            last = highest_serial(taken(), start - 1)
+        self.serials[prefix] = last + 1
+        return "%s-%0*d" % (prefix, width, last + 1)
 
     def add(self, policyholder):
         self.policies[policyholder.policy_id] = policyholder

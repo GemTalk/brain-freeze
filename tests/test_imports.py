@@ -26,8 +26,9 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 #: on. All top-level: Grail serves a committed PACKAGE module from the
 #: database forever, while a top-level module is recompiled from disk each
 #: run, which is why the app was split into siblings rather than a package.
-SURFACE = ("app.py", "routes_html.py", "routes_api.py",
-           "forms.py", "lookups.py", "wire.py", "pages.py", "routes.py")
+SURFACE = ("app.py", "routes_html.py", "routes_api.py", "routes_ops.py",
+           "forms.py", "lookups.py", "wire.py", "pages.py", "routes.py",
+           "conflicts.py", "metrics.py")
 
 WEB = os.path.join(REPO, "web")
 
