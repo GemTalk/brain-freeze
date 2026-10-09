@@ -177,4 +177,6 @@ web/                 the web app
 tools/               seed.py, and the other commands above
 data/                the sample book, as CSV, and generate.py, which made it
 brain-freeze.ipynb   the notebook
+BRANDING.md          how the web app's look is put together, and how to
+                     make it your own (agents: the rebrand skill)
 ```
