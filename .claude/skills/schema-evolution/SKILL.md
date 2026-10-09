@@ -29,8 +29,9 @@ Read these first:
   requests are this kind.
 - **Reshaping**: renaming or removing a field, changing its type, units or
   meaning, or moving it to another class. The objects already stored still
-  hold the old shape, and loading code doesn't touch them. See step 6, and
-  agree the plan with the person before you start.
+  hold the old shape, and loading code doesn't touch them. That usually
+  still needs no migration script: read both shapes, and upgrade objects as
+  they're written (step 6). Agree the plan with the person before you start.
 - **A new route, or a change to `web/app.py`**: the app builds those once,
   when it starts, so they need a restart. Tell the person.
 
@@ -152,23 +153,86 @@ Reload the page: the running app serves what you loaded.
 
 ## 6. Reshape stored data
 
-Loading never rewrites stored objects. There are two ways to do it, and
-the person chooses.
+Adding a field never needs this: the class default from step 2 is enough.
+This step is for renaming or removing a field, or changing its type, units
+or meaning. Loading never rewrites stored objects, so there are three ways
+to handle the objects that already exist. Agree which one with the person.
 
-- **A migration script**, `tools/migrate_<what>.py`, in the shape of
-  `tools/lapse.py`: one session that walks `gemdb.root["brainfreeze"]`,
-  rewrites each object that still has the old shape, prints what it
-  changed, and commits. Make it safe to run twice. Do it in this order:
-  1. Load code that reads both the old and the new shape.
-  2. Run the migration.
-  3. Remove the old-shape reading in a later change.
+### Default: read both shapes, upgrade on write
 
-  If the app writes the same objects in the meantime, the commit raises
-  `gemdb.ConflictError`. Abort and run it again.
-- **`gemdb tools/seed.py`** rebuilds the book from `data/*.csv` and
-  replaces `gemdb.root["brainfreeze"]` wholesale. That discards every
-  policy, quote and claim the app has written. Run it only with the
-  person's explicit go-ahead.
+Leave old objects as they are. Store the new shape under a new name with a
+class default of `None`, and put a property in front of it that reads the
+new shape, or works it out from the old one when an object predates the
+change. Renaming `Claim.reason` to `explanation`, for example:
+
+```python
+class Claim:
+    #: The new shape, on claims written since the change. A claim from
+    #: before has none of its own and reads None here.
+    _explanation = None
+
+    @property
+    def explanation(self):
+        if self._explanation is not None:
+            return self._explanation
+        return getattr(self, "reason", None)    # a claim from before
+
+    def __init__(self, ..., explanation=None):
+        ...
+        if explanation is not None:
+            self._explanation = explanation
+```
+
+- Every reader uses the property: views, templates, `wire.py`,
+  `analysis.py` and the notebook. Code that reads the stored attribute
+  directly sees whichever shape that object happens to have.
+- Any code that writes an object for its own reasons writes the new shape,
+  so the objects people actually change move over as they're changed. That
+  costs no extra transaction and no script.
+- Leave the old value where it is. Nothing needs `del`, and removing an
+  attribute from a stored object is only tested under CPython here.
+- Objects nobody writes keep the old shape, so the old-shape branch of the
+  property stays for as long as one of them exists. That's fine while only
+  a few places read the field. If you want one shape and simpler code,
+  sweep the rest with a migration script (below), then delete the branch.
+- Test both shapes. Build an old object by setting the old attribute and
+  leaving the new one unset, then check every reader through the property.
+
+### Never upgrade an object when it's read
+
+Rewriting the object inside the getter looks like the same idea, but it
+turns every read into a write:
+
+- **In the app**, a page view leaves uncommitted work behind, and
+  `take_new_view()` commits it at the start of that instance's next
+  request (`web/app.py`). Two instances that upgrade the same object
+  conflict, and the loser's abort throws its upgrade away.
+- **In a notebook or an agent's session**, reading the book leaves
+  uncommitted work, and `gemdb.refresh()` refuses while there is any, so
+  browsing the data would break refresh.
+- **Analysis over the whole book** would upgrade every object in one
+  unplanned transaction: a migration nobody chose to run.
+
+### When you want one shape: a migration script
+
+`tools/migrate_<what>.py`, in the shape of `tools/lapse.py`: one session
+that walks `gemdb.root["brainfreeze"]`, rewrites each object that still has
+the old shape, prints what it changed, and commits. Make it safe to run
+twice. Do it in this order:
+
+1. Load code that reads both shapes, as above.
+2. Run the migration.
+3. Remove the old-shape reading in a later change.
+
+If the app writes the same objects in the meantime, the commit raises
+`gemdb.ConflictError`. Abort and run it again.
+
+### Last resort: reseed
+
+`gemdb tools/seed.py` rebuilds the book from `data/*.csv` and replaces
+`gemdb.root["brainfreeze"]` wholesale. That discards every policy, quote
+and claim the app has written. Run it only with the person's explicit
+go-ahead.
 
 If the field belongs in the sample data too, the CSV columns,
 `tools/seed.py` and `data/generate.py` change with it.
