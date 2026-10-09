@@ -1,4 +1,4 @@
-# Brain Freeze Insurance
+# Ice Cream Brain Freeze Insurance
 
 A GemDB tutorial. You will build on a small insurance company — it covers
 ice-cream headaches — and along the way see what GemDB is for:

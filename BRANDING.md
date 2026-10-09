@@ -18,13 +18,17 @@ paper `#F2F5F4`) and the "Insurance Cards" slide.
 
 ## Making a brand of your own
 
-These are written for a person or an agent working in this repo.
+These are written for a person or an agent working in this repo. An
+agent can also use the `rebrand` skill in `.claude/skills/`, which follows
+them.
 
 1. **Tokens.** In `brand.css`, set the colours. Keep every name: `app.css`
    uses all of them. Fills (`--red`, `--blue`, `--yellow`) can be any
    colour. The `-text` shades and `--muted` must read at 4.5:1 or better on
    `--paper` and `--surface`, because they are used for small text.
    Buttons put `--ink` on `--blue`, so check that pair too.
+   `python3 .claude/skills/rebrand/contrast.py` checks every pair this
+   branch's `app.css` puts together.
 2. **Fonts.** Put one Google Fonts css2 URL in `fonts_url` in `_brand.html`
    (Google Fonts serves CSS cross-origin, so the card's PNG export can
    inline the fonts). Name the families in `--font`, `--display` and
@@ -87,8 +91,17 @@ SVG** draw the same card.
 
 ## Keeping this branch
 
-`bfi-visual-rebrand` lives alongside `main` and is not merged. To pick up
-`main`, merge it in. Conflicts will be in `web/templates/`. Take `main`'s
-content and structure (new fields, pages, test hooks such as `.card.row`,
-`.big`, `#id-card svg`, `a[download$=".svg"]`) and keep this branch's
-classes, brand imports and the `brand.name` titles.
+`bfi-visual-rebrand` lives alongside `main` and is not merged. `main` keeps
+its brand in the same three files, so this branch is `main` with those
+files replaced, `app.css` restyled and the ID card's styles, name and
+sharing added. To pick up `main`, rebase onto it. Conflicts will be in
+`web/templates/`:
+
+- `brand.css`, `_brand.html`, `id_card.svg`, `app.css` and `card.html`
+  are this branch's own. Keep this branch's version, then bring across
+  anything new on `main` that isn't brand: a new field, page or test hook,
+  such as `.card.row`, `.big`, `#id-card svg` or `a[download$=".svg"]`.
+- Other templates: take `main`'s content and structure, and keep this
+  branch's classes and brand calls.
+- `.claude/skills/rebrand/contrast.py`: keep this branch's `PAIRS`, which
+  name this branch's tokens.

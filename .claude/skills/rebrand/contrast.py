@@ -6,26 +6,29 @@ Reads the hex colours out of brand.css (web/templates/brand.css by default)
 and prints each pair the pages put together, its contrast ratio, and
 whether it reaches 4.5:1, what WCAG asks for text at these sizes. Exits 1
 if any pair falls short, or names a token brand.css doesn't define as a
-hex colour, so it can gate a change; the stock brand falls short.
+hex colour, so it can gate a change. main's stock brand falls short;
+this branch's passes.
 """
 import re
 import sys
 
-#: (text, ground, where the pages use it)
+#: (text, ground, where the pages use it). These are this branch's: its
+#: app.css is its own, so its pairs are too. A brand that restyles app.css
+#: lists the pairs its own app.css puts together.
 PAIRS = [
-    ("--ink", "--bg", "body text"),
-    ("--ink-2", "--bg", "secondary text"),
-    ("--muted", "--bg", "small print"),
+    ("--ink", "--paper", "body text"),
+    ("--ink-2", "--paper", "secondary text"),
+    ("--muted", "--paper", "small print"),
     ("--muted", "--surface", "small print on cards"),
-    ("--ice-deep", "--bg", "links and eyebrows"),
-    ("--ice-deep", "--ice-soft", "tags and the current nav item"),
-    ("--mint", "--bg", "yes"),
-    ("--mint", "--mint-soft", "approved tags"),
-    ("--berry", "--berry-soft", "declined tags"),
-    ("--amber-ink", "--amber-soft", "warnings"),
-    ("--on-ice", "--ice", "buttons"),
-    ("--on-ice", "--ice-hover", "buttons under the pointer"),
-    ("--on-ink", "--ink", "the chosen filter"),
+    ("--blue-text", "--paper", "links"),
+    ("--red-text", "--paper", "eyebrows"),
+    ("--blue-text", "--blue-soft", "approved tags"),
+    ("--red-text", "--red-soft", "declined tags"),
+    ("--ink", "--yellow", "the most-chosen tag, the current step"),
+    ("--yellow", "--ink", "the home page's eyebrow"),
+    ("--ink", "--blue", "buttons"),
+    ("--paper", "--ink", "buttons under the pointer, the footer, the nav"),
+    ("--ink", "--wash", "table rows under the pointer"),
 ]
 
 
