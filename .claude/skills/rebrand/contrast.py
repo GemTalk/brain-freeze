@@ -5,7 +5,8 @@
 Reads the hex colours out of brand.css (web/templates/brand.css by default)
 and prints each pair the pages put together, its contrast ratio, and
 whether it reaches 4.5:1, what WCAG asks for text at these sizes. Exits 1
-if any pair falls short, so it can gate a change; the stock brand does.
+if any pair falls short, or names a token brand.css doesn't define as a
+hex colour, so it can gate a change; the stock brand falls short.
 """
 import re
 import sys
@@ -47,9 +48,10 @@ def main(path):
         if len(value) == 4:
             value = "#" + "".join(c * 2 for c in value[1:])
         tokens[name] = value
-    short = 0
+    short = unknown = 0
     for text, ground, where in PAIRS:
         if text not in tokens or ground not in tokens:
+            unknown += 1
             print("  ?     %-11s on %-12s %s: not a hex colour in %s"
                   % (text, ground, where, path))
             continue
@@ -58,9 +60,12 @@ def main(path):
         short += not ok
         print("  %s %5.2f %-11s on %-12s %s"
               % ("ok  " if ok else "LOW ", r, text, ground, where))
+    if unknown:
+        print("%d of %d pairs not checked: name them in PAIRS as brand.css"
+              " does" % (unknown, len(PAIRS)))
     print("%d of %d pairs under 4.5:1" % (short, len(PAIRS)) if short
-          else "every pair reaches 4.5:1")
-    return 1 if short else 0
+          else "every pair checked reaches 4.5:1")
+    return 1 if short or unknown else 0
 
 
 if __name__ == "__main__":
