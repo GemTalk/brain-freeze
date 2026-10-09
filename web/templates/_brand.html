@@ -1,0 +1,45 @@
+{#- The brand: its name, its marks and its fonts, and nothing else. Import it
+    with
+
+        {% import "_brand.html" as brand with context %}
+
+    This file, brand.css (the colours) and id_card.svg (the ID card) are the
+    whole of the brand. BRANDING.md says how to swap in one of your own. -#}
+
+{#- The app's whole name, wherever a sentence needs it, and the short one
+    the header and the card set large. -#}
+{% set name = "Brain Freeze Insurance" %}
+{% set short_name = "Brain Freeze" %}
+
+{#- The fonts, from Google Fonts: Plus Jakarta Sans for everything you read,
+    JetBrains Mono for ids. brand.css names the families. -#}
+{% set fonts_url = "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" %}
+
+{% macro font_links() -%}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="{{ fonts_url }}">
+{%- endmacro %}
+
+{#- The mark: a snowflake, one stroked path on a 24 x 24 grid. -#}
+{% set mark_path = "M2 12h20M12 2v20m8-6-4-4 4-4M4 8l4 4-4 4m12-12-4 4-4-4m0 16 4-4 4 4" %}
+
+{#- The mark on its own, `size` pixels square, in the text colour. -#}
+{% macro icon(size=20) -%}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ mark_path }}"/></svg>
+{%- endmacro %}
+
+{#- The header's lockup: the mark in its tile, then the name with its small
+    print beneath. -#}
+{% macro lockup() -%}
+<span class="mark">{{ icon(20) }}</span>
+<span>{{ short_name }}<small>Insurance</small></span>
+{%- endmacro %}
+
+{#- The favicon, as a data URL: the mark, white on an ice tile. -#}
+{% macro favicon() -%}
+{%- set svg -%}
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#2a8bd8"/><path d="{{ mark_path }}" transform="translate(4.2 4.2) scale(.65)" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+{%- endset -%}
+data:image/svg+xml,{{ svg|urlencode }}
+{%- endmacro %}

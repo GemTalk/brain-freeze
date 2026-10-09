@@ -1,0 +1,33 @@
+/* The brand's tokens: colour, type and shape. app.css styles the pages with
+   these names only, so a new brand starts with a new copy of this file (and
+   of _brand.html and id_card.svg) -- see BRANDING.md.
+
+   Ice is the brand's colour: --ice for fills, --ice-deep for text and
+   edges on light grounds. Mint, berry and amber say yes, no and careful.
+   Small text in a colour (--ice-deep, --mint, --berry, --amber-ink,
+   --muted) wants 4.5:1 or better on --bg and --surface; BRANDING.md says
+   which pairs here fall short. */
+:root {
+  --bg: #f3f7fb; --surface: #ffffff; --ink: #12223a; --ink-2: #3a4c64;
+  --muted: #66778c; --line: #dbe4ee; --line-2: #ebf0f6;
+  --ice: #2a8bd8; --ice-deep: #1b6aac; --ice-soft: #e2f0fb; --ice-wash: #f2f8fd;
+  --ice-hover: #3497e4; --ice-edge: #b9cde0;
+  --mint: #18885f; --mint-soft: #dcf4ea; --berry: #b8325a; --berry-soft: #fce8ee;
+  --amber-soft: #fff4dc; --amber-line: #f2d9a6; --amber-ink: #6d4a10;
+
+  /* Text on a colour: on --ice (buttons, the mark) and on --ink. */
+  --on-ice: #ffffff; --on-ink: #ffffff;
+
+  /* The sticky header, see-through over the page, and the home page's
+     hero: two glows over a wash, and the steps panel on top of them. */
+  --header: rgba(255,255,255,.88);
+  --glow: #d4e9fa; --glow-2: #e6f3fc; --panel: rgba(255,255,255,.75);
+
+  --radius: 18px; --radius-sm: 11px;
+  --shadow: 0 1px 2px rgba(18,34,58,.05), 0 8px 24px rgba(18,34,58,.06);
+  --shadow-card: 0 2px 4px rgba(18,34,58,.08), 0 18px 40px rgba(18,34,58,.16);
+
+  --font: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system,
+          "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}

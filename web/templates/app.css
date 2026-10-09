@@ -1,17 +1,7 @@
-/* The whole stylesheet. base.html writes it into every page's <style>, so
-   there is no extra request to a server that answers one at a time. */
-:root {
-  --bg: #f3f7fb; --surface: #ffffff; --ink: #12223a; --ink-2: #3a4c64;
-  --muted: #66778c; --line: #dbe4ee; --line-2: #ebf0f6;
-  --ice: #2a8bd8; --ice-deep: #1b6aac; --ice-soft: #e2f0fb; --ice-wash: #f2f8fd;
-  --mint: #18885f; --mint-soft: #dcf4ea; --berry: #b8325a; --berry-soft: #fce8ee;
-  --amber: #a86a12; --amber-soft: #fff4dc;
-  --radius: 18px; --radius-sm: 11px;
-  --shadow: 0 1px 2px rgba(18,34,58,.05), 0 8px 24px rgba(18,34,58,.06);
-  --font: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system,
-          "Segoe UI", sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-}
+/* The whole stylesheet. base.html writes it into every page's <style>, after
+   brand.css, so there is no extra request to a server that answers one at a
+   time. Colours, fonts, radii and shadows come from brand.css by name:
+   restyle the brand there, not here. */
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body { margin: 0; font-family: var(--font); color: var(--ink);
@@ -40,7 +30,7 @@ h1.id { font-size: clamp(1.9rem, 4.2vw, 2.7rem); letter-spacing: -.03em; }
        line-height: 1.1; }
 
 /* header and footer */
-.top { background: rgba(255,255,255,.88); border-bottom: 1px solid var(--line);
+.top { background: var(--header); border-bottom: 1px solid var(--line);
        position: sticky; top: 0; z-index: 10; backdrop-filter: blur(8px); }
 .top .wrap { display: flex; align-items: center; gap: 1rem; min-height: 4rem;
              flex-wrap: wrap; }
@@ -49,7 +39,7 @@ h1.id { font-size: clamp(1.9rem, 4.2vw, 2.7rem); letter-spacing: -.03em; }
          letter-spacing: -.02em; margin-right: auto; }
 .brand:hover { color: var(--ink); }
 .mark { display: inline-flex; width: 2.1rem; height: 2.1rem; border-radius: 10px;
-        align-items: center; justify-content: center; color: #fff;
+        align-items: center; justify-content: center; color: var(--on-ice);
         background: linear-gradient(135deg, var(--ice), var(--ice-deep));
         box-shadow: 0 2px 0 var(--ice-deep); }
 .brand small { display: block; font-size: .68rem; font-weight: 700;
@@ -68,10 +58,10 @@ h1.id { font-size: clamp(1.9rem, 4.2vw, 2.7rem); letter-spacing: -.03em; }
 button, .btn { font: inherit; font-weight: 700; font-size: .97rem;
   display: inline-flex; align-items: center; gap: .45rem;
   padding: .72rem 1.25rem; border-radius: 999px; border: 1.5px solid transparent;
-  background: var(--ice); color: #fff; cursor: pointer; text-decoration: none;
+  background: var(--ice); color: var(--on-ice); cursor: pointer; text-decoration: none;
   box-shadow: 0 3px 0 var(--ice-deep);
   transition: transform .15s ease, box-shadow .15s ease, background .15s ease; }
-button:hover, .btn:hover { color: #fff; background: #3497e4;
+button:hover, .btn:hover { color: var(--on-ice); background: var(--ice-hover);
   transform: translateY(-1px); box-shadow: 0 4px 0 var(--ice-deep); }
 button:active, .btn:active { transform: translateY(1px);
   box-shadow: 0 1px 0 var(--ice-deep); }
@@ -96,8 +86,8 @@ button:active, .btn:active { transform: translateY(1px);
 .tag.ok { background: var(--mint-soft); color: var(--mint); }
 .tag.no { background: var(--berry-soft); color: var(--berry); }
 .tag.ice { background: var(--ice-soft); color: var(--ice-deep); }
-.warn { background: var(--amber-soft); border: 1px solid #f2d9a6;
-        color: #6d4a10; padding: .85rem 1.1rem; border-radius: var(--radius-sm);
+.warn { background: var(--amber-soft); border: 1px solid var(--amber-line);
+        color: var(--amber-ink); padding: .85rem 1.1rem; border-radius: var(--radius-sm);
         margin: .8rem 0; }
 .note { background: var(--ice-wash); border: 1px solid var(--ice-soft);
         padding: .85rem 1.1rem; border-radius: var(--radius-sm); margin: .8rem 0; }
@@ -119,7 +109,7 @@ fieldset { border: 0; padding: 0; margin: 0 0 1.4rem; min-width: 0; }
 legend, .q { font-weight: 700; padding: 0; margin-bottom: .55rem; }
 .hint { color: var(--muted); font-size: .85rem; margin-top: .45rem; }
 input[type=number], input[type=text], input[type=search] {
-  font: inherit; color: var(--ink); background: #fff;
+  font: inherit; color: var(--ink); background: var(--surface);
   border: 1.5px solid var(--line); border-radius: var(--radius-sm);
   padding: .62rem .85rem; min-width: 0; }
 input[type=number] { width: 7rem; }
@@ -130,10 +120,10 @@ input:focus { outline: none; border-color: var(--ice);
 .chip input { position: absolute; inset: 0; width: 100%; height: 100%;
               margin: 0; opacity: 0; cursor: pointer; z-index: 1; }
 .chip span { display: inline-block; padding: .5rem .95rem; border-radius: 999px;
-             border: 1.5px solid var(--line); background: #fff;
+             border: 1.5px solid var(--line); background: var(--surface);
              font-weight: 600; font-size: .93rem; color: var(--ink-2);
              transition: background .12s ease, border-color .12s ease; }
-.chip:hover span { border-color: #b9cde0; }
+.chip:hover span { border-color: var(--ice-edge); }
 .chip input:checked + span { background: var(--ice-soft); border-color: var(--ice);
                              color: var(--ice-deep); }
 .chip input:focus-visible + span { box-shadow: 0 0 0 4px var(--ice-soft); }
@@ -153,7 +143,7 @@ input:focus { outline: none; border-color: var(--ice);
            align-items: center; justify-content: center; font-size: .8rem;
            background: var(--line-2); color: var(--ink-2); }
 .steps .now { color: var(--ice-deep); border-color: var(--ice); }
-.steps .now b { background: var(--ice); color: #fff; }
+.steps .now b { background: var(--ice); color: var(--on-ice); }
 .steps .done b { background: var(--mint-soft); color: var(--mint); }
 .qgrid { display: grid; gap: .2rem 2rem;
          grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); }
@@ -178,9 +168,9 @@ input:focus { outline: none; border-color: var(--ice);
         padding: clamp(1.3rem, 3vw, 2rem) clamp(1.3rem, 4vw, 2.4rem);
         border: 1px solid var(--line);
         background:
-          radial-gradient(circle at 88% 12%, #d4e9fa 0, transparent 38%),
-          radial-gradient(circle at 70% 110%, #e6f3fc 0, transparent 40%),
-          linear-gradient(180deg, #ffffff, var(--ice-wash)); }
+          radial-gradient(circle at 88% 12%, var(--glow) 0, transparent 38%),
+          radial-gradient(circle at 70% 110%, var(--glow-2) 0, transparent 40%),
+          linear-gradient(180deg, var(--surface), var(--ice-wash)); }
 .hero h1 { font-size: clamp(1.9rem, 3.6vw, 2.6rem); }
 .hero .sub { max-width: 34rem; font-size: 1rem; margin-bottom: .2rem; }
 .hero .actions { margin: 1rem 0 0; }
@@ -193,7 +183,7 @@ input:focus { outline: none; border-color: var(--ice);
 .hero .flake { position: absolute; color: var(--ice); opacity: .14;
                pointer-events: none; }
 .how { display: grid; gap: .7rem; margin: 0; padding: 1rem 1.1rem;
-       list-style: none; background: rgba(255,255,255,.75);
+       list-style: none; background: var(--panel);
        border: 1px solid var(--line); border-radius: var(--radius); }
 .how li { display: flex; gap: .7rem; align-items: center; font-weight: 600;
           font-size: .93rem; }
@@ -207,13 +197,13 @@ input:focus { outline: none; border-color: var(--ice);
 /* the id card */
 .idcard { max-width: 44rem; }
 .idcard svg { display: block; width: 100%; height: auto; border-radius: 4%/6.3%;
-              box-shadow: 0 2px 4px rgba(18,34,58,.08), 0 18px 40px rgba(18,34,58,.16); }
+              box-shadow: var(--shadow-card); }
 
 .pager { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;
          margin-top: 1rem; }
 .filters { display: flex; gap: .4rem; flex-wrap: wrap; margin: .2rem 0 .9rem; }
 .filters a { text-decoration: none; }
-.filters a.tag.on { background: var(--ink); color: #fff; }
+.filters a.tag.on { background: var(--ink); color: var(--on-ink); }
 
 @media (max-width: 640px) {
   .top .wrap { padding-top: .6rem; padding-bottom: .6rem; }
