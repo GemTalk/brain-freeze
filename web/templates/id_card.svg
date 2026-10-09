@@ -30,20 +30,13 @@
 .bfc-s2 { fill: var(--bf-s2, #F2F5F4); }
 .bfc-s3 { fill: var(--bf-s3, #F2F5F4); }
 .bfc-sans { font-family: Inter, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
-.bfc-mark { font-family: "Barlow Semi Condensed", "Arial Narrow", Inter, sans-serif; font-weight: 700; }
-.bfc-mono { font-family: "Roboto Mono", ui-monospace, Menlo, Consolas, monospace; font-weight: 500; }
 .bfc-label { font-size: 26px; font-weight: 400; }
 .bfc-value { font-size: 30px; font-weight: 500; }
 </style>
 <rect class="bfc-bg" width="1200" height="640"/>
 
-<g transform="translate(54 27) scale(.912)">
-{{ brand.scoop_paths("bfc-s1", "bfc-s2", "bfc-s3", attr="class") }}
-</g>
-<g class="bfc-ink">
-  <text class="bfc-mark" x="238" y="74" font-size="56">Brain</text>
-  <text class="bfc-mark" x="238" y="122" font-size="56">Freeze</text>
-  <text class="bfc-mono" x="240" y="139" font-size="10.5" letter-spacing="2.4">ICE CREAM INSURANCE</text>
+<g transform="translate(54 27) scale(.625)">
+{{ brand.lockup_shapes("bfc-s1", "bfc-s2", "bfc-s3", "bfc-ink", attr="class") }}
 </g>
 
 <text class="bfc-ink bfc-sans" x="470" y="134" font-size="96" font-weight="600"

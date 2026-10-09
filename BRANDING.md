@@ -7,13 +7,14 @@ is live on the next request).
 | File | What it holds |
 |---|---|
 | `brand.css` | The tokens: colours, fonts, radii, as CSS custom properties. `app.css` styles every page with these names and nothing else. |
-| `_brand.html` | The marks and the brand's data, as Jinja macros and variables: the app's `name`, the `icon`, the `lockup`, the `favicon`, the `fonts_url`, and the ID card's `colorways`. |
+| `_brand.html` | The marks and the brand's data, as Jinja macros and variables: the app's `name`, the `icon`, the `lockup`, the `badge` and `favicon`, the plans' scoop `stack`, the `fonts_url`, and the ID card's `colorways`. |
 | `id_card.svg` | The ID card, an SVG template over the fields `pages.id_card()` provides. |
 
 This branch's brand is Ice Cream Brain Freeze Insurance, from the GemDB brand
-guidelines: the "Micro brand" slide (the one-two-three scoop icon, the
-wordmark, red `#FF3700` / yellow `#FFE200` / blue `#0F9EE1` on GemDB's ink
-`#0D1321` and paper `#F2F5F4`) and the "Insurance Cards" slide.
+guidelines: the "Micro brand" slide (the logo, the "Brain Freeze Insurance
+Co" wordmark, the cone icon and the icon-only badge, the single scoops, red
+`#FF3700` / yellow `#FFE200` / blue `#0F9EE1` on GemDB's ink `#0D1321` and
+paper `#F2F5F4`) and the "Insurance Cards" slide.
 
 ## Making a brand of your own
 
@@ -26,24 +27,28 @@ These are written for a person or an agent working in this repo.
    Buttons put `--ink` on `--blue`, so check that pair too.
 2. **Fonts.** Put one Google Fonts css2 URL in `fonts_url` in `_brand.html`
    (Google Fonts serves CSS cross-origin, so the card's PNG export can
-   inline the fonts). Name the families in `--font`, `--display`, `--wordmark`
-   and `--mono`, and in the `.bfc-*` font rules in `id_card.svg`.
+   inline the fonts). Name the families in `--font`, `--display` and
+   `--mono`, in `wordmark_font` and `mono_font` in `_brand.html` (the
+   logo's type), and in the `.bfc-sans` rule in `id_card.svg`.
 3. **Name.** Set `name` and `short_name` in `_brand.html`. Page titles,
    the header, the footer, the home page and the card read them from there.
    The startup banner in `web/serving.py` is the one other place the name is
    written out.
-4. **Marks.** `scoop_paths` draws the icon in a 182 × 122 box. Replace the
-   paths, and the `viewBox` in `icon` and `stack`, with your own SVG.
-   Write shapes that don't overlap: drop the gaps into the paths rather
-   than masking them, so the icon stays one colour per shape and draws the
-   same inline, in the downloaded SVG and in the PNG. `favicon` is a data
-   URL; `lockup` is the header's mark plus wordmark.
+4. **Marks.** `cone_paths` draws the icon in a 73 × 179 box, and
+   `lockup_shapes` sets it beside the wordmark in a 311 × 179 box: the logo,
+   which the header and the ID card both draw. Replace the paths and the
+   text, and the `viewBox` in `icon`, `badge` and `lockup`, with your own
+   SVG. Write shapes that don't overlap: drop the gaps into the paths
+   rather than masking them, so the icon stays one colour per shape and
+   draws the same inline, in the downloaded SVG and in the PNG. `badge` is
+   the icon only, on a disc, and `favicon` is it as a data URL.
+   `scoop_paths` and `stack` draw the plans' one, two and three scoops.
 5. **The ID card.** `id_card.svg` is 1200 × 640, near the 1.91:1 that X,
    LinkedIn, Bluesky and Threads show uncropped. Colour it only through
-   `var(--bf-bg)`, `--bf-ink` and `--bf-s1`…`--bf-s3`, by class, so the
-   card page can recolour it without asking the server. Define each
-   colourway in `colorways` and list it in `colorway_order`;
-   `plan_colorways` picks a plan's default.
+   `var(--bf-bg)`, `--bf-ink` and `--bf-s1`…`--bf-s3` (the icon's three
+   shapes, top down), by class, so the card page can recolour it without
+   asking the server. Define each colourway in `colorways` and list it in
+   `colorway_order`; `plan_colorways` picks a plan's default.
    - Keep `id="bfc-subscriber"` on the name's `<text>`: the card page writes
      the typed name into it.
    - Keep a `<style>` element whose first rule is
