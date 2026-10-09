@@ -59,6 +59,13 @@ A session sees the repository as of its last transaction boundary, so every
 request begins with `take_new_view()` -- commit, then refresh. Read its
 docstring before changing it: the order matters and `abort()` is not a
 substitute.
+
+SEVERAL AT ONCE
+
+Deployed, several of these serve one database behind a proxy, one request at
+a time each (the brain-freeze-deploy repository). A commit can then lose to another instance's;
+conflicts.py says what happens next. `/healthz` and `/metrics` are for the
+proxy and the monitoring agent (routes_ops.py).
 """
 
 import os
@@ -73,10 +80,12 @@ if REPO not in sys.path:
 from flask import Flask
 from werkzeug.serving import WSGIRequestHandler
 
+import conflicts
 import gemdb
 import pages
 import routes_api
 import routes_html
+import routes_ops
 import serving
 
 
@@ -109,11 +118,22 @@ def take_new_view():
     app's own code can be that work. Unconditional rather than guarded by
     `needs_commit()`: a commit costs far less than the render it precedes.
 
-    Never `gemdb.abort()`. It takes a new view too, but it discards this
-    session's uncommitted work, which can include the app's compiled
-    handlers.
+    Never `gemdb.abort()` in place of the commit. It takes a new view too,
+    but it discards this session's uncommitted work, which can include the
+    app's compiled handlers.
+
+    Except once the commit has failed. Another instance committed some of
+    the same objects first -- the cache that reading code writes -- and the
+    work is then a copy of what that session already saved, which only an
+    abort clears (conflicts.py). The abort is the new view.
     """
-    gemdb.commit()
+    try:
+        gemdb.commit()
+    except gemdb.ConflictError as conflict:
+        gemdb.abort()
+        print("%s: taking a new view (%s)"
+              % (conflicts.SAID, str(conflict).split(";")[0]))
+        return
     gemdb.refresh()
 
 def create_app():
@@ -138,6 +158,7 @@ def create_app():
 
     routes_html.register(app)
     routes_api.register(app)
+    routes_ops.register(app)
     serving.install_reporting(app)
     return app
 
@@ -150,6 +171,11 @@ def serve(host="127.0.0.1", port=None):
     `tools/load.py`) commits first, the first `take_new_view()` meets a
     write-write conflict that repeats on every request. Committing before
     `run` closes that window.
+
+    If that commit itself conflicts -- another instance compiled the same
+    code a moment earlier -- this one exits 1 rather than aborting what it
+    just built, and whatever started it starts it again: the instances'
+    systemd units (brain-freeze-deploy) restart it and stagger the starts.
 
     `port` is `BRAINFREEZE_PORT` if set, else 5050, read when the app starts.
     """
@@ -166,7 +192,12 @@ def serve(host="127.0.0.1", port=None):
         return 1
 
     app = create_app()
-    gemdb.commit()
+    try:
+        gemdb.commit()
+    except gemdb.ConflictError as conflict:
+        print("%s: another session compiled the app first; start again. (%s)"
+              % (conflicts.SAID, str(conflict).split(";")[0]))
+        return 1
     print(serving.banner(host, port))
     app.run(host=host, port=port, threaded=False,
             request_handler=CloseAfterResponseHandler)

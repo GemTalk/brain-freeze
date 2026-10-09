@@ -9,8 +9,8 @@ There is no ORM and no session to open. `book()` is the whole data-access
 layer, and it is one dictionary lookup.
 """
 
-# Flask's. `gemdb.abort()` must never appear in this app: see
-# `take_new_view` in app.py.
+# Flask's. `gemdb.abort()` appears in this app only after a commit has
+# already failed: see conflicts.py, and `take_new_view` in app.py.
 from flask import abort
 
 import gemdb
@@ -53,17 +53,3 @@ def quote_or_404(quote_id):
     except KeyError:
         abort(404)
 
-
-def next_id(existing, prefix, width, start):
-    """The next free identifier in a series, given the ones already used.
-
-    Skips an identifier that does not parse rather than raising, and floors
-    at `start - 1` so an empty series begins at `start`.
-    """
-    highest = start - 1
-    for identifier in existing:
-        try:
-            highest = max(highest, int(identifier.split("-")[1]))
-        except (IndexError, ValueError):
-            continue
-    return "%s-%0*d" % (prefix, width, highest + 1)

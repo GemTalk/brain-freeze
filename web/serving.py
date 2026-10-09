@@ -9,6 +9,7 @@ tested by `python3 -m unittest discover`.
 import re
 import socket
 import subprocess
+import time
 
 
 #: Not Flask's 5000: on a stock Mac, AirPlay Receiver holds that one.
@@ -143,12 +144,18 @@ def install_reporting(app):
     `werkzeug.serving` never calls `log_request` (`run_wsgi` uses
     `send_response_only`), so overriding it would be dead code.
     """
+    from flask import g
     from werkzeug.exceptions import HTTPException
+
+    @app.before_request
+    def start_the_clock():
+        g.started = time.monotonic()
 
     @app.after_request
     def say_what_was_asked(response):
-        print("%-5s %-34s %s"
-              % (request_method(), request_path(), response.status_code))
+        print("%-5s %-34s %s %s"
+              % (request_method(), request_path(), response.status_code,
+                 took(g)))
         return response
 
     @app.errorhandler(Exception)
@@ -163,6 +170,20 @@ def install_reporting(app):
                "traceback.", 500
 
     return app
+
+
+def took(g):
+    """How long the request took, as `12ms`, for the access log.
+
+    From `start_the_clock`, which runs after the app's own before_request
+    hooks, so the time is the view's and the render's, not the new view's.
+    Empty when there is no start: a request that a before_request hook
+    answered never reached it.
+    """
+    started = getattr(g, "started", None)
+    if started is None:
+        return ""
+    return "%dms" % ((time.monotonic() - started) * 1000)
 
 
 def request_method():
