@@ -195,12 +195,37 @@ If a page shows **Something went wrong. The terminal running this app has the tr
 
 ---
 
+## Explore the data in a Jupyter notebook
+
+In this step, you open a Jupyter notebook that works with the same objects as the web app. Leave the app running in its terminal.
+
+1. In the Explorer, open `brain-freeze.ipynb`.
+2. Check the kernel at the top right of the notebook. VS Code selects **GemDB (Python in the database)** for you. If VS Code prompts you to choose a kernel, choose that one.
+3. Click **Run All**.
+
+The notebook runs inside the database, so the policies and claims you loaded are already there, with no export or connection string. Its cells show a summary of the book, the loss ratio by risk band, what an approved claim is worth, and where the payouts cluster.
+
+### See another session's changes
+
+The notebook and the web app are separate sessions. Each session sees the database as of its last transaction, so an analysis does not change partway through while other sessions commit. The last section of the notebook, **Seeing another session's commit**, shows this:
+
+1. Scroll to that section. After **Run All**, the cell that starts `print("policies:"` shows how many policies the notebook sees, for example `policies: 901`. Note the number.
+2. In your browser, buy another policy: click **Start a quote**, answer the questions, click **See my prices**, and choose a plan.
+3. In the notebook, run only the `policies:` cell: click ▷ to the left of the cell, or click in the cell and press **Ctrl+Enter**. Do not click **Run All**. The number has not changed, because the notebook still sees the database as it was.
+4. Run only the next cell. It calls `gemdb.commit()` and then `gemdb.refresh()` to take a new view of the database, and prints the count again. The count now includes the policy you just bought, for example `policies: 902`.
+
+<!-- TODO: GemDB Code's "Refresh Notebook View" toolbar button (GemDB_Code #97, merged 2026-10-05) is not in 1.5.4. Add it here once a release ships it. -->
+
+---
+
 <!--
 DRAFT NOTES — remove before publishing
 
 Remaining sections, in Sandeep's order:
-  4. Jupyter
   5. MCP
+
+Jupyter section: written 2026-10-06. Verified on the VM: kernel preselected, Run All works (with the
+BRAINFREEZE_REPO workaround until Steven's fix). Not yet verified: the four refresh steps (rewritten 2026-10-07 to run single cells, not Run All).
 
 Verified on the VM (GemDB Code 1.5.4, brain-freeze e3b44fc): Before you start, steps 1, 2 (quote,
 buy, ID card, claim), and 3 (edits a-e by hand, load, new claim records flavor and toppings).
@@ -210,10 +235,25 @@ Test compatibility (Steven's CI reads this README):
   so the tests need updating to match before this merges.
 - Commands go in ```sh blocks; the ```console block after one must contain only lines that
   appear in the real output (no "..." lines). Other blocks (python, html) are not checked.
-- Step 4 must contain exactly one python block: `gemdb.refresh()`.
+- Steven's tests expect the Jupyter step to contain exactly one python block, `gemdb.refresh()`.
+  The draft has none (it uses the notebook's own commit-then-refresh cell, because a bare
+  refresh() raises while the session has uncommitted changes). Tests need updating.
 - `gemdb web/app.py` is skipped by the tests (long-running), so its console block is not checked.
 
+After the README: edit the intro (first markdown cell) of brain-freeze.ipynb. It is wordy
+("no connection string, no driver, no query language and no result set"), internal-facing
+(GemStone session, __file__, working directory), says to pick the kernel (VS Code already picks
+GemDB (Python in the database)), and has an em dash.
+
 Open decisions:
+- Jupyter: consider a note for readers who installed the demo somewhere other than
+  ~/GemDB/brain-freeze: set os.environ["BRAINFREEZE_REPO"] = "/home/<your-user>/<path>/brain-freeze"
+  in the notebook's first code cell. (Thomas, 2026-10-07; assume the default install needs nothing.)
+- Jupyter (verified on the VM, 2026-10-06): the notebook's first code cell cannot find the repo
+  after Install Brain Freeze Demo (~/GemDB/brain-freeze). It searches from the database's working
+  directory, not the VS Code folder, and every cell that imports brainfreeze then fails. Setting
+  os.environ["BRAINFREEZE_REPO"] = "/home/<user>/GemDB/brain-freeze" in that cell fixes it. Steven
+  will fix the notebook (2026-10-06), so the README needs no workaround. Retest after his fix.
 - Step 2: how to stop and restart the app without Ctrl+C (see the TODO in step 2).
 - Spelling: README prose uses American "flavor"; code and on-screen labels keep the app's British
   spelling (`flavour`, "Which flavour?", "Favourite cold treat"). Ask Steven whether to switch the
