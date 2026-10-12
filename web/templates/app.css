@@ -59,12 +59,16 @@ h1.id { font-size: clamp(2rem, 4.6vw, 3rem); font-weight: 500;
 .foot .cone { flex: none; margin-top: .2rem; }
 .foot p { max-width: 40rem; margin: 0; color: #C9D0CE; }
 .foot strong { color: var(--paper); }
-.foot .gemdb { margin-left: auto; font-family: var(--mono); font-size: .72rem;
-               letter-spacing: .14em; text-transform: uppercase;
-               color: #C9D0CE; line-height: 1.6; }
-.foot .gemdb b { display: block; font-family: var(--display); font-size: 1.15rem;
-                 letter-spacing: -.02em; text-transform: none;
-                 color: var(--paper); }
+.foot .gemdb { margin-left: auto; display: flex; flex-direction: column;
+               align-items: flex-start; gap: .45rem; color: var(--paper);
+               text-decoration: none; }
+.foot .gemdb .wordmark { display: block; }
+.foot .gemdb span { font-family: var(--mono); font-size: .72rem;
+                    letter-spacing: .14em; text-transform: uppercase;
+                    color: #C9D0CE; line-height: 1.6; }
+.foot .gemdb:hover { color: var(--paper); }
+.foot .gemdb:hover span { color: var(--paper); text-decoration: underline;
+                          text-underline-offset: 3px; }
 
 /* buttons */
 button, .btn { font: inherit; font-weight: 700; font-size: .97rem;

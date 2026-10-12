@@ -7,7 +7,7 @@ is live on the next request).
 | File | What it holds |
 |---|---|
 | `brand.css` | The tokens: colors, fonts, radii, as CSS custom properties. `app.css` styles every page with these names and nothing else. |
-| `_brand.html` | The marks and the brand's data, as Jinja macros and variables: the app's `name`, the `icon`, the `lockup`, the `badge` and `favicon`, the plans' scoop `stack`, the `fonts_url`, and the ID card's `colorways`. |
+| `_brand.html` | The marks and the brand's data, as Jinja macros and variables: the app's `name`, the `icon`, the `lockup`, the `badge` and `favicon`, GemDB's `gemdb_wordmark` (the footer's link to gemdb.com), the plans' scoop `stack`, the `fonts_url`, and the ID card's `colorways`. |
 | `id_card.svg` | The ID card, an SVG template over the fields `pages.id_card()` provides. |
 
 The ID card's PNG is drawn with the TTFs in `web/fonts/`, so a brand with
