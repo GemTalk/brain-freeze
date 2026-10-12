@@ -28,7 +28,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 #: run, which is why the app was split into siblings rather than a package.
 SURFACE = ("app.py", "routes_html.py", "routes_api.py", "routes_ops.py",
            "forms.py", "lookups.py", "wire.py", "pages.py", "routes.py",
-           "conflicts.py", "metrics.py")
+           "conflicts.py", "metrics.py", "cards.py")
 
 WEB = os.path.join(REPO, "web")
 

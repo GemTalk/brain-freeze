@@ -29,7 +29,7 @@ Feature: Getting a quote and buying a policy
     And I am shown its ID card
     And the policy was sold at the price the quote showed
     And I capture "the policy that was bought"
-    And its card can be kept as an SVG of the same policy
+    And its card can be kept as an image
 
     When I re-open the quote by its id
     Then the quote names the policy it became

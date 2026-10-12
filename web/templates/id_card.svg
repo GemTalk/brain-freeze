@@ -1,27 +1,39 @@
-{#- The ID card's whole design: card.html shows it, "Download image" and
-    "Share" draw it to a PNG, and /policies/<id>/card.svg serves it alone.
+{#- The ID card's whole design: card.html shows it, /policies/<id>/card.svg
+    serves it alone, and /policies/<id>/card.png is it drawn by resvg -- the
+    image "Download image" saves and a shared link's preview shows.
     It is the GemDB brand guidelines' "Insurance Cards": the lockup, the plan
     as the headline, and the fields set between rules.
 
     It reads the `card` fields pages.id_card() provides and `style`, the
-    colourway's name; the colourways themselves are in _brand.html. Colour
+    colorway's name; the colorways themselves are in _brand.html. Color
     comes only through the --bf-* custom properties on the root, so the card
-    page can recolour it without asking the server.
+    page can recolor it without asking the server.
 
     1200 x 640 is close to the 1.91:1 that X, LinkedIn, Bluesky and Threads
     show a shared image at uncropped. Keep every element inside it.
 
-    The fonts are web fonts. The card page inlines them before it draws the
-    PNG, because an SVG drawn onto a canvas cannot fetch anything; opened on
-    its own, the @import below fetches them. -#}
+    The fonts are web fonts: opened on its own, the @import below fetches
+    them.
+
+    `raster`, when true, is the copy /policies/<id>/card.png hands to resvg,
+    which reads neither var() nor @import: the colorway's colors are
+    written into the rules instead, and the fonts come from web/fonts/. -#}
 {%- import "_brand.html" as brand with context -%}
-{%- set way = brand.colorway_for(style, card.plan) -%}
+{%- set way = brand.colorway_for(style) -%}
 {%- set name_size = 30 if card.subscriber|length <= 16 else (30 * 16 / card.subscriber|length)|round(1) -%}
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 640"
   width="1200" height="640" role="img" data-colorway="{{ way }}"
   style="{{ brand.colorway_vars(way) }}"
   aria-label="{{ brand.name }} ID card for policy {{ card.policy_id }}">
 <style>
+{%- if raster %}{% set c = brand.colorways[way] %}
+.bfc-bg { fill: {{ c.bg }}; }
+.bfc-ink { fill: {{ c.ink }}; }
+.bfc-rule { stroke: {{ c.ink }}; stroke-width: 3; }
+.bfc-s1 { fill: {{ c.s1 }}; }
+.bfc-s2 { fill: {{ c.s2 }}; }
+.bfc-s3 { fill: {{ c.s3 }}; }
+{%- else %}
 @import url("{{ brand.fonts_url }}");
 .bfc-bg { fill: var(--bf-bg, #0F9EE1); }
 .bfc-ink { fill: var(--bf-ink, #F2F5F4); }
@@ -29,6 +41,7 @@
 .bfc-s1 { fill: var(--bf-s1, #F2F5F4); }
 .bfc-s2 { fill: var(--bf-s2, #F2F5F4); }
 .bfc-s3 { fill: var(--bf-s3, #F2F5F4); }
+{%- endif %}
 .bfc-sans { font-family: Inter, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
 .bfc-label { font-size: 26px; font-weight: 400; }
 .bfc-value { font-size: 30px; font-weight: 500; }

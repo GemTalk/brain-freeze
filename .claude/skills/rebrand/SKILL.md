@@ -1,6 +1,6 @@
 ---
 name: rebrand
-description: Apply a new brand to the Brain Freeze web app, meaning its name, colours, fonts, logo or mark, favicon and ID card. Use it when someone wants the app to look like their company or product, gives you brand guidelines, a logo, a palette or fonts to apply, or asks to rebrand, re-skin or white-label the app.
+description: Apply a new brand to the Brain Freeze web app, meaning its name, colors, fonts, logo or mark, favicon and ID card. Use it when someone wants the app to look like their company or product, gives you brand guidelines, a logo, a palette or fonts to apply, or asks to rebrand, re-skin or white-label the app.
 ---
 
 # Rebrand the web app
@@ -22,15 +22,16 @@ brand they didn't give you.
 
 - **Name**: the full name for sentences and titles, and the short one the
   header and card set large.
-- **Colours**: a main colour, plus the ink and ground, and colours for
+- **Colors**: a main color, plus the ink and ground, and colors for
   yes, no and careful if they have them. If they don't, derive tints from
-  the main colour and keep the stock mint, berry and amber.
+  the main color and keep the stock mint, berry and amber.
 - **Fonts**: they must be on Google Fonts, or have a Google Fonts stand-in
-  you name to the person. The ID card uses system fonts regardless.
+  you name to the person. The ID card's PNG also needs them as static TTFs
+  in `web/fonts/`, with their licences (BRANDING.md step 2).
 - **Mark**: an SVG is best. If you only have a PNG, or a logo in a deck or
   a PDF, redraw it as SVG paths rather than embedding the raster. Trace its
   geometry, then overlay your paths on the original to check the fit.
-- **ID card**: keep the stock layout recoloured unless they give you a
+- **ID card**: keep the stock layout recolored unless they give you a
   design.
 
 If they hand you brand guidelines (a deck, a PDF, images), pull these from
@@ -44,7 +45,7 @@ Create a branch for the brand. Don't rebrand `main` in place.
 
 Follow BRANDING.md's steps 1 to 5 in order: tokens, fonts, name, marks,
 card. Keep every token name in `brand.css`. The names are roles (`--ice`
-is the main colour, whatever its hue), and `app.css` uses all of them.
+is the main color, whatever its hue), and `app.css` uses all of them.
 
 ## 4. Check it
 
@@ -56,7 +57,9 @@ is the main colour, whatever its hue), and `app.css` uses all of them.
   If you can drive a headless browser, take screenshots and look at them.
   Check the header lockup, the favicon, the home hero and the ID card.
 - The card: open `/policies/BF-100539/card.svg` on its own, and check
-  **Download image** gives a PNG that matches the page.
+  **Download image** (`/policies/BF-100539/card.png`, which needs `resvg`:
+  `brew install resvg`) gives a PNG that matches the page, fonts included,
+  in every colorway.
 - Tests: `python3 -m unittest discover`, then `gemdb tools/run_db_tests.py`.
 
 ## 5. Report

@@ -1,10 +1,10 @@
-/* The brand's tokens: colour, type and shape. app.css styles the pages with
+/* The brand's tokens: color, type and shape. app.css styles the pages with
    these names only, so a new brand is a new copy of this file (and of
    _brand.html and id_card.svg) -- see BRANDING.md.
 
    Ink and paper are GemDB's: it avoids true black and white. Red, yellow and
-   blue are Brain Freeze's three scoops, stacked on top. The scoop colours are
-   for fills; text in a colour uses its -text shade, which reads at 4.5:1 or
+   blue are Brain Freeze's three scoops, stacked on top. The scoop colors are
+   for fills; text in a color uses its -text shade, which reads at 4.5:1 or
    better on paper. */
 :root {
   --paper: #F2F5F4; --surface: #FAFBFB; --ink: #0D1321; --ink-2: #353C49;

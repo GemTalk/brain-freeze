@@ -14,7 +14,8 @@ This file is the factory and the entry point. The pages are in
 `routes_html.py`, the payloads in `routes_api.py` (serialised by `wire.py`),
 the markup in `templates/` (Jinja files), the questionnaire in `forms.py`,
 finding an object in `lookups.py`, rendering in `pages.py`, serving in
-`serving.py`, and the route table that keeps loaded code live in `routes.py`.
+`serving.py`, the card's PNG in `cards.py`, and the route table that keeps
+loaded code live in `routes.py`.
 
 An edit to any of them except this one is live in the running app once it is
 loaded with `gemdb tools/load.py`, because the routes look everything up by
@@ -80,6 +81,7 @@ if REPO not in sys.path:
 from flask import Flask
 from werkzeug.serving import WSGIRequestHandler
 
+import cards
 import conflicts
 import gemdb
 import pages
@@ -145,6 +147,7 @@ def create_app():
     app = Flask(__name__)
     app.extensions[pages.TEMPLATES] = pages.environment(
         os.path.join(REPO, "web", "templates"))
+    app.extensions[cards.FONTS] = os.path.join(REPO, "web", "fonts")
 
     @app.before_request
     def before_every_request():

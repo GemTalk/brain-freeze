@@ -1,6 +1,7 @@
 {#- The frame every page shares. A page extends this, sets `nav` to the
     header link it belongs under ('quote', 'policies', 'claims', or nothing),
-    and fills the `title` and `content` blocks, and `scripts` if it has any. -#}
+    and fills the `title` and `content` blocks, and `head` (more of the
+    <head>, such as link-preview tags) and `scripts` if it has any. -#}
 {%- import "_macros.html" as ui with context -%}
 {%- import "_brand.html" as brand with context -%}
 <!doctype html>
@@ -17,6 +18,7 @@
 {{ brand.font_links() }}
 <style>{% include "brand.css" %}
 {% include "app.css" %}</style>
+{% block head %}{% endblock %}
 </head>
 <body>
 <header class="top">

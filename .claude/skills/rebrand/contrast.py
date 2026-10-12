@@ -1,12 +1,12 @@
-"""Check the brand's colour pairs for contrast, as BRANDING.md asks.
+"""Check the brand's color pairs for contrast, as BRANDING.md asks.
 
     python3 .claude/skills/rebrand/contrast.py [path/to/brand.css]
 
-Reads the hex colours out of brand.css (web/templates/brand.css by default)
+Reads the hex colors out of brand.css (web/templates/brand.css by default)
 and prints each pair the pages put together, its contrast ratio, and
 whether it reaches 4.5:1, what WCAG asks for text at these sizes. Exits 1
 if any pair falls short, or names a token brand.css doesn't define as a
-hex colour, so it can gate a change. main's stock brand falls short;
+hex color, so it can gate a change. main's stock brand falls short;
 this branch's passes.
 """
 import re
@@ -32,8 +32,8 @@ PAIRS = [
 ]
 
 
-def luminance(hex_colour):
-    channels = [int(hex_colour[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+def luminance(hex_color):
+    channels = [int(hex_color[i:i + 2], 16) / 255 for i in (1, 3, 5)]
     r, g, b = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
                for c in channels]
     return 0.2126 * r + 0.7152 * g + 0.0722 * b
@@ -55,7 +55,7 @@ def main(path):
     for text, ground, where in PAIRS:
         if text not in tokens or ground not in tokens:
             unknown += 1
-            print("  ?     %-11s on %-12s %s: not a hex colour in %s"
+            print("  ?     %-11s on %-12s %s: not a hex color in %s"
                   % (text, ground, where, path))
             continue
         r = ratio(tokens[text], tokens[ground])

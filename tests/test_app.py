@@ -13,9 +13,13 @@ deterministic and leaves the database in a known state afterwards.
 """
 
 import json
+import os
 import re
+import shutil
+import tempfile
 import unittest
 from datetime import date
+from unittest import mock
 
 import brainfreeze
 
@@ -407,6 +411,47 @@ class TheApp(unittest.TestCase):
                        format_usd(policy.deductible),
                        format_usd(policy.annual_premium)):
             self.assertIn(figure, svg)
+
+    @unittest.skipUnless(shutil.which("resvg"), "needs resvg on the PATH")
+    def test_the_id_card_is_a_png_drawn_once(self):
+        path = ("/policies/%s/card.png?style=midnight&name=Rocky+Road"
+                % ACTIVE_READONLY)
+        with tempfile.TemporaryDirectory() as cache, \
+                mock.patch.dict(os.environ, {"BRAINFREEZE_CARD_CACHE": cache}):
+            first = self.client.get(path)
+            self.assertEqual(first.status_code, 200)
+            self.assertEqual(first.headers["Content-Type"], "image/png")
+            self.assertTrue(first.data.startswith(b"\x89PNG"))
+            drawn = os.listdir(cache)
+            again = self.client.get(path)
+            self.assertEqual(again.data, first.data)
+            self.assertEqual(os.listdir(cache), drawn)  # served, not redrawn
+            self.assertEqual(len(drawn), 1)
+
+    def test_an_unknown_policy_has_no_png(self):
+        self.assertEqual(
+            self.client.get("/policies/BF-999999/card.png").status_code, 404)
+
+    def test_the_card_page_points_link_previews_at_absolute_urls(self):
+        path = "/policies/%s/card?style=red&name=Cherry+Garcia" % ACTIVE_READONLY
+        with mock.patch.dict(os.environ, {
+                "BRAINFREEZE_PUBLIC_URL": "https://brainfreeze.example.com/"}):
+            body = self.client.get(path).data.decode()
+
+        def tag(attribute, name):
+            return re.search(r'<meta %s="%s" content="([^"]*)"'
+                             % (attribute, re.escape(name)), body).group(1)
+
+        site = "https://brainfreeze.example.com/policies/%s/" % ACTIVE_READONLY
+        self.assertEqual(tag("property", "og:url"),
+                         site + "card?style=red&amp;name=Cherry+Garcia")
+        self.assertEqual(tag("property", "og:image"),
+                         site + "card.png?style=red&amp;name=Cherry+Garcia")
+        self.assertEqual(tag("name", "twitter:card"), "summary_large_image")
+        self.assertIn("Cherry Garcia is covered", tag("property", "og:title"))
+        # The image download is the same PNG, and the SVG download is gone.
+        self.assertEqual(len(re.findall(r'download="[^"]*\.png"', body)), 1)
+        self.assertEqual(re.findall(r'download="[^"]*\.svg"', body), [])
 
     # -- browsing claims ---------------------------------------------------
 

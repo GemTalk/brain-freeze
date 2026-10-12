@@ -1,14 +1,14 @@
-{#- The brand: every mark, colour and font the pages and the ID card use,
+{#- The brand: every mark, color and font the pages and the ID card use,
     and nothing else. Import it with
 
         {% import "_brand.html" as brand with context %}
 
     The design comes from the GemDB brand guidelines, "Micro brand" (the
     logo, the wordmark, the cone icon, the single scoops and the three scoop
-    colours) and "Insurance Cards" (the ID card). BRANDING.md says how to swap in a brand of your own: this
+    colors) and "Insurance Cards" (the ID card). BRANDING.md says how to swap in a brand of your own: this
     file, brand.css and id_card.svg are the whole of it. -#}
 
-{#- The three colours that stack on top of GemDB's own. -#}
+{#- The three colors that stack on top of GemDB's own. -#}
 {% set colors = {
   "red": "#FF3700",
   "yellow": "#FFE200",
@@ -17,34 +17,30 @@
   "paper": "#F2F5F4",
 } %}
 
-{#- The ID card's colourways: its background, its type and rules, and the
+{#- The ID card's colorways: its background, its type and rules, and the
     three shapes of the icon, top to bottom: the swirl, the scoop and the
-    cone. The first four are the card slide's; midnight shows the icon in its
-    own colours, as the micro-brand slide does. -#}
+    cone. Red and blue are the card slide's; midnight shows the icon in its
+    own colors, as the micro-brand slide does. -#}
 {% set colorways = {
   "red": {"label": "Red", "bg": "#FF3700", "ink": "#F2F5F4",
           "s1": "#F2F5F4", "s2": "#F2F5F4", "s3": "#F2F5F4"},
   "blue": {"label": "Blue", "bg": "#0F9EE1", "ink": "#F2F5F4",
            "s1": "#F2F5F4", "s2": "#F2F5F4", "s3": "#F2F5F4"},
-  "red-light": {"label": "Red on white", "bg": "#F2F5F4", "ink": "#FF3700",
-                "s1": "#FF3700", "s2": "#FF3700", "s3": "#FF3700"},
-  "blue-light": {"label": "Blue on white", "bg": "#F2F5F4", "ink": "#0F9EE1",
-                 "s1": "#0F9EE1", "s2": "#0F9EE1", "s3": "#0F9EE1"},
   "midnight": {"label": "Midnight", "bg": "#0D1321", "ink": "#F2F5F4",
                "s1": "#0F9EE1", "s2": "#FF3700", "s3": "#FFE200"},
 } %}
-{% set colorway_order = ["blue", "red", "blue-light", "red-light", "midnight"] %}
+{% set colorway_order = ["blue", "red", "midnight"] %}
 
-{#- Which colourway a plan's card starts in, before anyone picks one. -#}
-{% set plan_colorways = {"Sprinkle": "blue-light", "Sundae": "blue",
-                         "Parfait": "red"} %}
+{#- Which colorway every card starts in, before anyone picks one. -#}
+{% set default_colorway = "blue" %}
 
-{#- The colourway called `style`, or the plan's own if there is no such. -#}
-{% macro colorway_for(style, plan) -%}
-{{ style if style in colorways else plan_colorways.get(plan, "blue") }}
+{#- The colorway called `style`, or the default if there is no such. A
+    link to a colorway since removed draws the default. -#}
+{% macro colorway_for(style) -%}
+{{ style if style in colorways else default_colorway }}
 {%- endmacro %}
 
-{#- A colourway as the CSS custom properties id_card.svg reads. -#}
+{#- A colorway as the CSS custom properties id_card.svg reads. -#}
 {% macro colorway_vars(name) -%}
 {%- set c = colorways[name] -%}
 --bf-bg:{{ c.bg }};--bf-ink:{{ c.ink }};--bf-s1:{{ c.s1 }};--bf-s2:{{ c.s2 }};--bf-s3:{{ c.s3 }}
@@ -67,16 +63,16 @@
 {#- The icon's shapes in its own 73 x 179 box: the swirl, the scoop and the
     cone. Each shape's bottom is cut by a circle 8 units wider than the
     shape beneath it, which leaves the gaps between them, so no two shapes
-    overlap. `top`, `middle` and `bottom` are their colours -- or, with
-    `attr="class"`, the classes that colour them. -#}
+    overlap. `top`, `middle` and `bottom` are their colors -- or, with
+    `attr="class"`, the classes that color them. -#}
 {% macro cone_paths(top, middle, bottom, attr="fill") -%}
 <path {{ attr }}="{{ top }}" d="M8 55.32C2.5 50.5 0 43 0 34.5C0 18 11 1.5 25 0C30 0 33 3.5 34 9.5C36 21 46 31.5 62 33C69 33.5 73 36 73 40.5C73 46 70.5 52 65.5 55.75A44.5 44.5 0 0 0 8 55.32Z"/>
 <path {{ attr }}="{{ middle }}" d="M8.45 112.86A36.5 36.5 0 1 1 64.55 112.86A38 38 0 0 0 8.45 112.86Z"/>
 <path {{ attr }}="{{ bottom }}" d="M10.79 123.04A30 30 0 0 1 62.21 123.04L51.37 173Q50.06 179 44.06 179L28.94 179Q22.94 179 21.63 173Z"/>
 {%- endmacro %}
 
-{#- The icon on its own, `height` pixels tall: in the scoop colours, or in
-    one colour (`mono`, say "currentColor") where it sits on a colour. -#}
+{#- The icon on its own, `height` pixels tall: in the scoop colors, or in
+    one color (`mono`, say "currentColor") where it sits on a color. -#}
 {% macro icon(height=32, mono=none, label=none) -%}
 <svg class="cone" width="{{ (height * 73 / 179)|round(1) }}" height="{{ height }}" viewBox="0 0 73 179"
   {% if label %}role="img" aria-label="{{ label }}"{% else %}aria-hidden="true"{% endif %}>
@@ -100,7 +96,7 @@ data:image/svg+xml,{{ badge(64)|replace("\n", "")|urlencode }}
 
 {#- The logo's shapes and type in its own 311 x 179 box: the icon, then the
     wordmark, "Brain Freeze" over "Insurance Co", beside it. `top`, `middle`
-    and `bottom` colour the icon and `ink` the type -- or, with
+    and `bottom` color the icon and `ink` the type -- or, with
     `attr="class"`, name the classes that do. The type is set to the
     wordmark's measure in Barlow Condensed and Roboto Mono. -#}
 {% macro lockup_shapes(top, middle, bottom, ink, attr="fill") -%}
@@ -122,7 +118,7 @@ data:image/svg+xml,{{ badge(64)|replace("\n", "")|urlencode }}
 {#- The plans' scoop columns, in their own 182 x 122 box: one scoop, two,
     three. Each scoop is a circle (r 27) with the circle beside it, one unit
     larger, cut away, which leaves the lens-shaped gap between them. `top`,
-    `middle` and `bottom` are the colours of the tallest column's scoops,
+    `middle` and `bottom` are the colors of the tallest column's scoops,
     top down. -#}
 {% macro scoop_paths(top, middle, bottom, attr="fill") -%}
 <circle cx="27" cy="95" r="27" {{ attr }}="{{ top }}"/>

@@ -1,6 +1,6 @@
 /* The whole stylesheet. base.html writes it into every page's <style>, after
    brand.css, so there is no extra request to a server that answers one at a
-   time. Colours, fonts and radii come from brand.css by name: restyle the
+   time. Colors, fonts and radii come from brand.css by name: restyle the
    brand there, not here. */
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -214,19 +214,44 @@ input:focus, textarea:focus { outline: none; border-color: var(--blue);
 .how span { display: block; color: #AEB6B4; font-weight: 400;
             font-size: .85rem; }
 
-/* the id card */
-.card-layout { display: grid; gap: 1.5rem 2.5rem; align-items: start;
-               grid-template-columns: minmax(0, 1.7fr) minmax(16rem, 1fr); }
-@media (max-width: 900px) { .card-layout { grid-template-columns: minmax(0, 1fr); } }
-.idcard { max-width: 48rem; }
+/* the id card: the card, its buttons and the banner, with "Make it yours"
+   beside them; on a phone, below them, so a visitor from a shared link
+   still sees the card first */
+.card-layout { display: grid; gap: 1.5rem 2rem; align-items: start;
+               grid-template-columns: minmax(0, 48rem) minmax(15rem, 20rem); }
+@media (max-width: 960px) { .card-layout { grid-template-columns: minmax(0, 48rem); } }
 .idcard svg { display: block; width: 100%; height: auto; border-radius: 14px;
               border: 1px solid var(--line-soft); }
-.styler fieldset { margin-bottom: 1.2rem; }
+.card-actions { margin: 1.1rem 0 2.75rem; }
+.styler { margin: 0; }
+.styler h2 { margin-bottom: 1rem; }
+.styler fieldset { margin-bottom: 1rem; }
 .styler input[type=text] { width: 100%; }
 .swatch { display: inline-block; width: 1rem; height: 1rem; border-radius: 50%;
           border: 1.5px solid var(--line-soft); }
-.styler .actions { margin: .4rem 0 0; }
-.styler .actions > * { flex: 1 1 auto; }
+
+/* the free-scoop banner under the card: an ad in the brand's own colors,
+   the logo on ink, a dashed tear line before the button */
+.scoop-ad { display: flex; align-items: center; flex-wrap: wrap;
+            gap: 1rem 1.5rem; margin: 0; padding: 1.1rem 1.4rem;
+            background: var(--ink); color: var(--paper);
+            border-radius: var(--radius); }
+.scoop-ad .lockup { flex: none; width: auto; height: 3.75rem; margin: 0; }
+.scoop-ad .pitch { flex: 1 1 15rem; padding-left: 1.5rem;
+                   border-left: 2px dashed #353C49; }
+.scoop-ad .kicker { font-family: var(--display); font-size: 1.45rem;
+                    font-weight: 800; letter-spacing: -.03em; line-height: 1.1;
+                    color: var(--yellow); margin: 0 0 .2rem; }
+.scoop-ad p { margin: 0; color: #C9D0CE; }
+.scoop-ad .btn { flex: none; background: var(--yellow); border-color: var(--yellow);
+                 color: var(--ink); }
+.scoop-ad .btn:hover { background: var(--paper); border-color: var(--paper);
+                       color: var(--ink); }
+@media (max-width: 640px) {
+  .scoop-ad .pitch { flex-basis: 100%; padding: .9rem 0 0; border-left: 0;
+                     border-top: 2px dashed #353C49; }
+  .scoop-ad .btn { width: 100%; }
+}
 
 /* the share dialog */
 dialog.share { border: 0; border-radius: var(--radius); padding: 0;
@@ -243,12 +268,13 @@ dialog.share::backdrop { background: rgba(13, 19, 33, .6); }
 .share img { display: block; width: 100%; height: auto; border-radius: 10px;
              border: 1px solid var(--line-soft); background: var(--wash);
              aspect-ratio: 1200 / 640; }
-.share textarea { width: 100%; min-height: 7.5rem; resize: vertical; margin-top: .9rem;
+.share label { display: block; margin: .9rem 0 .3rem; }
+.share textarea { width: 100%; min-height: 7.5rem; resize: vertical;
                   line-height: 1.45; }
 .share .count { text-align: right; margin: .3rem 0 0; }
 .networks { display: grid; gap: .55rem; margin-top: 1rem;
             grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.networks button { width: 100%; }
+.networks button, .networks .btn { width: 100%; }
 .networks svg { flex: none; }
 .share .status { min-height: 1.4rem; margin: .9rem 0 0; font-size: .9rem; }
 .share .status:empty { display: none; }
@@ -272,7 +298,6 @@ dialog.share::backdrop { background: rgba(13, 19, 33, .6); }
 @media print {
   .top, .foot, .no-print { display: none !important; }
   body { background: #fff; }
-  .card-layout { display: block; }
   .idcard svg { border: 0; }
 }
 @media (prefers-reduced-motion: reduce) {

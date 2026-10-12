@@ -16,6 +16,7 @@ from flask import Response, abort, redirect, request, url_for
 import brainfreeze
 import brainfreeze.money as money
 import brainfreeze.underwriting as underwriting
+import cards
 import forms
 import gemdb
 import lookups
@@ -221,19 +222,36 @@ def history(policy_id):
 
 @ROUTES.route("/policies/<policy_id>/card")
 def id_card(policy_id):
-    """The policy's ID card, where taking out a policy lands."""
+    """The policy's ID card, where taking out a policy lands, and the page a
+    shared card links to: its <head> points a network's crawler at the
+    card's PNG, which the network shows as the link's preview."""
     policy = lookups.policy_or_404(policy_id)
-    return pages.render("card.html", p=policy,
-                        card=pages.id_card(policy, date.today(),
-                                           request.args.get("name")),
-                        named=bool(request.args.get("name")),
-                        style=request.args.get("style"))
+    card, query = card_and_query(policy)
+    return pages.render(
+        "card.html", p=policy, card=card, named="name" in query,
+        style=query.get("style"),
+        page_url=cards.public_url("id_card", policy_id=policy_id, **query),
+        image_url=cards.public_url("id_card_png", policy_id=policy_id,
+                                   **query))
+
+
+def card_and_query(policy):
+    """The card `?name=` and `?style=` ask for, and those two as a query
+    that draws the same card again: the name tidied, and either left out
+    when it is not given."""
+    card = pages.id_card(policy, date.today(), request.args.get("name"))
+    query = {}
+    if request.args.get("style"):
+        query["style"] = request.args["style"]
+    if card["subscriber"] != pages.card_name(None, policy):
+        query["name"] = card["subscriber"]
+    return card, query
 
 
 @ROUTES.route("/policies/<policy_id>/card.svg")
 def id_card_svg(policy_id):
     """The same card on its own, as an image a person can keep: in the
-    colourway `?style=` names and with the subscriber `?name=`, as the card
+    colorway `?style=` names and with the subscriber `?name=`, as the card
     page draws it."""
     policy = lookups.policy_or_404(policy_id)
     svg = pages.render("id_card.svg",
@@ -241,6 +259,29 @@ def id_card_svg(policy_id):
                                           request.args.get("name")),
                        style=request.args.get("style"))
     return Response(svg, mimetype="image/svg+xml")
+
+
+@ROUTES.route("/policies/<policy_id>/card.png")
+def id_card_png(policy_id):
+    """The same card as a PNG: what "Download image" saves and what a shared
+    link's preview shows. Drawn by `resvg` once per card, then served from
+    disk (cards.py).
+
+    Cached for a day rather than for good: the URL names the card, but the
+    card's cover status follows the calendar.
+    """
+    policy = lookups.policy_or_404(policy_id)
+    svg = pages.render("id_card.svg",
+                       card=pages.id_card(policy, date.today(),
+                                          request.args.get("name")),
+                       style=request.args.get("style"), raster=True)
+    try:
+        image = cards.png(svg)
+    except cards.Unavailable as failure:
+        print("card.png: %s" % failure)
+        abort(503)
+    return Response(image, mimetype="image/png",
+                    headers={"Cache-Control": "public, max-age=86400"})
 
 
 def warnings_for(policy, today):

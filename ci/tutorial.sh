@@ -14,9 +14,15 @@
 #   HOME=/tmp/ci-home ci/tutorial.sh ~/Downloads/gemdb-darwin-arm64-1.5.4.vsix
 #
 # Needs: shared memory already raised (GemDB's setSharedMemoryDarwin.sh, with
-# sudo -- CI does it first), node, python3, and port 5050 free.
+# sudo -- CI does it first), node, python3, resvg (`brew install resvg`: the
+# ID card's PNG, which the acceptance suite downloads), and port 5050 free.
 
 set -euo pipefail
+
+command -v resvg >/dev/null || {
+    echo "resvg is not on the PATH; the ID card's PNG needs it: brew install resvg" >&2
+    exit 1
+}
 
 VSIX="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 REPO="$(cd "$(dirname "$0")/.." && pwd)"

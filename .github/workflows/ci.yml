@@ -111,6 +111,11 @@ jobs:
           unzip -p "$RUNNER_TEMP/$VSIX" extension/resources/setSharedMemoryDarwin.sh > "$RUNNER_TEMP/shm.sh"
           sudo bash "$RUNNER_TEMP/shm.sh"
 
+      # The ID card's PNG, which the acceptance suite downloads, is drawn by
+      # resvg (web/cards.py).
+      - name: Install resvg
+        run: brew install resvg
+
       # Everything else is one script, so a local run is this run:
       # HOME=<empty dir> ci/tutorial.sh <vsix>. It sets GemDB up with GemDB
       # Code's own setup, headless, then runs the in-database suite, the

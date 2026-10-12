@@ -111,22 +111,25 @@ def shown_its_id_card(context):
         "the ID card does not carry the policy number %s" % context.policy_id)
 
 
-@then('its card can be kept as an SVG of the same policy')
-def card_as_svg(context):
-    """The "Download SVG" link serves the card on its own, as an image.
+@then('its card can be kept as an image')
+def card_as_image(context):
+    """The "Download image" link serves the card as a PNG: the same image a
+    shared link's preview shows. The server draws it with `resvg`.
 
     Opened rather than clicked: the link's `download` attribute would hand
     it to the browser's downloads, and what matters is what it serves.
     """
-    link = context.page.locator('a[download$=".svg"]')
-    assert link.count() == 1, "the ID card page has no SVG download"
-    response = context.page.goto(context.base_url + link.get_attribute("href"),
-                                 wait_until="load")
-    assert response.ok, "the card's SVG answered %d" % response.status
-    assert response.headers["content-type"].startswith("image/svg+xml"), (
-        "the card's SVG is served as %s" % response.headers["content-type"])
-    assert context.policy_id in response.text(), (
-        "the SVG card does not carry the policy number %s" % context.policy_id)
+    link = context.page.locator('a[download$=".png"]')
+    assert link.count() == 1, "the ID card page has no image download"
+    href = link.get_attribute("href")
+    assert "/policies/%s/card.png" % context.policy_id in href, (
+        "the image download is not this policy's card: %s" % href)
+    response = context.page.goto(context.base_url + href, wait_until="load")
+    assert response.ok, (
+        "the card's PNG answered %d -- is resvg installed?" % response.status)
+    assert response.headers["content-type"].startswith("image/png"), (
+        "the card's image is served as %s" % response.headers["content-type"])
+    assert response.body().startswith(b"\x89PNG"), "the card's image is not a PNG"
 
 
 @then('the policy was sold at the price the quote showed')

@@ -1,37 +1,83 @@
-{#- Where taking out a policy lands: its ID card, ways to make it yours, and
-    ways to keep it and share it. The card's design is id_card.svg, and this
-    page only frames it.
+{#- Where taking out a policy lands, and where a shared card's link goes: the
+    ID card first, with ways to keep it and share it, and ways to make it
+    yours beside it (below it, on a phone).
+    The card's design is id_card.svg, and this page only frames it.
 
-    The name and colourway are the reader's, for the picture: they ride in
-    the URL (`?name=&style=`), so the SVG download and a reload draw the same
-    card, and nothing about them is stored. -#}
+    The name and colorway are the reader's, for the picture: they ride in
+    the URL (`?name=&style=`), so a reload, the PNG and a shared link all
+    draw the same card. The app stores neither, but a shared link carries
+    both.
+
+    Sharing shares that link. The <head> below points each network's crawler
+    at the card's PNG (/policies/<id>/card.png), which the network shows as
+    the link's preview: no image is uploaded or copied anywhere. -#}
 {% extends "base.html" %}
 {% import "_macros.html" as ui with context %}
 {% import "_brand.html" as brand with context %}
 
-{% set way = brand.colorway_for(style, card.plan) %}
+{% set way = brand.colorway_for(style) %}
+{% set holder = card.subscriber if named else "A member" %}
 
 {% block title %}ID card {{ card.policy_id }}{% endblock %}
 
+{% block head %}
+<meta name="description" content="{{ brand.name }}. Fictional cover, real objects in GemDB.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="{{ brand.name }}">
+<meta property="og:title" content="{{ holder }} is covered: {{ card.plan }} Plan">
+<meta property="og:description" content="{{ brand.name }}. Fictional cover, real objects in GemDB.">
+<meta property="og:image" content="{{ image_url }}">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="{{ brand.name }} ID card for {{ holder }}">
+<meta property="og:url" content="{{ page_url }}">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="{{ page_url }}">
+{% endblock %}
+
 {% block content %}
-<div class="wrap">
-  <p class="eyebrow">You&rsquo;re covered</p>
-  <h1>Your ID card</h1>
+<div class="wrap card-page">
+  <p class="eyebrow">{{ brand.short_name }} ID card</p>
+  <h1 id="card-title" data-plain="Covered for every brain freeze">{% if named %}{{ card.subscriber }} is covered{% else %}Covered for every brain freeze{% endif %}</h1>
   <p class="sub">{{ p.plan_name }} plan, <span class="num">{{ usd(p.annual_premium) }} a year</span>
     &middot; {{ usd(p.coverage_limit) }} an episode, {{ usd(p.deductible) }} deductible.</p>
 
   <div class="card-layout">
-    <div class="idcard" id="id-card" data-fonts="{{ brand.fonts_url }}"
-         data-fallback-name="Member, age {{ p.age }}">{% include "id_card.svg" %}</div>
+  <div class="card-main">
+  <div class="idcard" id="id-card"
+       data-fallback-name="Member, age {{ p.age }}">{% include "id_card.svg" %}</div>
 
-    <form class="styler no-print" id="card-style" method="get"
-          action="{{ url_for('id_card', policy_id=p.policy_id) }}">
-      <h2>Make it yours</h2>
+  <div class="actions card-actions no-print">
+    <button type="button" id="share">{{ ui.icon('share') }} Share</button>
+    <a class="btn ghost" id="save-png"
+       data-base="{{ url_for('id_card_png', policy_id=p.policy_id) }}"
+       href="{{ url_for('id_card_png', policy_id=p.policy_id, style=style, name=card.subscriber if named else None) }}"
+       download="{{ card.policy_id }}-id-card.png">{{ ui.icon('download') }} Download image</a>
+    <a class="btn ghost" href="{{ url_for('quote_form') }}">Get your own card {{ ui.icon('arrow') }}</a>
+  </div>
+
+  <aside class="scoop-ad no-print" aria-label="Free ice cream">
+    <svg class="lockup" viewBox="0 0 311 179" aria-hidden="true">
+      {{ brand.lockup_shapes(brand.colors.blue, brand.colors.red, brand.colors.yellow, brand.colors.paper) }}
+    </svg>
+    <div class="pitch">
+      <p class="kicker">Want a free scoop?</p>
+      <p>Complete our tutorial on GitHub and we&rsquo;ll send you a gift card for ice cream!</p>
+    </div>
+    <a class="btn" href="https://github.com/GemTalk/brain-freeze" target="_blank" rel="noopener">Start the tutorial {{ ui.icon('arrow') }}</a>
+  </aside>
+  </div>
+
+  <form class="styler card no-print" id="card-style" method="get"
+        action="{{ url_for('id_card', policy_id=p.policy_id) }}">
+    <h2>Make it yours</h2>
       <fieldset><legend><label for="card-name">Name on the card</label></legend>
         <input type="text" id="card-name" name="name" maxlength="24" autocomplete="name"
                value="{{ card.subscriber if named else '' }}" placeholder="Member, age {{ p.age }}">
-        <div class="hint">Only on the picture. It is never saved.</div></fieldset>
-      <fieldset><legend>Colourway</legend>
+        <div class="hint">The app doesn&rsquo;t keep it, but a link you share
+          carries it: anyone who sees your post sees the name.</div></fieldset>
+      <fieldset><legend>Colorway</legend>
         <div class="chips">
         {% for key in brand.colorway_order %}{% set c = brand.colorways[key] %}
           <label class="chip"><input type="radio" name="style" value="{{ key }}"
@@ -40,20 +86,8 @@
             {{ c.label }}</span></label>
         {% endfor %}
         </div></fieldset>
-      <button type="submit" class="ghost" id="apply">Redraw the card</button>
-      <div class="actions">
-        <button type="button" id="share">{{ ui.icon('share') }} Share</button>
-        <button type="button" class="ghost" id="save-png" data-filename="{{ card.policy_id }}-id-card.png">
-          {{ ui.icon('download') }} Download image</button>
-      </div>
-      <div class="actions">
-        <a class="btn ghost" id="save-svg"
-           data-base="{{ url_for('id_card_svg', policy_id=p.policy_id) }}"
-           href="{{ url_for('id_card_svg', policy_id=p.policy_id, style=way, name=card.subscriber if named else None) }}"
-           download="{{ card.policy_id }}-id-card.svg">Download SVG</a>
-        <button type="button" class="ghost" onclick="window.print()">{{ ui.icon('print') }} Print</button>
-      </div>
-    </form>
+    <button type="submit" class="ghost" id="apply">Redraw the card</button>
+  </form>
   </div>
 
   <div class="actions no-print">
@@ -62,27 +96,29 @@
   </div>
 </div>
 
-<dialog class="share" id="share-dialog" aria-labelledby="share-title">
+<dialog class="share" id="share-dialog" aria-labelledby="share-title"
+        data-page-url="{{ page_url }}">
   <div class="inner">
     <header>
       <h2 id="share-title">Share your card</h2>
       <button type="button" class="close" id="share-close" aria-label="Close">&times;</button>
     </header>
-    <img id="share-preview" alt="Your ID card, as the image you will post">
+    <img id="share-preview" alt="Your ID card, as a post's link preview shows it">
     <label for="share-text" class="muted">What the post says</label>
-    <textarea id="share-text">I&rsquo;m covered! 🍦 My {{ brand.name }} card: the {{ p.plan_name }} plan, {{ usd(p.coverage_limit) }} for every brain freeze. Fictional insurance, real database &mdash; every policy is a live Python object in GemDB. https://gemdb.com #GemDB</textarea>
+    <textarea id="share-text">I&rsquo;m covered! 🍦 My {{ brand.name }} card: the {{ p.plan_name }} plan, {{ usd(p.coverage_limit) }} for every brain freeze. Fictional insurance, real database &mdash; every policy is a live Python object in GemDB. #GemDB</textarea>
     <p class="muted count" id="share-count"></p>
     <div class="networks">
-      <button type="button" id="share-native" hidden>{{ ui.icon('share') }} Share image&hellip;</button>
-      <button type="button" class="ghost" data-network="x">Post to X</button>
-      <button type="button" class="ghost" data-network="bluesky">Post to Bluesky</button>
-      <button type="button" class="ghost" data-network="threads">Post to Threads</button>
-      <button type="button" class="ghost" data-network="linkedin">Post to LinkedIn</button>
+      <button type="button" id="share-native" hidden>{{ ui.icon('share') }} Share link&hellip;</button>
+      <button type="button" class="ghost" id="share-copy">{{ ui.icon('link') }} Copy link</button>
+      <a class="btn ghost" data-network="x" target="_blank" rel="noopener">Post to X</a>
+      <a class="btn ghost" data-network="bluesky" target="_blank" rel="noopener">Post to Bluesky</a>
+      <a class="btn ghost" data-network="threads" target="_blank" rel="noopener">Post to Threads</a>
+      <a class="btn ghost" data-network="linkedin" target="_blank" rel="noopener">Post to LinkedIn</a>
     </div>
     <p class="status" id="share-status" role="status"></p>
-    <p class="muted" style="margin:.8rem 0 0">Posting opens the network with your
-      words filled in, and puts the card on your clipboard: paste it into the
-      post before you send. Links can carry text but not pictures.</p>
+    <p class="muted" style="margin:.8rem 0 0">Each post carries a link to this
+      card, and the network shows the card as the link&rsquo;s preview.
+      LinkedIn takes the link only; paste your words in there.</p>
   </div>
 </dialog>
 {% endblock %}
@@ -93,19 +129,26 @@
   var holder = document.getElementById('id-card');
   var form = document.getElementById('card-style');
   var nameInput = document.getElementById('card-name');
-  var svgLink = document.getElementById('save-svg');
-  var fontsUrl = holder.dataset.fonts;
+  var title = document.getElementById('card-title');
+  var pngLink = document.getElementById('save-png');
   var nameLimit = nameInput.maxLength;
-  var png = null;
 
   function svg() { return holder.querySelector('svg'); }
   function style() { return form.querySelector('input[name=style]:checked'); }
   function typedName() {
     return nameInput.value.replace(/\s+/g, ' ').trim().slice(0, nameLimit).trim();
   }
+  // The query that draws the card as it stands: the page, the PNG and a
+  // shared link all take it.
+  function query() {
+    var q = new URLSearchParams({style: style().value});
+    var name = typedName();
+    if (name) q.set('name', name);
+    return q;
+  }
 
   // Redraw the card as the form says, the way id_card.svg would: the
-  // colourway through its custom properties, the name sized to its column.
+  // colorway through its custom properties, the name sized to its column.
   function redraw() {
     var card = svg(), way = style(), name = typedName();
     card.setAttribute('style', way.dataset.vars);
@@ -115,83 +158,16 @@
     text.textContent = shown.toUpperCase();
     text.style.fontSize = (shown.length <= 16 ? 30
                            : Math.round(300 * 16 / shown.length) / 10) + 'px';
-    var query = new URLSearchParams({style: way.value});
-    if (name) query.set('name', name);
-    svgLink.href = svgLink.dataset.base + '?' + query;
-    history.replaceState(null, '', location.pathname + '?' + query);
-    png = null;
+    title.textContent = name ? name + ' is covered' : title.dataset.plain;
+    pngLink.href = pngLink.dataset.base + '?' + query();
+    history.replaceState(null, '', location.pathname + '?' + query());
   }
   document.getElementById('apply').hidden = true;
   form.addEventListener('input', redraw);
   form.addEventListener('submit', function (event) { event.preventDefault(); redraw(); });
 
-  // An SVG drawn onto a canvas cannot fetch its fonts, so fetch them here
-  // (the Latin faces only) and write them into the copy that is drawn.
-  var fonts = null;
-  function dataUrl(blob) {
-    return new Promise(function (resolve) {
-      var reader = new FileReader();
-      reader.onload = function () { resolve(reader.result); };
-      reader.readAsDataURL(blob);
-    });
-  }
-  function fontFaces() {
-    if (!fonts) {
-      var files = {};
-      fonts = fetch(fontsUrl).then(function (r) { return r.text(); }).then(function (css) {
-        var faces = css.split('/* ').filter(function (block) {
-          return block.indexOf('latin */') === 0;
-        }).map(function (block) { return block.slice(block.indexOf('@font-face')); });
-        return Promise.all(faces.map(function (face) {
-          var url = face.match(/url\((https:[^)]+)\)/)[1];
-          files[url] = files[url] || fetch(url).then(function (r) { return r.blob(); }).then(dataUrl);
-          return files[url].then(function (data) { return face.replace(url, data); });
-        }));
-      }).then(function (faces) { return faces.join('\n'); }, function () { return ''; });
-    }
-    return fonts;
-  }
-
-  // The card as a PNG, twice its size: drawn from the card on the page, so
-  // the image is always what the reader sees and never a second design.
-  function cardPng() {
-    if (!png) {
-      png = fontFaces().then(function (faces) {
-        var copy = svg().cloneNode(true);
-        var sheet = copy.querySelector('style');
-        sheet.textContent = faces + '\n' + sheet.textContent.replace(/@import url\("[^"]*"\);/, '');
-        var box = svg().viewBox.baseVal, scale = 2;
-        var image = new Image();
-        image.src = 'data:image/svg+xml;charset=utf-8,' +
-          encodeURIComponent(new XMLSerializer().serializeToString(copy));
-        return image.decode().then(function () {
-          var canvas = document.createElement('canvas');
-          canvas.width = box.width * scale;
-          canvas.height = box.height * scale;
-          canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
-          return new Promise(function (resolve) { canvas.toBlob(resolve, 'image/png'); });
-        });
-      });
-      png.catch(function () { png = null; });
-    }
-    return png;
-  }
-  var filename = document.getElementById('save-png').dataset.filename;
-  function download() {
-    return cardPng().then(function (blob) {
-      var link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = filename;
-      link.click();
-      setTimeout(function () { URL.revokeObjectURL(link.href); }, 1000);
-    });
-  }
-  document.getElementById('save-png').addEventListener('click', download);
-
-  // Sharing. No network takes a picture through a link, so the post opens
-  // with its words filled in and the picture goes on the clipboard -- or,
-  // where the device can share files (phones, mostly), through its own
-  // share sheet, picture and all.
+  // Sharing shares the card's link; each network draws the preview from
+  // the page's og: tags. T is the post's words, U the card's address.
   var dialog = document.getElementById('share-dialog');
   var words = document.getElementById('share-text');
   var count = document.getElementById('share-count');
@@ -199,77 +175,60 @@
   var preview = document.getElementById('share-preview');
   var native = document.getElementById('share-native');
   var intents = {
-    x: ['X', 'https://x.com/intent/post?text='],
-    bluesky: ['Bluesky', 'https://bsky.app/intent/compose?text='],
-    threads: ['Threads', 'https://www.threads.com/intent/post?text='],
-    linkedin: ['LinkedIn', 'https://www.linkedin.com/feed/?shareActive=true&text=']
+    x: function (t, u) { return 'https://x.com/intent/post?text=' + t + '&url=' + u; },
+    bluesky: function (t, u) { return 'https://bsky.app/intent/compose?text=' + t + '%20' + u; },
+    threads: function (t, u) { return 'https://www.threads.com/intent/post?text=' + t + '%20' + u; },
+    linkedin: function (t, u) { return 'https://www.linkedin.com/sharing/share-offsite/?url=' + u; }
   };
 
+  function cardUrl() {
+    var url = new URL(dialog.dataset.pageUrl);
+    url.search = query().toString();
+    return url.toString();
+  }
   function say(message, ok) {
     status.className = 'status' + (ok ? ' ok' : '');
-    status.textContent = '';
-    if (typeof message === 'string') status.textContent = message;
-    else status.appendChild(message);
+    status.textContent = message;
   }
+  // X counts any link as 23 characters, and the link follows a space.
   function counted() {
-    var n = Array.from(words.value).length;
-    count.textContent = n + ' characters' + (n > 280 ? ' — too long for X, which takes 280' : '');
+    var n = Array.from(words.value).length + 24;
+    count.textContent = n + ' of 280 characters on X, the link included' +
+      (n > 280 ? ' — too long' : '');
   }
-  words.addEventListener('input', counted);
+  function linked() {
+    var t = encodeURIComponent(words.value), u = encodeURIComponent(cardUrl());
+    Array.prototype.forEach.call(dialog.querySelectorAll('[data-network]'), function (link) {
+      link.href = intents[link.dataset.network](t, u);
+    });
+  }
+  words.addEventListener('input', function () { counted(); linked(); });
 
-  function file(blob) { return new File([blob], filename, {type: 'image/png'}); }
-  var probe = new File([''], 'probe.png', {type: 'image/png'});
-  if (navigator.canShare && navigator.canShare({files: [probe]})) native.hidden = false;
+  if (navigator.share) native.hidden = false;
 
   document.getElementById('share').addEventListener('click', function () {
     say('');
     counted();
+    linked();
+    preview.hidden = false;
+    preview.src = pngLink.href;
     dialog.showModal();
-    cardPng().then(function (blob) {
-      if (preview.src) URL.revokeObjectURL(preview.src);
-      preview.src = URL.createObjectURL(blob);
-    });
   });
+  preview.addEventListener('error', function () { preview.hidden = true; });
   document.getElementById('share-close').addEventListener('click', function () { dialog.close(); });
   dialog.addEventListener('click', function (event) { if (event.target === dialog) dialog.close(); });
 
   native.addEventListener('click', function () {
-    cardPng().then(function (blob) {
-      return navigator.share({files: [file(blob)], text: words.value});
-    }).catch(function (error) {
-      if (error && error.name !== 'AbortError') say('This device would not share the image. Try a network below.');
+    navigator.share({url: cardUrl(), text: words.value}).catch(function (error) {
+      if (error && error.name !== 'AbortError') say('This device would not share the link. Try a network below.');
     });
   });
-
-  function copyImage() {
-    if (!navigator.clipboard || !window.ClipboardItem) return Promise.reject();
-    try {
-      return navigator.clipboard.write([new ClipboardItem({'image/png': cardPng()})]);
-    } catch (error) { return Promise.reject(error); }
-  }
-
-  Array.prototype.forEach.call(dialog.querySelectorAll('[data-network]'), function (button) {
-    button.addEventListener('click', function () {
-      var network = intents[button.dataset.network];
-      var url = network[1] + encodeURIComponent(words.value);
-      say('Getting the image ready…');
-      copyImage().then(function () { return true; }, function () {
-        return download().then(function () { return false; });
-      }).then(function (copied) {
-        var tab = window.open(url, '_blank');
-        if (tab) { try { tab.opener = null; } catch (error) {} }
-        var line = document.createElement('span');
-        line.textContent = copied
-          ? 'The card is on your clipboard. Paste it into the post on ' + network[0] + ' before you send. '
-          : 'Your browser would not copy the image, so it downloaded. Attach it to the post on ' + network[0] + '. ';
-        if (!tab) {
-          var link = document.createElement('a');
-          link.href = url; link.target = '_blank'; link.rel = 'noopener';
-          link.textContent = 'Open ' + network[0];
-          line.appendChild(link);
-        }
-        say(line, true);
-      });
+  document.getElementById('share-copy').addEventListener('click', function () {
+    var url = cardUrl();
+    (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function () {
+      say('Link copied. Paste it anywhere and the card comes with it.', true);
+    }, function () {
+      say('Your browser would not copy it. The link is ' + url);
     });
   });
 })();
