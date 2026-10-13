@@ -96,7 +96,49 @@ Stop the app, and start it again to see that your data is still there:
 
 ## Change the schema with code, not with a table update
 
-To improve the app, make each claim record the flavor of ice cream and the toppings that caused the brain freeze. In this step, you add two fields, `flavour` and `toppings`, to the `Claim` class and two questions to the claim form, while the app keeps running.
+To improve the app, make each claim record the flavor of ice cream and the toppings that caused the brain freeze. In this step, you add two fields, `flavour` and `toppings`, to the `Claim` class and two questions to the claim form, while the app keeps running. First, an AI agent makes the change for you. Then, if you want to see how much work the agent did, you make the same change by hand.
+
+### Have an agent make the change
+
+The repository includes a skill for Claude Code, [`.claude/skills/schema-evolution/SKILL.md`](.claude/skills/schema-evolution/SKILL.md). It tells an agent how to add a field to the classes that GemDB stores, carry the field through the claim form, the claim page, and the JSON API, and then load the change into the running database.
+
+Before you start, ensure you have the **Claude Code for VS Code** extension from Anthropic installed in VS Code. When VS Code prompts you to trust the publisher, choose **Trust Publisher & Install**. Then sign in to Claude Code using your credentials.
+
+1. In the Claude Code sidebar, click **+ New session**.
+2. In the chat, enter:
+
+   ```text
+   /schema-evolution for the tutorial: add flavors and toppings to claims in my working tree, and ask me which flavors and toppings to offer
+   ```
+
+3. Answer the agent's questions. For example, enter the flavors `cherry, vanilla, chocolate marble, cinnamon`, and then the toppings `nuts, marshmallow, sprinkles, banana, whipped cream`. If the agent asks how the change should land, choose **Just run the tutorial step**, which changes only your working tree.
+4. Wait for the agent to finish. It edits the files, loads the change into the database with `gemdb tools/load.py`, checks the result, and summarizes what it changed. Depending on your permission mode, Claude Code may prompt you before it edits a file or runs a command. Choose **Yes** to continue.
+
+The agent does not commit the change to Git. Check the result in your browser:
+
+1. Reload the page. Open any policy under **Policies**, and click **File a claim**. The form now asks **Which flavour?** and **Anything on top?**, with the choices you gave the agent.
+2. Choose a flavor and one or more toppings, and click **Send the claim**. The claim displays your choices in the summary section, after the claim number, for example `ice cream (Cherry, sprinkles, banana, whipped cream)`.
+3. Click **Browse all claims**, and open any previous claim. It loads as before, with no flavor or toppings shown, since it was created before the schema change.
+
+The agent did not migrate any data or restart the app. The running app used the new classes on its next request.
+
+### Discard the agent's changes
+
+To try the agent again with different choices, or to make the same change by hand in the next section, discard what the agent did. In a second terminal, so the app keeps running in the first (click **+** in the Terminal panel, or press **Ctrl+Shift+`**), run:
+
+```sh
+git restore brainfreeze web
+```
+
+```sh
+gemdb tools/load.py
+```
+
+The first command restores the six files the agent changed. The second loads the original classes back into the database. Reload the claim form: the **Which flavour?** and **Anything on top?** questions are gone.
+
+### Make the change yourself
+
+To see how much work the agent did for you, make the same change by hand.
 
 To keep the app running in its existing terminal, open a second terminal for this step: click **+** in the Terminal panel, or press **Ctrl+Shift+`**.
 
@@ -277,6 +319,38 @@ git was already installed):
 Not yet verified: the "Go to a policy" Find box; the exact text of the Refresh Notebook View error (when the
 notebook session has uncommitted changes).
 
+Step 3 restructured 2026-10-13 after Thomas met Sandeep: "Have an agent make the change" (3a), "Discard the agent's changes",
+then "Make the change yourself" (the manual edits a-e, now optional, to see how much work the agent did). Verified on a clean
+VM (vscode-deb-claude + GemDB Code + Install Brain Freeze Demo + seed; MCP off; default Auto mode; Claude Code 2.1.296):
+- The skill ran from a slash command at the start of the message; the agent asked for flavors and toppings (a form with
+  tabs, then chat questions), edited six files (model.py, forms.py, routes_html.py, claim_form.html, decision.html, wire.py),
+  ran gemdb tools/load.py from its own shell, and left the change in the working tree (git status: six files modified, git
+  log unchanged at 9dba1d0, empty stash list). No permission prompts in Auto mode for edits, greps, or git status. The form
+  showed the lists; a new claim read "ice cream (Cherry, sprinkles, banana, whipped cream)"; CLM-001285 showed no flavour.
+- NOT yet verified: (1) the prompt wording in the draft ("for the tutorial: ... in my working tree, and ask me which ...")
+  was written after the tested run, which used "add flavors and toppings to claims, but first ask me which flavors and
+  toppings I want to offer" and drew a Scope question ("How should this land, given it collides with README step 3's
+  tutorial?", options: Lasting change and rewrite step 3 (Recommended); Lasting change, leave the tutorial broken; Just run the
+  tutorial step). Retest with the draft wording; the draft keeps the Scope answer in prose in case it still appears.
+  (2) The discard is VERIFIED (2026-10-13, app running, no restart): git restore brainfreeze web, then gemdb tools/load.py
+  (prints the usual "Loaded ... Committed." line); the claim form reverted to the original; CLM-002173, filed with a flavor
+  under the agent's change, then shows no flavor and no error. The flavor is still stored on that claim and would show
+  again if the change is reapplied.
+  (3) The agent's answers to its questions vary: first a form (choose an option, then Submit answers), then chat.
+- Prerequisite paragraph (Claude Code extension, trust publisher, sign in) now appears in 3a and again in "Connect an AI
+  agent". Decide whether to keep one.
+- CI: Steven's tests read this README's sh blocks. The new `git restore` and `gemdb tools/load.py` blocks have no console block
+  on purpose (on a clean tree load.py prints "Nothing had changed", not the Loaded line). The agent steps cannot run in CI.
+  Tests need updating, as noted above for the numbered headings.
+- Test failures found when the agent ran the unit tests (for Steven): test_tutorial_answer fails once the change is applied
+  (expected); three tests.test_notebook failures (TheFirstCellFindsACheckoutBelowWhereTheKernelStarted) and test_ctrl_c
+  (AssertionError: 0 == 0 at assertNotEqual(done.returncode, 0); probably expects the pre-1.6.0 Ctrl+C failure).
+- The agent ran `git stash && unittest; git stash pop` without prompting in Auto mode. The stash list was empty afterward.
+- The VS Code toast "Do you want to install the recommended 'Python' extension from Microsoft?" appears repeatedly during
+  agent work. Ask James what a reader should do. The agent's form note ("These two questions went in after 900 policies and
+  4,993 episodes were already committed") is copied from the answer patch. It matches a freshly seeded book (900 policies, 4,993 episodes) but is hardcoded, so
+  it is stale once a reader adds policies.
+
 MCP findings, 2026-10-13 (VM with MCP already on and Claude Code signed in; Claude Code extension 2.1.296, Sonnet 5, Manual
 mode). Verified:
 - `/mcp` > MCP servers shows `gemdb` under Local (1), Connected. `schema-evolution` and `rebrand` appear in the slash menu
@@ -323,6 +397,10 @@ Problems found, for Steven, James, or Sandeep (not for the README):
   failed under the system python3; the agent says they are unrelated, not verified. test_tutorial_answer failed because the
   answer patch was applied.
 - At least 11 permission prompts for one schema change in Manual mode. The README should say prompts are normal.
+- The permission-prompt paragraph in the README was written from Manual mode, which Thomas switched to for testing. A
+  freshly signed-in Claude Code (extension 2.1.296) starts in Auto mode ("Auto mode is now Claude Code's default
+  permission mode ... runs the ones it assesses as lower-risk, and blocks the rest"), so readers may see fewer prompts, or
+  different ones. Retest the loss-ratio question in the default mode on the clean pass before keeping that paragraph.
 - VS Code showed "Do you want to install the recommended 'Python' extension from Microsoft?" during the session. Ask James
   what a reader should do.
 - The new claim form note says "after 900 policies and 4,993 episodes" and the UI spells flavour with a "u".
