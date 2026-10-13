@@ -136,6 +136,8 @@ gemdb tools/load.py
 
 The first command restores the six files the agent changed. The second loads the original classes back into the database. Reload the claim form: the **Which flavour?** and **Anything on top?** questions are gone.
 
+The discard reverts the code, not the data. A claim you filed while the change was in place keeps the flavor and toppings it was saved with. The original `Claim` class does not read them, so the claim page does not show them, since the page no longer renders those values, but the data remains stored with the claim. If you make the change again, the claim shows them again. In GemDB, objects and the classes that define them are stored separately, so changing a class does not rewrite the objects that were already saved.
+
 ### Make the change yourself
 
 To see how much work the agent did for you, make the same change by hand.
