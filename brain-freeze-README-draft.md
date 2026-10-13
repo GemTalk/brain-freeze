@@ -334,8 +334,10 @@ VM (vscode-deb-claude + GemDB Code + Install Brain Freeze Demo + seed; MCP off; 
   tutorial step). Retest with the draft wording; the draft keeps the Scope answer in prose in case it still appears.
   (2) The discard is VERIFIED (2026-10-13, app running, no restart): git restore brainfreeze web, then gemdb tools/load.py
   (prints the usual "Loaded ... Committed." line); the claim form reverted to the original; CLM-002173, filed with a flavor
-  under the agent's change, then shows no flavor and no error. The flavor is still stored on that claim and would show
-  again if the change is reapplied.
+  under the agent's change, then shows no flavor and no error. The flavor is still stored on that claim (verified with
+  gemdb -c: vars(claim) shows 'flavour': 'Cherry' and 'toppings': ('Sprinkles', 'Banana', 'Whipped cream')) and would show
+  again if the change is reapplied. The README does not say this; consider one sentence in the discard section: the discard
+  reverts the code, not data already saved with it.
   (3) The agent's answers to its questions vary: first a form (choose an option, then Submit answers), then chat.
 - Prerequisite paragraph (Claude Code extension, trust publisher, sign in) now appears in 3a and again in "Connect an AI
   agent". Decide whether to keep one.
