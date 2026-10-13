@@ -102,9 +102,9 @@ In most databases, that means altering a table, migrating the data, and hoping n
 
 First, an AI agent makes the change for you. Then, if you want to see how much work the agent did, you make the same change by hand.
 
-### Have an agent make the change
+### Use a Brain Freeze agent to make the change
 
-The repository includes a skill for Claude Code, [`.claude/skills/schema-evolution/SKILL.md`](.claude/skills/schema-evolution/SKILL.md). It tells an agent how to add a field to the classes that GemDB stores, carry the field through the claim form, the claim page, and the JSON API, and then load the change into the running database.
+The repository includes a `schema-evolution` skill for Claude Code, [`.claude/skills/schema-evolution/SKILL.md`](.claude/skills/schema-evolution/SKILL.md). GemDB designed it to change the data schema using Python. The agent adds a field to the classes that GemDB stores and carries the field through the claim form, the claim page, and the JSON API. Finally, the agent loads the changes into the running database and runs the unit tests to ensure the schema changes are live and ready to use. All of this happens without shutting down the Brain Freeze app.
 
 Before you start, ensure you have the **Claude Code for VS Code** extension from Anthropic installed in VS Code. When VS Code prompts you to trust the publisher, choose **Trust Publisher & Install**. Then sign in to Claude Code using your credentials.
 
