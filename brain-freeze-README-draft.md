@@ -121,7 +121,7 @@ Before you start, ensure you have the **Claude Code for VS Code** extension from
 The agent does not commit the change to Git. Check the result in your browser:
 
 1. Reload the page. Open any policy under **Policies**, and click **File a claim**. The form now asks **Which flavour?** and **Anything on top?**, with the choices you gave the agent.
-2. Choose a flavor and one or more toppings, and click **Send the claim**. The claim displays your choices in the summary section, after the claim number, for example `ice cream (Cherry, sprinkles, banana, whipped cream)`.
+2. Choose a flavor and one or more toppings, and click **Send the claim**. The claim displays your choices in the summary section, after the claim number.
 3. Click **Browse all claims**, and open any previous claim. It loads as before, with no flavor or toppings shown, since it was created before the schema change.
 
 The agent did not migrate any data or restart the app. The running app used the new classes on its next request.
