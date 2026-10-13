@@ -115,7 +115,8 @@ Before you start, ensure you have the **Claude Code for VS Code** extension from
    /schema-evolution for the tutorial: add flavors and toppings to claims in my working tree, and ask me which flavors and toppings to offer
    ```
 
-3. Answer the agent's questions. The agent may show a form with a tab for each question, such as **Flavours** and **Toppings**. Click each tab at the top of the form to answer its question. To give your own list, choose **Other**, type the list in the box that appears, and then click **Submit answers**. **Submit answers** stays unavailable until you answer every tab.4. Wait for the agent to finish, which takes about 90 seconds after you submit your answers. It edits the files, loads the change into the database with `gemdb tools/load.py`, checks the result, and summarizes what it changed. Depending on your permission mode, Claude Code may prompt you before it edits a file or runs a command. Choose **Yes** to continue.
+3. Answer the agent's questions. The agent may show a form with a tab for each question, such as **Flavours** and **Toppings**. Click each tab at the top of the form to answer its question. To give your own list, choose **Other**, type the list in the box that appears, and then click **Submit answers**. **Submit answers** stays unavailable until you answer every tab.
+4. Wait for the agent to finish, which takes about 90 seconds after you submit your answers. It edits the files, loads the change into the database with `gemdb tools/load.py`, and runs tests to inspect results from the changes. Finally it summarizes what it changed. Depending on your permission mode, Claude Code may prompt you before it edits a file or runs a command. Choose **Yes** to continue.
 
 The agent does not commit the change to Git. Check the result in your browser:
 
