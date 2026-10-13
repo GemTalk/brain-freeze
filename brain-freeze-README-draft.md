@@ -120,7 +120,7 @@ Before you start, ensure you have the **Claude Code for VS Code** extension from
 
 The agent does not commit the change to Git. Review the results of your changes in a browser. If your browser is still open, reload the page; otherwise, open a new browser window at `http://127.0.0.1:5050/`.
 
-1. Reload the page. Open any policy under **Policies**, and click **File a claim**. The form now asks **Which flavour?** and **Anything on top?**, with the choices you gave the agent.
+1. Open any policy under **Policies**, and click **File a claim**. The form now asks **Which flavour?** and **Anything on top?**, with the choices you gave the agent.
 2. Choose a flavor and one or more toppings, and click **Send the claim**. The claim displays your choices in the summary section, after the claim number.
 3. Click **Browse all claims**, and open any previous claim. It loads as before, with no flavor or toppings shown, since it was created before the schema change.
 
