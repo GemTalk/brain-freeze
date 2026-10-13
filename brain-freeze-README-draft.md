@@ -118,7 +118,7 @@ Before you start, ensure you have the **Claude Code for VS Code** extension from
 3. Answer the agent's questions. The agent may show a form with a tab for each question, such as **Flavours** and **Toppings**. Click each tab at the top of the form to answer its question. To give your own list, choose **Other**, type the list in the box that appears, and then click **Submit answers**. **Submit answers** stays unavailable until you answer every tab.
 4. Wait for the agent to finish, which takes about 90 seconds after you submit your answers. It edits the files, loads the change into the database with `gemdb tools/load.py`, and runs tests to inspect results from the changes. Finally it summarizes what it changed. Depending on your permission mode, Claude Code may prompt you before it edits a file or runs a command. Choose **Yes** to continue.
 
-The agent does not commit the change to Git. Check the result in your browser:
+The agent does not commit the change to Git. If your browser is still open, reload the page. Otherwise, open a new browser window at `http://127.0.0.1:5050/`. To review the results of your changes:
 
 1. Reload the page. Open any policy under **Policies**, and click **File a claim**. The form now asks **Which flavour?** and **Anything on top?**, with the choices you gave the agent.
 2. Choose a flavor and one or more toppings, and click **Send the claim**. The claim displays your choices in the summary section, after the claim number.
