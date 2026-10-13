@@ -142,9 +142,9 @@ git restore brainfreeze web
 gemdb tools/load.py
 ```
 
-The first command restores the six files the agent changed. The second loads the original classes back into the database. Reload the claim form: the **Which flavour?** and **Anything on top?** questions are gone.
+The first command restores the six files the agent changed. The second loads the original classes back into the database. To see the result, reload the claim form. The **Which flavour?** and **Anything on top?** questions are gone now.
 
-The discard reverts the code, not the data. A claim you filed while the change was in place keeps the flavor and toppings it was saved with. The original `Claim` class does not read them, so the claim page does not show them, since the page no longer renders those values, but the data remains stored with the claim. If you make the change again, the claim shows them again. In GemDB, objects and the classes that define them are stored separately, so changing a class does not rewrite the objects that were already saved.
+The restore reverts the code, but not the data committed in the database. A claim you filed while the change was in place keeps the flavor and toppings data it was saved with. The original `Claim` class does not read them, so the claim page does not show them, since the page no longer renders those values. You can still retrieve the data stored with the claim. If you make the change again, the claim shows them again. In GemDB, objects and the classes that define them are stored separately, so changing a class does not rewrite the objects that were already saved.
 
 ### Make the change yourself
 
