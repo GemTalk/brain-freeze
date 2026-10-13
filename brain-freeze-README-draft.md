@@ -111,7 +111,7 @@ Before you start, ensure you have the **Claude Code for VS Code** extension from
    /schema-evolution for the tutorial: add flavors and toppings to claims in my working tree, and ask me which flavors and toppings to offer
    ```
 
-3. Answer the agent's questions. For example, enter the flavors `cherry, vanilla, chocolate marble, cinnamon`, and then the toppings `nuts, marshmallow, sprinkles, banana, whipped cream`. If the agent asks how the change should land, choose **Just run the tutorial step**, which changes only your working tree.
+3. Answer the agent's questions. The agent may show a form with a tab for each question, such as **Flavours** and **Toppings**. Click each tab at the top of the form to answer its question. To give your own list, choose **Other**, type the list in the box that appears, and then click **Submit answers**. **Submit answers** stays unavailable until you answer every tab. For example, enter the flavors `cherry, vanilla, chocolate marble, cinnamon`, and then the toppings `nuts, marshmallow, sprinkles, banana, whipped cream`. If the form does not let you submit, press **Esc** and type your answers in the chat. If the agent asks how the change should land, choose **Just run the tutorial step**, which changes only your working tree.
 4. Wait for the agent to finish. It edits the files, loads the change into the database with `gemdb tools/load.py`, checks the result, and summarizes what it changed. Depending on your permission mode, Claude Code may prompt you before it edits a file or runs a command. Choose **Yes** to continue.
 
 The agent does not commit the change to Git. Check the result in your browser:
@@ -121,6 +121,10 @@ The agent does not commit the change to Git. Check the result in your browser:
 3. Click **Browse all claims**, and open any previous claim. It loads as before, with no flavor or toppings shown, since it was created before the schema change.
 
 The agent did not migrate any data or restart the app. The running app used the new classes on its next request.
+
+As a thank you for trying the demo so far, click the banner for a real ice cream treat:
+
+[![Schema evolved! Time for ice cream! Now that you've learned about agentic schema evolution, get a free scoop on us! I love ice cream.](images/free-scoop-banner.png)](https://gemdb.com/free-scoop)
 
 ### Discard the agent's changes
 
@@ -354,6 +358,10 @@ VM (vscode-deb-claude + GemDB Code + Install Brain Freeze Demo + seed; MCP off; 
   agent work. Ask James what a reader should do. The agent's form note ("These two questions went in after 900 policies and
   4,993 episodes were already committed") is copied from the answer patch. It matches a freshly seeded book (900 policies, 4,993 episodes) but is hardcoded, so
   it is stale once a reader adds policies.
+
+Free-scoop banner (Sandeep's request, 2026-10-13): added after the 3a browser checks, linking to https://gemdb.com/free-scoop,
+image at images/free-scoop-banner.png (new folder). Sandeep owns: whether the link is live, the offer terms, where the image
+should live, and the banner's "you've" (a contraction, inside the image; accepted).
 
 MCP findings, 2026-10-13 (VM with MCP already on and Claude Code signed in; Claude Code extension 2.1.296, Sonnet 5, Manual
 mode). Verified:
