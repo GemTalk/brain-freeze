@@ -96,7 +96,11 @@ Stop the app, and start it again to see that your data is still there:
 
 ## Change the schema with code, not with a table update
 
-To improve the app, make each claim record the flavor of ice cream and the toppings that caused the brain freeze. In this step, you add two fields, `flavour` and `toppings`, to the `Claim` class and two questions to the claim form, while the app keeps running. First, an AI agent makes the change for you. Then, if you want to see how much work the agent did, you make the same change by hand.
+Brain Freeze has a good problem. A hypothetical study has revealed to GemDB that ice cream fans who can choose their flavors and toppings eat their treats much faster, and faster eating can lead to much more serious cases of brain freeze. To keep up, every claim needs to record the flavor and toppings behind the headache.
+
+In most databases, that means altering a table, migrating the data, and hoping nothing drifts. In GemDB, your code is the schema. You add two fields, `flavour` and `toppings`, to the `Claim` class, and GemDB keeps up atomically and safely. The app keeps running, and the thousands of claims already in the database stay exactly as they are. There is no migration.
+
+First, an AI agent makes the change for you. Then, if you want to see how much work the agent did, you make the same change by hand.
 
 ### Have an agent make the change
 
