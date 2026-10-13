@@ -278,7 +278,7 @@ The **Agent write access** setting in the GemDB view controls what the agent can
 - **cannot commit** (the default): the agent can read the data and change code, but it cannot save anything to the database.
 - **can commit**: the agent can read data, change code, create new data, and save all of its changes to the database.
 
-Before you start, ensure you have the **Claude Code for VS Code** extension from Anthropic installed in VS Code. When VS Code prompts you to trust the publisher, choose **Trust Publisher & Install**. Then sign in to Claude Code using your credentials.
+You already installed Claude Code and signed in when you had an agent make the schema change, so you are ready to connect it to GemDB.
 
 1. Optional: To let the agent change the database, click the **Agent write access** row once in the GemDB view so it reads **can commit**. GemDB restarts the MCP server, which disconnects any agent that is connected.
 2. In the GemDB view, click the **⋯** menu and choose **Connect an AI Agent to GemDB**.
@@ -351,8 +351,8 @@ VM (vscode-deb-claude + GemDB Code + Install Brain Freeze Demo + seed; MCP off; 
   again if the change is reapplied. The README does not say this; consider one sentence in the discard section: the discard
   reverts the code, not data already saved with it.
   (3) The agent's answers to its questions vary: first a form (choose an option, then Submit answers), then chat.
-- Prerequisite paragraph (Claude Code extension, trust publisher, sign in) now appears in 3a and again in "Connect an AI
-  agent". Decide whether to keep one.
+- Prerequisite paragraph (Claude Code extension, trust publisher, sign in) lives in 3a only (decided with Thomas,
+  2026-10-13); "Connect an AI agent" says the reader already has Claude Code set up.
 - CI: Steven's tests read this README's sh blocks. The new `git restore` and `gemdb tools/load.py` blocks have no console block
   on purpose (on a clean tree load.py prints "Nothing had changed", not the Loaded line). The agent steps cannot run in CI.
   Tests need updating, as noted above for the numbered headings.
