@@ -333,6 +333,12 @@ VM (vscode-deb-claude + GemDB Code + Install Brain Freeze Demo + seed; MCP off; 
   ran gemdb tools/load.py from its own shell, and left the change in the working tree (git status: six files modified, git
   log unchanged at 9dba1d0, empty stash list). No permission prompts in Auto mode for edits, greps, or git status. The form
   showed the lists; a new claim read "ice cream (Cherry, sprinkles, banana, whipped cream)"; CLM-001285 showed no flavour.
+- UPDATE 2026-10-13, second run with the draft's prompt wording: no Scope question appeared, no permission prompts, the
+  tabbed form needs an answer on every tab before Submit answers is active (Thomas), and the agent took about 90 seconds
+  after the form was submitted. It also ran gemdb tools/run_db_tests.py (9 modules pass). One run only: the Scope question
+  may have been avoided by the prompt wording or by this being the second run after a discard (not separated). That run used
+  the tutorial's flavor list plus one extra flavor ("Smidge-o-delight") and the tutorial's toppings, not the README's example
+  lists. The original note follows.
 - NOT yet verified: (1) the prompt wording in the draft ("for the tutorial: ... in my working tree, and ask me which ...")
   was written after the tested run, which used "add flavors and toppings to claims, but first ask me which flavors and
   toppings I want to offer" and drew a Scope question ("How should this land, given it collides with README step 3's
