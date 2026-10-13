@@ -150,7 +150,7 @@ The restore reverts the code, but not the data committed in the database. A clai
 
 If you are curious to see and try the specific changes the agent completed and tested in 90 seconds, follow the steps in the rest of the section.
 
-To keep the app running in its existing terminal, open a second terminal for this step: click **+** in the Terminal panel, or press **Ctrl+Shift+`**.
+To keep the app running in its existing terminal, open a second terminal in VS Code.
 
 Use the VS Code editor to make the following edits to the app's Python files and page templates, and then save each file (**Ctrl+S**). To find each spot, search the file (**Ctrl+F**) for the line named in each edit. Keep the indentation shown in each edit, because Python uses indentation to structure code.
 
