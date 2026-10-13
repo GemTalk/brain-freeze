@@ -148,7 +148,7 @@ The restore reverts the code, but not the data committed in the database. A clai
 
 ### Make the change yourself
 
-To see how much work the agent did for you, make the same change by hand.
+If you are curious to see and try the specific changes the agent completed and tested in 90 seconds, follow the steps in the rest of the section.
 
 To keep the app running in its existing terminal, open a second terminal for this step: click **+** in the Terminal panel, or press **Ctrl+Shift+`**.
 
