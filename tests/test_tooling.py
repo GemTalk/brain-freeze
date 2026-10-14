@@ -150,6 +150,7 @@ class TheDatabaseRunnerRunsEverything(unittest.TestCase):
             # cannot be one: run inside the database they would nest.
             "test_class_identity",
             "test_notebook_runs",   # spawns `gemdb tools/run_notebook.py`
+            "test_notebook_finds_its_checkout",  # spawns `gemdb` from ~/GemDB/db
             "test_ctrl_c",          # spawns the app under a terminal
             "test_tutorial_answer", # runs git against the checkout
             # And this one needs a session where `numbers` was never

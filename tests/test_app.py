@@ -92,7 +92,7 @@ class TheApp(unittest.TestCase):
         self.assertTrue(fresh, "no new claim on %s" % policy.policy_id)
         # The highest id, not the last position and not "the only one":
         # several tests file against the same policy, and ids are minted in
-        # sequence through `_next_id`, so the newest is the largest.
+        # sequence through `Book.issue`, so the newest is the largest.
         return max(fresh, key=lambda claim: claim.claim_id)
 
     def book(self):

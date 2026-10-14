@@ -1,8 +1,8 @@
 diff --git a/brainfreeze/model.py b/brainfreeze/model.py
-index cfad9e4..9683ce5 100644
+index e781934..897108a 100644
 --- a/brainfreeze/model.py
 +++ b/brainfreeze/model.py
-@@ -25,6 +25,13 @@ from .underwriting import COVERAGE_PLANS, risk_score, risk_tier
+@@ -40,6 +40,13 @@ def highest_serial(identifiers, floor):
  class Claim:
      """A claim filed against one cold-treat event."""
  
@@ -16,7 +16,7 @@ index cfad9e4..9683ce5 100644
      #: Which rule refused this claim, as a stable identifier, alongside
      #: the sentence in `reason`. A class attribute as well as an instance one:
      #: a claim written before the field existed has no slot of its own, and
-@@ -34,7 +41,7 @@ class Claim:
+@@ -49,7 +56,7 @@ class Claim:
      rule = None
  
      def __init__(self, claim_id, requested, approved, status, reason=None,
@@ -25,7 +25,7 @@ index cfad9e4..9683ce5 100644
          self.claim_id = claim_id
          #: Through `usd`, which refuses a float outright. Money enters the
          #: model only here, at Policyholder and at SavedQuote.
-@@ -44,6 +51,10 @@ class Claim:
+@@ -59,6 +66,10 @@ class Claim:
          self.reason = reason
          if rule is not None:
              self.rule = rule
@@ -53,10 +53,10 @@ index ec9da46..efce619 100644
  SPEED_LABELS = {"slow": "Slowly", "moderate": "About normal",
                  "fast": "All at once"}
 diff --git a/web/routes_html.py b/web/routes_html.py
-index 509db72..e5a55b6 100644
+index 92bdc09..18e3d97 100644
 --- a/web/routes_html.py
 +++ b/web/routes_html.py
-@@ -271,7 +271,7 @@ def claim_form(policy_id):
+@@ -280,7 +280,7 @@ def claim_form(policy_id):
          "claim_form.html", p=policy, triggers=forms.TRIGGERS, colds=forms.COLD_BANDS,
          portions=forms.PORTION_BANDS, speeds=forms.SPEED_BANDS,
          durations=forms.DURATION_BANDS, locations=forms.PAIN_LOCATIONS,
@@ -65,7 +65,7 @@ index 509db72..e5a55b6 100644
          warnings=warnings_for(policy, date.today()))
  
  
-@@ -303,7 +303,9 @@ def file_claim(policy_id):
+@@ -312,7 +312,9 @@ def file_claim(policy_id):
          approved=decision.amount,
          status=decision.status,
          reason=decision.reason,
@@ -74,10 +74,10 @@ index 509db72..e5a55b6 100644
 +        flavour=request.form.get("flavour") or None,
 +        toppings=request.form.getlist("toppings") or None)
      policy.add_event(brainfreeze.Event(
-         event_id=lookups.next_id([e.event_id for e in the_book.events],
-                           "EVT", 6, 1),
+         event_id=the_book.issue("EVT", 6, 1,
+                                 lambda: [e.event_id for e in the_book.events]),
 diff --git a/web/templates/claim_form.html b/web/templates/claim_form.html
-index e8918a0..44bc961 100644
+index c765f3b..65e63e1 100644
 --- a/web/templates/claim_form.html
 +++ b/web/templates/claim_form.html
 @@ -51,6 +51,17 @@
@@ -99,7 +99,7 @@ index e8918a0..44bc961 100644
        <span class="muted">{{ p.plan_name }}: {{ usd(p.coverage_limit) }} an episode,
          {{ usd(p.deductible) }} deductible.</span>
 diff --git a/web/templates/decision.html b/web/templates/decision.html
-index 7c589b8..1c2817e 100644
+index 0f05587..9bcf77e 100644
 --- a/web/templates/decision.html
 +++ b/web/templates/decision.html
 @@ -15,6 +15,8 @@

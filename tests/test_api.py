@@ -79,7 +79,7 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WEB = os.path.join(REPO_ROOT, "web")
 
 #: `app.py` keeps the wiring; the routes it registers live in these.
-ROUTE_MODULES = ("routes_html.py", "routes_api.py")
+ROUTE_MODULES = ("routes_html.py", "routes_api.py", "routes_ops.py")
 
 
 def read_web(filename):

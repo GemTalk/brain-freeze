@@ -5,8 +5,10 @@ __pycache__/
 # macOS
 .DS_Store
 
-# Agent worktrees and local tooling state.
-.claude/
+# Agent worktrees and local tooling state, but not the skills the repo
+# ships for agents.
+.claude/*
+!.claude/skills/
 
 # The acceptance suite's virtualenv (it carries a browser), and the
 # screenshots, payloads and logs a run leaves in artifacts/.

@@ -147,7 +147,8 @@ def quote_result():
     offer = brainfreeze.quote(**answers)
     the_book = lookups.book()
     saved = the_book.add_quote(brainfreeze.SavedQuote(
-        quote_id=lookups.next_id(lookups.quotes(the_book), "QTE", 6, 1),
+        quote_id=the_book.issue("QTE", 6, 1,
+                                lambda: lookups.quotes(the_book)),
         quoted_on=date.today(),
         score=offer.score,
         risk_tier=offer.risk_tier,
@@ -192,7 +193,8 @@ def accept_quote(quote_id):
 
     the_book = lookups.book()
     policy = brainfreeze.Policyholder(
-        policy_id=lookups.next_id([p.policy_id for p in the_book], "BF", 6, 100000),
+        policy_id=the_book.issue("BF", 6, 100000,
+                                 lambda: [p.policy_id for p in the_book]),
         sex=None,
         underwriting_base=brainfreeze.BASE_RISK,
         plan_name=plan_name,
@@ -297,16 +299,16 @@ def file_claim(policy_id):
 
     the_book = lookups.book()
     claim = brainfreeze.Claim(
-        claim_id=lookups.next_id([c.claim_id for c in the_book.claims],
-                          "CLM", 6, 1),
+        claim_id=the_book.issue("CLM", 6, 1,
+                                lambda: [c.claim_id for c in the_book.claims]),
         requested=requested,
         approved=decision.amount,
         status=decision.status,
         reason=decision.reason,
         rule=decision.rule)
     policy.add_event(brainfreeze.Event(
-        event_id=lookups.next_id([e.event_id for e in the_book.events],
-                          "EVT", 6, 1),
+        event_id=the_book.issue("EVT", 6, 1,
+                                lambda: [e.event_id for e in the_book.events]),
         event_date=today,
         trigger=request.form.get("trigger", "ice cream"),
         temperature_c=forms._band(forms.COLD_BANDS, request.form.get("cold")),

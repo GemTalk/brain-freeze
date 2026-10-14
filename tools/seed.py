@@ -42,6 +42,11 @@ from brainfreeze.money import format_usd, usd
 
 ROOT_KEY = "brainfreeze"
 
+#: Where this checkout is, recorded beside the book. A notebook starts in the
+#: database's own directory (~/GemDB/db), not in the folder the editor has
+#: open, so brain-freeze.ipynb reads this to find the code it imports.
+REPO_KEY = "brainfreeze_repo"
+
 
 # -- reading the CSVs -------------------------------------------------------
 # pandas writes an empty field for a missing value and the words True/False
@@ -219,6 +224,7 @@ def seed_database(argv):
 
     replacing = ROOT_KEY in gemdb.root
     gemdb.root[ROOT_KEY] = book
+    gemdb.root[REPO_KEY] = REPO
     gemdb.commit()
 
     report(book)

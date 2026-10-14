@@ -434,6 +434,59 @@ class QuotesAreObjects(unittest.TestCase):
         self.assertIs(book.quotes["QTE-000001"], self.saved)
 
 
+class IssuingIdentifiers(unittest.TestCase):
+    """`Book.issue`: the next id in a series, recorded on the book so two
+    app instances issuing at once write the same object and conflict,
+    rather than both handing out the same number."""
+
+    def test_a_new_series_starts_one_past_what_is_already_filed(self):
+        book = Book()
+        self.assertEqual(
+            book.issue("CLM", 6, 1, lambda: ["CLM-002171", "CLM-002172"]),
+            "CLM-002173")
+
+    def test_an_empty_series_starts_at_its_start(self):
+        self.assertEqual(Book().issue("BF", 6, 100000, list), "BF-100000")
+        self.assertEqual(Book().issue("QTE", 6, 1, list), "QTE-000001")
+
+    def test_after_that_the_book_counts_and_taken_is_not_consulted(self):
+        # Exactly what a second instance with a stale view would pass:
+        # the same ids as the first. The book, not the list, decides.
+        book = Book()
+        asked = []
+
+        def taken():
+            asked.append(1)
+            return ["CLM-000005"]
+
+        self.assertEqual(book.issue("CLM", 6, 1, taken), "CLM-000006")
+        self.assertEqual(book.issue("CLM", 6, 1, taken), "CLM-000007")
+        self.assertEqual(book.serials, {"CLM": 7})
+        self.assertEqual(len(asked), 1, "listing every claim on each issue "
+                                        "widens the window a retry loses in")
+
+    def test_each_series_counts_on_its_own(self):
+        book = Book()
+        book.issue("CLM", 6, 1, list)
+        self.assertEqual(book.issue("EVT", 6, 1, list), "EVT-000001")
+
+    def test_an_id_that_does_not_parse_is_skipped(self):
+        self.assertEqual(
+            Book().issue("CLM", 6, 1,
+                         lambda: ["CLM-000003", "typed by hand", "CLM-x"]),
+            "CLM-000004")
+
+    def test_a_book_committed_before_serials_existed_gets_its_own(self):
+        book = Book()
+        del book.serials            # as an old book has no slot of its own
+        self.assertIsNone(book.serials)
+        self.assertEqual(book.issue("QTE", 6, 1, lambda: ["QTE-000009"]),
+                         "QTE-000010")
+        self.assertEqual(book.serials, {"QTE": 10})
+        self.assertIsNone(Book.serials, "a dict on the class would be shared "
+                                        "by every book that fell through to it")
+
+
 def a_policyholder(**overrides):
     """One policyholder with no history, the way a sale makes them."""
     fields = dict(

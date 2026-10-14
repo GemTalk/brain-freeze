@@ -13,10 +13,15 @@ route still needs a restart: Flask builds its rule table once.
 
 Anything a view uses has to be reached the same way -- `lookups.book()`,
 `pages.render(...)` -- because `from pages import render` is a copy too.
+
+The dispatcher is also where a view whose commit lost to another session's
+is run again (conflicts.py), so no view has to say so for itself.
 """
 
 import importlib
 import sys
+
+import conflicts
 
 
 class Routes:
@@ -53,7 +58,8 @@ class Routes:
     @staticmethod
     def dispatcher(module, name):
         def dispatch(**arguments):
-            return getattr(module, name)(**arguments)
+            return conflicts.retrying(
+                lambda: getattr(module, name)(**arguments))
 
         dispatch.__name__ = name
         return dispatch

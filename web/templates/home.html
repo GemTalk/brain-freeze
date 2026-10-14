@@ -1,18 +1,19 @@
 {% extends "base.html" %}
 {% import "_macros.html" as ui with context %}
+{% import "_brand.html" as brand with context %}
 
 {% block content %}
 <div class="wrap">
   <section class="hero">
-    <span class="flake" style="right:-2rem; top:-3rem">{{ ui.icon('snowflake', 200) }}</span>
+    <span class="flake" style="right:-2rem; top:-3rem">{{ brand.icon(200) }}</span>
     <div class="hero-grid">
       <div>
         <p class="eyebrow">Make-believe insurance, real database</p>
         <h1>Cover for the coldest moments.</h1>
-        <p class="sub">Brain Freeze insures kids against ice-cream headaches.
-          The cover is pretend; every quote, policy and claim is a real Python
-          object in GemDB, priced by the same rules the notebook and the agent
-          use.</p>
+        <p class="sub">{{ brand.short_name }} insures kids against ice-cream
+          headaches. The cover is pretend; every quote, policy and claim is a
+          real Python object in GemDB, priced by the same rules the notebook
+          and the agent use.</p>
         <div class="actions">
           <a class="btn lg" href="{{ url_for('quote_form') }}">Start a quote {{ ui.icon('arrow') }}</a>
           <a class="btn ghost" href="{{ url_for('claims') }}">Browse claims</a>
