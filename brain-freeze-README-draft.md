@@ -100,7 +100,7 @@ Brain Freeze has a good problem. A hypothetical study has revealed to GemDB that
 
 In most databases, that means altering a table, migrating the data, and hoping nothing drifts. In GemDB, your code is the schema. You add two fields, `flavour` and `toppings`, to the `Claim` class, and GemDB keeps up atomically and safely. The app keeps running, and the thousands of claims already in the database stay exactly as they are. There is no migration.
 
-First, an AI agent makes the change for you. Then, if you want to see how much work the agent did, you make the same change by hand.
+First, an AI agent makes the change for you. Then, if you are curious about the details, you can make the primary manual changes yourself.
 
 ### Use a Brain Freeze agent to make the change
 
@@ -132,7 +132,7 @@ As a thank you for trying the demo so far, click the banner for a real ice cream
 
 ### Discard the agent's changes
 
-To try the agent again with different choices, or to make the same change by hand in the next section, discard what the agent did. To keep the app running in its existing terminal, open a second terminal in VS Code, and run:
+To try the agent again with different choices, or to make the manual changes in the next section, discard what the agent did. To keep the app running in its existing terminal, open a second terminal in VS Code, and run:
 
 ```sh
 git restore brainfreeze web
@@ -142,7 +142,7 @@ git restore brainfreeze web
 gemdb tools/load.py
 ```
 
-The first command restores the six files the agent changed. The second loads the original classes back into the database. To see the result, reload the claim form. The **Which flavour?** and **Anything on top?** questions are gone now.
+The first command restores the files the agent changed. The second loads the original classes back into the database. To see the result, reload the claim form. The **Which flavour?** and **Anything on top?** questions are gone now.
 
 The restore reverts the code, but not the data committed in the database. A claim you filed while the change was in place keeps the flavor and toppings data it was saved with. The original `Claim` class does not read them, so the claim page does not show them, since the page no longer renders those values. You can still retrieve the data stored with the claim. If you make the change again, the claim shows them again. In GemDB, objects and the classes that define them are stored separately, so changing a class does not rewrite the objects that were already saved.
 
@@ -267,11 +267,11 @@ The notebook runs inside the database, so the policies and claims you loaded are
 
 The notebook and the web app are separate sessions. Each session sees the database as of its last transaction, so an analysis does not change partway through while other sessions commit. The last section of the notebook, **Seeing another session's commit**, shows this:
 
-1. Scroll to that section. After **Run All**, the cell that starts `print("policies:"` shows how many policies the notebook sees, for example `policies: 901`. Note the number.
+1. Scroll to that section. After **Run All**, the cell that starts `print("policies:"` shows how many policies the notebook sees. Note the number.
 2. In your browser, buy another policy: click **Start a quote**, answer the questions, click **See my prices**, and choose a plan.
 3. In the notebook, run only the `policies:` cell: click ▷ to the left of the cell, or click in the cell and press **Ctrl+Enter**. Do not click **Run All** or the arrow buttons in the cell's toolbar, because those also run the cells below it. The number has not changed, because the notebook still sees the database as it was.
 4. In the notebook toolbar, click **Refresh Notebook View**. A message confirms: "This notebook now sees every commit made so far." If **Refresh Notebook View** shows an error about uncommitted changes, run the notebook's next code cell instead. It commits your session's changes first, and then takes the new view.
-5. Run only the `policies:` cell again. The count now includes the policy you just bought, for example `policies: 902`.
+5. Run only the `policies:` cell again. The count now includes the policy you just bought.
 
 ---
 
