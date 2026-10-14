@@ -15,6 +15,7 @@ The Brain Freeze demo gives you hands-on experience with GemDB:
 - [Change the schema](#change-the-schema-with-code-not-with-a-table-update) by having an AI agent use Python to add flavors and toppings to claims while the app keeps running.
 - [Explore some of the detailed coding in a Jupyter notebook](#explore-the-data-in-a-jupyter-notebook) to learn how GemDB stores this data.
 - [Connect an AI agent](#connect-an-ai-agent) to the database using GemDB's provided MCP server, and ask it questions.
+- Optionally, [make it your own](#make-it-your-own) by having an AI agent rebrand the app.
 
 ---
 
@@ -315,196 +316,21 @@ To switch, click the **Agent write access** row once. GemDB restarts the MCP ser
 
 ---
 
-<!--
-DRAFT NOTES — remove before publishing
+## Make it your own
 
-Remaining sections: none. The MCP section ("Connect an AI agent") is drafted; its menu path, the default state of
-Agent write access, and the numbers still need a clean first-time pass (see MCP findings below).
+Brain Freeze's look lives in three template files, so an AI agent can give the app a new brand by changing those files. The repository includes a `rebrand` skill for Claude Code, [`.claude/skills/rebrand/SKILL.md`](.claude/skills/rebrand/SKILL.md), and [`BRANDING.md`](BRANDING.md) explains how the look is put together. This step is optional.
 
-Verified on a clean VM pass, 2026-10-12 (ubuntu-demo restored to vscode-deb-base; GemDB Code 1.6.0 from the
-Marketplace; Install Brain Freeze Demo cloned brain-freeze 9dba1d0, which is current main, with no prompt;
-git was already installed):
-- Before you start: the extension starts setup by itself on install; the GemDB view shows Running, Database
-  ready, and AI agent access off; Restricted Mode banner, Manage, Trust, and the Workspace Trust tab; gemdb is
-  on the PATH of VS Code terminals; Ctrl+` and Ctrl+Shift+` open a terminal (also over Remote Desktop).
-- Load the demo data: seed output (900, 4993, 2172 claims, Sundae 179.97); Persisted Objects shows greeting,
-  brainfreeze, and brainfreeze_repo after refresh.
-- Launch the web app: banner, first start about 30 seconds, quote, plans, ID card BF-100900, claim, Policies
-  (policy number order, 50 a page), Claims (newest first), Ctrl+C stop and restart keep the data.
-- Change the schema: manual edits a-e, gemdb tools/load.py output (two lines), new form questions, new claim
-  shows flavour and toppings, old claim shows none.
-- Jupyter: kernel preselected; Run All runs without errors in about 15 seconds and cell 1 needs no
-  BRAINFREEZE_REPO (Steven's fix works); the Refresh Notebook View toolbar button works and shows "This notebook
-  now sees every commit made so far."; running a cell with the left play button or Ctrl+Enter keeps the old
-  count until the refresh; the toolbar arrow "Execute Cell and Below" also runs the refresh cell below it.
-Not yet verified: the "Go to a policy" Find box; the exact text of the Refresh Notebook View error (when the
-notebook session has uncommitted changes).
+1. In the Claude Code sidebar, click **+ New session**.
+2. In the chat, enter `/rebrand` followed by a description of your brand, for example its name, main color, fonts, and a logo idea.
+3. Wait for the agent to finish. It creates a branch for the brand, changes the brand files, checks the colors for contrast, and summarizes what it changed.
+4. Reload the app in your browser. The pages show your brand, with no restart.
 
-Step 3 restructured 2026-10-13 after Thomas met Sandeep: "Have an agent make the change" (3a), "Discard the agent's changes",
-then "Make the change yourself" (the manual edits a-e, now optional, to see how much work the agent did). Verified on a clean
-VM (vscode-deb-claude + GemDB Code + Install Brain Freeze Demo + seed; MCP off; default Auto mode; Claude Code 2.1.296):
-- The skill ran from a slash command at the start of the message; the agent asked for flavors and toppings (a form with
-  tabs, then chat questions), edited six files (model.py, forms.py, routes_html.py, claim_form.html, decision.html, wire.py),
-  ran gemdb tools/load.py from its own shell, and left the change in the working tree (git status: six files modified, git
-  log unchanged at 9dba1d0, empty stash list). No permission prompts in Auto mode for edits, greps, or git status. The form
-  showed the lists; a new claim read "ice cream (Cherry, sprinkles, banana, whipped cream)"; CLM-001285 showed no flavour.
-- UPDATE 2026-10-13, second run with the draft's prompt wording: no Scope question appeared, no permission prompts, the
-  tabbed form needs an answer on every tab before Submit answers is active (Thomas), and the agent took about 90 seconds
-  after the form was submitted. It also ran gemdb tools/run_db_tests.py (9 modules pass). One run only: the Scope question
-  may have been avoided by the prompt wording or by this being the second run after a discard (not separated). That run used
-  the tutorial's flavor list plus one extra flavor ("Smidge-o-delight") and the tutorial's toppings, not the README's example
-  lists. The original note follows.
-- NOT yet verified: (1) the prompt wording in the draft ("for the tutorial: ... in my working tree, and ask me which ...")
-  was written after the tested run, which used "add flavors and toppings to claims, but first ask me which flavors and
-  toppings I want to offer" and drew a Scope question ("How should this land, given it collides with README step 3's
-  tutorial?", options: Lasting change and rewrite step 3 (Recommended); Lasting change, leave the tutorial broken; Just run the
-  tutorial step). Retest with the draft wording; the draft keeps the Scope answer in prose in case it still appears.
-  (2) The discard is VERIFIED (2026-10-13, app running, no restart): git restore brainfreeze web, then gemdb tools/load.py
-  (prints the usual "Loaded ... Committed." line); the claim form reverted to the original; CLM-002173, filed with a flavor
-  under the agent's change, then shows no flavor and no error. The flavor is still stored on that claim (verified with
-  gemdb -c: vars(claim) shows 'flavour': 'Cherry' and 'toppings': ('Sprinkles', 'Banana', 'Whipped cream')) and would show
-  again if the change is reapplied. The README does not say this; consider one sentence in the discard section: the discard
-  reverts the code, not data already saved with it.
-  (3) The agent's answers to its questions vary: first a form (choose an option, then Submit answers), then chat.
-- Prerequisite paragraph (Claude Code extension, trust publisher, sign in) lives in 3a only (decided with Thomas,
-  2026-10-13); "Connect an AI agent" says the reader already has Claude Code set up.
-- CI: Steven's tests read this README's sh blocks. The new `git restore` and `gemdb tools/load.py` blocks have no console block
-  on purpose (on a clean tree load.py prints "Nothing had changed", not the Loaded line). The agent steps cannot run in CI.
-  Tests need updating, as noted above for the numbered headings.
-- Test failures found when the agent ran the unit tests (for Steven): test_tutorial_answer fails once the change is applied
-  (expected); three tests.test_notebook failures (TheFirstCellFindsACheckoutBelowWhereTheKernelStarted) and test_ctrl_c
-  (AssertionError: 0 == 0 at assertNotEqual(done.returncode, 0); probably expects the pre-1.6.0 Ctrl+C failure).
-- The agent ran `git stash && unittest; git stash pop` without prompting in Auto mode. The stash list was empty afterward.
-- The VS Code toast "Do you want to install the recommended 'Python' extension from Microsoft?" appears repeatedly during
-  agent work. Ask James what a reader should do. The agent's form note ("These two questions went in after 900 policies and
-  4,993 episodes were already committed") is copied from the answer patch. It matches a freshly seeded book (900 policies, 4,993 episodes) but is hardcoded, so
-  it is stale once a reader adds policies.
+To go back to the original look, run:
 
-Free-scoop banner (Sandeep's request, 2026-10-13): added after the 3a browser checks, linking to https://gemdb.com/free-scoop,
-image at images/free-scoop-banner.png (new folder). Sandeep owns: whether the link is live, the offer terms, where the image
-should live, and the banner's "you've" (a contraction, inside the image; accepted).
+```sh
+git restore web features
+```
 
-MCP findings, 2026-10-13 (VM with MCP already on and Claude Code signed in; Claude Code extension 2.1.296, Sonnet 5, Manual
-mode). Verified:
-- `/mcp` > MCP servers shows `gemdb` under Local (1), Connected. `schema-evolution` and `rebrand` appear in the slash menu
-  among many built-in commands. The agent used the `schema-evolution` skill on its own (shown as a Skill call).
-- Prompt wording: "Do you want to proceed with mcp__gemdb__eval_python?" with 1 Yes, 2 Yes, allow
-  mcp__gemdb__eval_python for this project (just you), 3 No, and "Tell Claude what to do instead". Details shows the call as
-  JSON with the Python in one "code" string. Each GemDB tool prompts separately (eval_python, python_module_state, status,
-  abort). Bash find and grep and file reads did not prompt in Manual mode; git apply and gemdb prompted.
-- "Which plan has the highest loss ratio?" answered Sundae 0.479, Parfait 0.35, Sprinkle 0.263, 906 policies (900 seeded plus
-  6 test policies); numbers on a clean 900-policy book not yet checked. No plan is above 1.0.
-- Connect dialogs: with an existing entry, GemDB asks "Claude Code already has a server named "gemdb" for brain-freeze.
-  Replace it?" (Cancel / Replace It), then shows "Updated Claude Code to GemDB in brain-freeze. Start a new Claude Code
-  session to use it: a session that is already running loaded its MCP servers when it started." plus the command it ran
-  (claude mcp add --transport http --scope local gemdb http://127.0.0.1:50390/mcp), "It applies to this folder only.", and
-  an undo command (claude mcp remove gemdb --scope local). The first-time message presumably says "Connected" (from
-  2026-10-12). `claude` is not on the terminal PATH (GemDB uses the extension's bundled binary under
-  ~/.vscode/extensions/anthropic.claude-code-*/resources/native-binary/claude), so the undo command in that dialog does not
-  run in a VS Code terminal. Ask James whether the dialog should say how to run it.
-- The GemDB view's ⋯ menu: Connect an AI Agent to GemDB, Show Log, Reinstall the Python Execution Engine, Restart the MCP
-  Server, Collect Garbage Now, Stop a Database Session..., Install Brain Freeze Demo, Uninstall GemDB.
-- Agent write access is a toggle (click the row). Tooltip with can commit: "Agent sessions can change your database and commit.
-  Click to make them read-only: their worker gems log in as a database user that cannot commit. The first time, GemDB creates
-  that user. Either way the MCP server restarts, which disconnects any agent currently connected." With cannot commit
-  (McpReadOnly user) the AI agent access row reads "listening, read-only". Default on a fresh install not yet seen.
-- The extension is "Claude Code for VS Code" by Anthropic; installing prompts "Do you trust the publisher "Anthropic"?"
-  (Learn More / Cancel / Trust Publisher & Install).
-Problems found, for Steven, James, or Sandeep (not for the README):
-- The first eval_python call failed with ModuleNotFoundError: No module named 'brainfreeze' (the MCP session did not have the
-  checkout on sys.path). The agent recovered after several calls by reading web/app.py (REPO, sys.path.insert) and inserting
-  the path itself, plus a wasted python_module_state call (Missing required argument(s): name). It did not recur later,
-  probably because the path insert persists in the database session. Retest as the first action on a fresh GemDB start.
-- The agent read model.py and analysis.py (and found analysis.least_profitable_plan) before querying, so "needs no
-  description of your schema" in the original step 5 is not strictly true.
-- Asked to add flavour and toppings, the agent invoked schema-evolution, found features/answers/step3.patch, and applied it
-  with git apply (six files: model.py, forms.py, routes_html.py, claim_form.html, decision.html, wire.py) instead of writing
-  the change. Steven's call whether the answer patch should stay in the repo.
-- `gemdb tools/load.py` failed in the agent's Bash tool (`gemdb: command not found`); the agent did the equivalent import and
-  commit through eval_python. gemdb is on the PATH of VS Code terminals only. Question for James.
-- A verification read left the session in a transaction. mcp__gemdb__status reported uncommittedChanges=true ("No tool
-  commits for you: call commit to persist them or abort to discard them. They are lost when this session ends: 30 minutes of
-  inactivity."); the agent called mcp__gemdb__abort ("Transaction aborted; uncommitted changes discarded and the view
-  refreshed.").
-- The agent ran unittest unasked. Three tests in tests.test_notebook (TheFirstCellFindsACheckoutBelowWhereTheKernelStarted)
-  failed under the system python3; the agent says they are unrelated, not verified. test_tutorial_answer failed because the
-  answer patch was applied.
-- At least 11 permission prompts for one schema change in Manual mode. The README should say prompts are normal.
-- The permission-prompt paragraph in the README was written from Manual mode, which Thomas switched to for testing. A
-  freshly signed-in Claude Code (extension 2.1.296) starts in Auto mode ("Auto mode is now Claude Code's default
-  permission mode ... runs the ones it assesses as lower-risk, and blocks the rest"), so readers may see fewer prompts, or
-  different ones. Retest the loss-ratio question in the default mode on the clean pass before keeping that paragraph.
-- VS Code showed "Do you want to install the recommended 'Python' extension from Microsoft?" during the session. Ask James
-  what a reader should do.
-- The new claim form note says "after 900 policies and 4,993 episodes" and the UI spells flavour with a "u".
-
-Test compatibility (Steven's CI reads this README):
-- Steven agreed (2026-10-06) to drop the numbered headings; his tests find steps by `## N. `,
-  so the tests need updating to match before this merges.
-- Commands go in ```sh blocks; the ```console block after one must contain only lines that
-  appear in the real output (no "..." lines). Other blocks (python, html) are not checked.
-- Steven's tests expect the Jupyter step to contain exactly one python block, `gemdb.refresh()`.
-  The draft has none: it uses the Refresh Notebook View toolbar button, with the notebook's own
-  commit-then-refresh cell as a fallback in prose (the button refuses, like gemdb.refresh(), while the
-  session has uncommitted changes; needs_commit() was False after Run All on the VM). Tests need updating.
-- `gemdb web/app.py` is skipped by the tests (long-running), so its console block is not checked.
-
-After the README: edit the intro (first markdown cell) of brain-freeze.ipynb. It is wordy
-("no connection string, no driver, no query language and no result set"), internal-facing
-(GemStone session, __file__, working directory), says to pick the kernel (VS Code already picks
-GemDB (Python in the database)), and has an em dash.
-
-Open decisions:
-- Jupyter, non-default install location: the default install needs nothing (verified 2026-10-12). Steven's
-  fix (e4167ce) finds the checkout from BRAINFREEZE_REPO, then from where gemdb tools/seed.py ran (recorded in
-  the database as gemdb.root["brainfreeze_repo"]), then from ~/GemDB/brain-freeze. Untested for a copy
-  cloned elsewhere; a note is probably not needed if the reader ran seed.py from that copy.
-- Notebook intro (queued): its first markdown cell still says "Pick the GemDB kernel", still describes the
-  checkout path as something "said out loud", and uses em dashes. Cleaning up the notebook's wording is a
-  separate job after the README.
-- Step 2: stop and restart is now written (Ctrl+C verified on the VM, 2026-10-12, GemDB Code 1.6.0). The terminal
-  still prints topaz-style lines ("[Sending soft break]", "Near line 155 of file .../gemdb-run.tpz",
-  "ERROR 3004 , a ExitClientError occurred (error 3004)", "Logging out session 1."). Ask James whether
-  the ERROR 3004 line can be hidden; until then the step says "a few lines about logging out".
-- Future enhancement, after the README is done (Thomas, 2026-10-12): ask Steven and Sandeep whether to run the
-  notebook before and after step 3 so a reader can compare. Idea: Run All before step 3 as a baseline; after
-  `gemdb tools/load.py`, run the notebook's commit-then-refresh cell and compare, with a scratch cell that prints
-  the stored attributes of an old claim and a new one (no existing cell shows claim fields). Not part of the
-  README now.
-- Step 2: "Go to a policy" + Find is written from the screenshot only. Not yet tested: enter BF-100900, click Find.
-- Spelling: README prose uses American "flavor"; code and on-screen labels keep the app's British
-  spelling (`flavour`, "Which flavour?", "Favourite cold treat"). Ask Steven whether to switch the
-  app to American spelling ("favourite" is in 15 files, including the data field `favourite_trigger`).
-- Step 3: Steven's answer (features/answers/step3.patch) also changes web/wire.py (the JSON API).
-  Not needed for the tutorial; confirm with Steven whether step 5's agent needs it.
-- Seed output: the console block shows the first and last lines only. Show more as plain text?
-- The gemdb -c one-liner is long and quote-heavy. seed.py ends with a friendlier hint
-  (book = gemdb.root["brainfreeze"]; book["BF-100539"].total_paid). Keep the one-liner or present it differently?
-- Git: the one-click install needs git on the machine. README prerequisite, or should GemDB Code check for it?
-- Install Brain Freeze Demo: answered. It clones to ~/GemDB/brain-freeze with no prompt (GemDB Code
-  CHANGELOG, no folder prompt since 1.5.2; verified on 1.6.0). It clones the current main, so the README
-  must stay in step with main. The command does not check for git (src/demo.ts).
-- Should the README mention the AI agent access (mcp) step, or leave it to the MCP section?
-- Requirements statement (Thomas, 2026-10-13): add one near "Before you start": GemDB Code on a supported platform, a
-  Claude account that can sign in to Claude Code, and a window large enough for the chat and the app. Write it after the
-  clean pass; do not say anything about permission modes or effort levels (readers' settings vary).
-- MCP section clean first-time pass DONE 2026-10-13 (vscode-deb-claude + GemDB Code 1.6.0 + seed; MCP off at the start). Verified:
-  the view's ⋯ menu > Connect an AI Agent to GemDB > dialog "Turn on GemDB's MCP server?" (Cancel / Turn It On; shown only
-  while the server is off; second time the picker opens directly) > client picker > Claude Code > message "Connected Claude Code
-  to GemDB in brain-freeze." with the claude mcp add command; gemdb appears at the TOP of /mcp > MCP servers, under Local (1),
-  Connected, only after Claude Code is chosen. The default is "can commit" (the Agent write access row appears only once MCP is
-  on). curl http://127.0.0.1:50390/mcp answers 400 "Missing MCP-Session-Id header (call initialize first)" (server up). The loss-
-  ratio question in Auto mode: no permission prompts, about 21 tool calls (Thomas counted), no ModuleNotFoundError (the agent
-  used list_python_methods and describe_python_class this time; Thomas wonders if the 2026-10-13 morning failure happened
-  because the web app was not running, untested), answer Sundae 0.477 ($29,215.70 / $61,232.81, 348 policies), Parfait 0.357
-  (137), Sprinkle 0.263 (420), 905 policies. The agent opened with status (uncommittedChanges=true) and abort unprompted.
-- Sandeep's note (Thomas, 2026-10-13): the README uses Claude Code, but leave room for readers to try other LLMs/agents.
-  The client picker offers Claude Code, Claude Desktop (JSON for claude_desktop_config.json), Cursor (JSON for
-  ~/.cursor/mcp.json) and Something else (just the URL, http://127.0.0.1:50390/mcp). Proposed sentence (not applied): "This
-  step uses Claude Code. Other agents that support MCP can connect to the same server: the client list also offers Claude
-  Desktop and Cursor, or the URL for any other client."
-- OLD (superseded) MCP section list, still to settle on a clean first-time pass (start from vscode-deb-claude, or the current VM): the first-time menu path and whether
-  **Turn It On** exists; the default state of Agent write access (the draft says cannot commit is the default, from
-  Thomas; confirm) and whether the loss-ratio question works with cannot commit (untested; the test ran with can commit); whether the first question hits
-  ModuleNotFoundError. (The agent's schema change is written in step 3 and the README quotes no numbers; both closed.)
--->
+```sh
+git switch main
+```
