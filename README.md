@@ -1,14 +1,14 @@
-# Brain Freeze Insurance
+# Ice Cream Brain Freeze Insurance
 
-Brain Freeze is a demo app for a fictional insurer that offers friendly coverage for cold-stimulus headaches. It runs on GemDB, which supplies the Python environment and a persistent, object-oriented database. The database stores the data for quotes, policies, and claims, such as each policyholder's age, plan, and premium, and each claim's calculated payment.
+Ice Cream Brain Freeze Insurance is a demo app for a fictional insurer that offers friendly coverage for cold-stimulus headaches. It runs on GemDB, which supplies the Python environment and a persistent, object-oriented database. The database stores the data for quotes, policies, and claims, such as each policyholder's age, plan, and premium, and each claim's calculated payment.
 
-The Brain Freeze demo is designed to let you explore some of the basic properties of GemDB databases. But just as important, after you complete the demo, we want you to explore and see how GemDB guarantees ACID (atomic, consistent, isolated, durable) transactions for data that must be correct. After you see how agent-friendly we have made GemDB, reach out to us to learn how to code with GemDB and launch your own application.
+The Ice Cream Brain Freeze demo is designed to let you explore some of the basic properties of GemDB databases. But just as important, after you complete the demo, we want you to explore and see how GemDB guarantees ACID (atomic, consistent, isolated, durable) transactions for data that must be correct. After you see how agent-friendly we have made GemDB, reach out to us to learn how to code with GemDB and launch your own application.
 
-Brain Freeze is a demo, not real insurance.
+Ice Cream Brain Freeze is a demo, not real insurance.
 
 **Note:** Found this repo on GitHub? To run the demo, install [GemDB Code](https://marketplace.visualstudio.com/items?itemName=GemTalkSystems.gemdb) and choose **Install Brain Freeze Demo** from its Getting Started page.
 
-The Brain Freeze demo gives you hands-on experience with GemDB:
+The Ice Cream Brain Freeze demo gives you hands-on experience with GemDB:
 
 - [Load](#load-the-demo-data) sample policies and claims into the database.
 - [Launch the web app](#launch-the-web-app), get a quote, buy a policy, and file a claim.
@@ -21,7 +21,7 @@ The Brain Freeze demo gives you hands-on experience with GemDB:
 
 ## Before you start
 
-These steps set up the Brain Freeze demo in VS Code, using the GemDB Code extension. GemDB Code installs the database and the demo for you.
+These steps set up the Ice Cream Brain Freeze demo in VS Code, using the GemDB Code extension. GemDB Code installs the database and the demo for you.
 
 1. In VS Code, install **GemDB Code** and follow its Getting Started steps. Wait until the GemDB panel shows **Database: ready**.
 2. From the same Getting Started page, choose **Install Brain Freeze Demo**. GemDB Code clones this repo into `~/GemDB/brain-freeze` and opens it in VS Code.
@@ -79,18 +79,18 @@ Brain Freeze Insurance is running.
   Open:  http://127.0.0.1:5050/
 ```
 
-The initial start takes about 30 seconds, so leave this terminal running while the startup completes. After these lines appear, open the URL in a web browser on the same computer to see the website that Brain Freeze customers use to get a quote, buy a policy, and file a claim.
+The initial start takes about 30 seconds, so leave this terminal running while the startup completes. After these lines appear, open the URL in a web browser on the same computer to see the website that Ice Cream Brain Freeze customers use to get a quote, buy a policy, and file a claim.
 
 Buy a policy:
 
 1. Click **Start a quote**.
 2. Answer the five questions, and click **See my prices**.
-3. Choose a plan, for example **Choose Sundae**. Brain Freeze shows the new policy's ID card, with its policy number (for example, `BF-100900`).
+3. Choose a plan, for example **Choose Sundae**. Ice Cream Brain Freeze shows the new policy's ID card, with its policy number (for example, `BF-100900`).
 
 File a claim against it:
 
 1. On the ID card, click **File a claim**.
-2. Answer the questions, and click **Send the claim**. The claim displays your Brain Freeze Insurance payout.
+2. Answer the questions, and click **Send the claim**. The claim displays your Ice Cream Brain Freeze Insurance payout.
 
 Every policyholder is listed under **Policies**, in policy number order, so your latest policies display on the last page. As a convenient alternative, in the **Go to a policy** search, enter a policy number and click **Find**. Every claim is listed under **Claims**, newest first. As each page loads, the app's terminal lists the request.
 
@@ -105,15 +105,15 @@ Stop the app, and start it again to see that your data is still there:
 
 ## Change the schema with code, not with a table update
 
-Brain Freeze has a good problem. A hypothetical study has revealed to GemDB that ice cream fans who can choose their flavors and toppings eat their treats much faster, and faster eating can lead to much more serious cases of brain freeze. To keep up, every claim needs to record the flavor and toppings behind the headache.
+Ice Cream Brain Freeze has a good problem. A hypothetical study has revealed to GemDB that ice cream fans who can choose their flavors and toppings eat their treats much faster, and faster eating can lead to much more serious cases of brain freeze. To keep up, every claim needs to record the flavor and toppings behind the headache.
 
 In most databases, that means altering a table, migrating the data, and hoping nothing drifts. In GemDB, your code is the schema. You add two fields, `flavour` and `toppings`, to the `Claim` class, and GemDB keeps up atomically and safely. The app keeps running, and the thousands of claims already in the database stay exactly as they are. There is no migration.
 
 First, an AI agent makes the change for you. Then, if you are curious about the details, you can make the primary manual changes yourself.
 
-### Use a Brain Freeze agent to make the change
+### Use an Ice Cream Brain Freeze agent to make the change
 
-The repository includes a `schema-evolution` skill for Claude Code, [`.claude/skills/schema-evolution/SKILL.md`](.claude/skills/schema-evolution/SKILL.md). GemDB designed it to change the data schema using Python. The agent adds a field to the classes that GemDB stores and carries the field through the claim form, the claim page, and the JSON API. Finally, the agent loads the changes into the running database and runs the unit tests to ensure the schema changes are live and ready to use. All of this happens without shutting down the Brain Freeze app.
+The repository includes a `schema-evolution` skill for Claude Code, [`.claude/skills/schema-evolution/SKILL.md`](.claude/skills/schema-evolution/SKILL.md). GemDB designed it to change the data schema using Python. The agent adds a field to the classes that GemDB stores and carries the field through the claim form, the claim page, and the JSON API. Finally, the agent loads the changes into the running database and runs the unit tests to ensure the schema changes are live and ready to use. All of this happens without shutting down the Ice Cream Brain Freeze app.
 
 Before you start, ensure you have the **Claude Code for VS Code** extension from Anthropic installed in VS Code. When VS Code prompts you to trust the publisher, choose **Trust Publisher & Install**. Then sign in to Claude Code using your credentials.
 
@@ -318,7 +318,7 @@ To switch, click the **Agent write access** row once. GemDB restarts the MCP ser
 
 ## Rebrand the website to your needs
 
-Brain Freeze's look lives in three template files, so an AI agent can give the app a new brand by changing those files. The repository includes a `rebrand` skill for Claude Code, [`.claude/skills/rebrand/SKILL.md`](.claude/skills/rebrand/SKILL.md), and [`BRANDING.md`](BRANDING.md) explains how the look is put together. This step is optional.
+Ice Cream Brain Freeze's look lives in three template files, so an AI agent can give the app a new brand by changing those files. The repository includes a `rebrand` skill for Claude Code, [`.claude/skills/rebrand/SKILL.md`](.claude/skills/rebrand/SKILL.md), and [`BRANDING.md`](BRANDING.md) explains how the look is put together. This step is optional.
 
 1. In the Claude Code sidebar, click **+ New session**.
 2. In the chat, enter `/rebrand` followed by a description of your brand, for example its name, main color, fonts, and a logo idea.
@@ -334,3 +334,5 @@ git restore web features
 ```sh
 git switch main
 ```
+
+<img referrerpolicy="no-referrer-when-downgrade" src="https://static.scarf.sh/a.png?x-pxid=89090a6c-a9b0-4352-8202-1d4149dfa189" />
