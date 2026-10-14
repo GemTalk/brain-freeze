@@ -132,7 +132,7 @@ As a thank you for trying the demo so far, click the banner for a real ice cream
 
 ### Discard the agent's changes
 
-To try the agent again with different choices, or to make the same change by hand in the next section, discard what the agent did. In a second terminal, so the app keeps running in the first (click **+** in the Terminal panel, or press **Ctrl+Shift+`**), run:
+To try the agent again with different choices, or to make the same change by hand in the next section, discard what the agent did. To keep the app running in its existing terminal, open a second terminal in VS Code, and run:
 
 ```sh
 git restore brainfreeze web
@@ -148,7 +148,7 @@ The restore reverts the code, but not the data committed in the database. A clai
 
 ### Make the change yourself
 
-If you are curious to see and try the specific changes the agent completed and tested in 90 seconds, follow the steps in the rest of the section.
+If you are curious to see and try the specific changes the agent completed and tested in about 90 seconds, follow the steps in the rest of the section.
 
 To keep the app running in its existing terminal, open a second terminal in VS Code.
 
