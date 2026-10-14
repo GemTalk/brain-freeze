@@ -148,7 +148,9 @@ The restore reverts the code, but not the data committed in the database. A clai
 
 ### Make the change yourself
 
-If you are curious to see and try the specific changes the agent completed and tested in about 90 seconds, follow the steps in the rest of the section.
+The manual steps in the rest of this section make the primary changes the agent completed and tested in about 90 seconds. Follow them if you are curious to see and try those changes yourself.
+
+Before you start the edits, ensure that you reverted the agent's changes, as described in the previous section.
 
 To keep the app running in its existing terminal, open a second terminal in VS Code.
 
@@ -239,13 +241,13 @@ Loaded brainfreeze, brainfreeze.model, forms, lookups, pages, routes_api, routes
 Reload the page: the running app serves what you loaded.
 ```
 
-Check the result in your browser:
+Review the results of your changes in a browser:
 
 1. Reload the page. Open any policy under **Policies**, and click **File a claim**. The form now asks **Which flavour?** and **Anything on top?**
-2. Choose a flavor and one or more toppings, and click **Send the claim**. The claim now displays details matching your claim choices in the summary section, after the claim number, for example `ice cream (Mint choc chip, hot fudge, whipped cream)`.
+2. Choose a flavor and one or more toppings, and click **Send the claim**. The claim now displays details matching your claim choices in the summary section, after the claim number.
 3. Click **Browse all claims**, and open any previous claim. It loads as before, with no flavor or toppings shown, since it was created before your database schema changes.
 
-You did not migrate any data, reload the book, or restart the app. `gemdb tools/load.py` loaded your changes into the database, and the running app used them on its next request. The previous claims are still instances of `Claim`, which used the older default values (`None` and `()`), so they show no flavor or toppings.
+You did not migrate any data, reload the data, or restart the app. `gemdb tools/load.py` loaded your changes into the database, and the running app used them on its next request. The previous claims are still instances of `Claim`, which used the older default values (`None` and `()`), so they show no flavor or toppings.
 
 If a page shows **Something went wrong. The terminal running this app has the traceback**, look at the app's terminal for the error. Usually a file is not saved or an edit is missing. Fix the file, save it, and run `gemdb tools/load.py` again.
 
