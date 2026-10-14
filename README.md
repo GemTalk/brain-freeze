@@ -15,7 +15,7 @@ The Brain Freeze demo gives you hands-on experience with GemDB:
 - [Change the schema](#change-the-schema-with-code-not-with-a-table-update) by having an AI agent use Python to add flavors and toppings to claims while the app keeps running.
 - [Explore some of the detailed coding in a Jupyter notebook](#explore-the-data-in-a-jupyter-notebook) to learn how GemDB stores this data.
 - [Connect an AI agent](#connect-an-ai-agent) to the database using GemDB's provided MCP server, and ask it questions.
-- Optionally, [make it your own](#make-it-your-own) by having an AI agent rebrand the app.
+- Optionally, [rebrand the website to your needs](#rebrand-the-website-to-your-needs) by having an AI agent do it for you.
 
 ---
 
@@ -316,7 +316,7 @@ To switch, click the **Agent write access** row once. GemDB restarts the MCP ser
 
 ---
 
-## Make it your own
+## Rebrand the website to your needs
 
 Brain Freeze's look lives in three template files, so an AI agent can give the app a new brand by changing those files. The repository includes a `rebrand` skill for Claude Code, [`.claude/skills/rebrand/SKILL.md`](.claude/skills/rebrand/SKILL.md), and [`BRANDING.md`](BRANDING.md) explains how the look is put together. This step is optional.
 
