@@ -2,8 +2,6 @@
 
 Brain Freeze is a demo app for a fictional insurer that offers friendly coverage for cold-stimulus headaches. It runs on GemDB, which supplies the Python environment and a persistent, object-oriented database. The database stores the data for quotes, policies, and claims, such as each policyholder's age, plan, and premium, and each claim's calculated payment.
 
-<!-- TODO: short "what's in this repo" paragraph (per Sandeep): dataset generator/loader, the brainfreeze data model, and the web app. Write once those pieces have been walked through. -->
-
 The Brain Freeze demo is designed to let you explore some of the basic properties of GemDB databases. But just as important, after you complete the demo, we want you to explore and see how GemDB guarantees ACID (atomic, consistent, isolated, durable) transactions for data that must be correct. After you see how agent-friendly we have made GemDB, reach out to us to learn how to code with GemDB and launch your own application.
 
 Brain Freeze is a demo, not real insurance.
