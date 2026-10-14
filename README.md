@@ -335,4 +335,6 @@ git restore web features
 git switch main
 ```
 
+This README ends with a tracking pixel. [Read what it does and what it collects](PRIVACY.md).
+
 <img referrerpolicy="no-referrer-when-downgrade" src="https://static.scarf.sh/a.png?x-pxid=89090a6c-a9b0-4352-8202-1d4149dfa189" />
