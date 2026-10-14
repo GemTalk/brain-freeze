@@ -8,6 +8,14 @@ Brain Freeze is a demo, not real insurance.
 
 **Note:** Found this repo on GitHub? To run the demo, install [GemDB Code](https://marketplace.visualstudio.com/items?itemName=GemTalkSystems.gemdb) and choose **Install Brain Freeze Demo** from its Getting Started page.
 
+The Brain Freeze demo gives you hands-on experience with GemDB:
+
+- [Load](#load-the-demo-data) sample policies and claims into the database.
+- [Launch the web app](#launch-the-web-app), get a quote, buy a policy, and file a claim.
+- [Change the schema](#change-the-schema-with-code-not-with-a-table-update) by having an AI agent use Python to add flavors and toppings to claims while the app keeps running.
+- [Explore some of the detailed coding in a Jupyter notebook](#explore-the-data-in-a-jupyter-notebook) to learn how GemDB stores this data.
+- [Connect an AI agent](#connect-an-ai-agent) to the database using GemDB's provided MCP server, and ask it questions.
+
 ---
 
 ## Before you start
