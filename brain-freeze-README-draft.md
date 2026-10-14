@@ -279,28 +279,29 @@ The notebook and the web app are separate sessions. Each session sees the databa
 
 Claude Code uses the Model Context Protocol (MCP) to work as an AI agent on your behalf with the database. GemDB installations include their own MCP server, which is off until you turn it on.
 
-The **Agent write access** setting in the GemDB view controls what the agent can do in the GemDB database:
-
-- **cannot commit** (the default): the agent can read the data and change code, but it cannot save anything to the database.
-- **can commit**: the agent can read data, change code, create new data, and save all of its changes to the database.
-
 You already installed Claude Code and signed in when you had an agent make the schema change, so you are ready to connect it to GemDB.
 
-1. Optional: To let the agent change the database, click the **Agent write access** row once in the GemDB view so it reads **can commit**. GemDB restarts the MCP server, which disconnects any agent that is connected.
-2. In the GemDB view, click the **⋯** menu and choose **Connect an AI Agent to GemDB**.
+1. In the GemDB view, click the **⋯** menu and choose **Connect an AI Agent to GemDB**.
+2. A dialog asks **Turn on GemDB's MCP server?** Each connected agent uses one of the limited number of sessions your database allows, which is why the server is off by default. Click **Turn It On**. This dialog appears only while the server is off.
 3. Choose **Claude Code**. GemDB connects Claude Code to the `brain-freeze` folder and shows a message that starts "Connected Claude Code to GemDB in brain-freeze."
-
-   > **REVIEWER QUESTION:** The original README had **Turn It On** before **Claude Code**. On the test VM the MCP server was already on, so **Turn It On** did not appear. Confirm the first-time flow on a clean VM.
-
 4. In the Claude Code sidebar, click **+ New session**. If you have a Claude Code session open in a different app, you have to launch a new session to connect with `gemdb`. Use the new session for the rest of this step.
-5. To ensure you are connected, enter `/mcp` in the chat. In the Customize area, click **MCP servers**. `gemdb` appears under **Local**, with the status **Connected**.
+5. To ensure you are connected, enter `/mcp` in the chat. In the Customize area, click **MCP servers**. `gemdb` appears at the top, under **Local**, with the status **Connected**.
 6. In the chat, ask Claude Code a question about the policies and claims in the database:
 
    > Which plan has the highest loss ratio?
 
 Claude Code reads the code in this folder and runs Python against the live database, using the same objects the web app uses.
 
-Claude Code prompts you before the agent uses a GemDB tool, for example "Do you want to proceed with `mcp__gemdb__eval_python`?" Click **Details** to read the Python the agent will run. Choose **Yes** to allow it once, or **Yes, allow `mcp__gemdb__eval_python` for this project (just you)** to stop the prompts for that tool. Each GemDB tool has its own prompt, so expect several during one question.
+Depending on your permission mode, Claude Code may prompt you before the agent uses a GemDB tool, for example "Do you want to proceed with `mcp__gemdb__eval_python`?" Click **Details** to read the Python the agent will run. Choose **Yes** to allow it once, or **Yes, allow `mcp__gemdb__eval_python` for this project (just you)** to stop the prompts for that tool. Each GemDB tool has its own prompt.
+
+### Control what the agent can change
+
+Once the MCP server is on, the GemDB view shows an **Agent write access** row. It controls what the agent can do in the GemDB database:
+
+- **can commit** (the default): the agent can read the data, change code, create new data, and save all of its changes to the database.
+- **cannot commit**: the agent can read the data and change code, but it cannot save anything to the database.
+
+To switch, click the **Agent write access** row once. GemDB restarts the MCP server, which disconnects any agent that is connected, so start a new Claude Code session afterward. An agent that disconnects badly keeps its database session for up to 30 minutes, so avoid switching the setting repeatedly.
 
 ---
 
@@ -477,7 +478,22 @@ Open decisions:
 - Requirements statement (Thomas, 2026-10-13): add one near "Before you start": GemDB Code on a supported platform, a
   Claude account that can sign in to Claude Code, and a window large enough for the chat and the app. Write it after the
   clean pass; do not say anything about permission modes or effort levels (readers' settings vary).
-- MCP section, still to settle on a clean first-time pass (start from vscode-deb-claude, or the current VM): the first-time menu path and whether
+- MCP section clean first-time pass DONE 2026-10-13 (vscode-deb-claude + GemDB Code 1.6.0 + seed; MCP off at the start). Verified:
+  the view's ⋯ menu > Connect an AI Agent to GemDB > dialog "Turn on GemDB's MCP server?" (Cancel / Turn It On; shown only
+  while the server is off; second time the picker opens directly) > client picker > Claude Code > message "Connected Claude Code
+  to GemDB in brain-freeze." with the claude mcp add command; gemdb appears at the TOP of /mcp > MCP servers, under Local (1),
+  Connected, only after Claude Code is chosen. The default is "can commit" (the Agent write access row appears only once MCP is
+  on). curl http://127.0.0.1:50390/mcp answers 400 "Missing MCP-Session-Id header (call initialize first)" (server up). The loss-
+  ratio question in Auto mode: no permission prompts, about 21 tool calls (Thomas counted), no ModuleNotFoundError (the agent
+  used list_python_methods and describe_python_class this time; Thomas wonders if the 2026-10-13 morning failure happened
+  because the web app was not running, untested), answer Sundae 0.477 ($29,215.70 / $61,232.81, 348 policies), Parfait 0.357
+  (137), Sprinkle 0.263 (420), 905 policies. The agent opened with status (uncommittedChanges=true) and abort unprompted.
+- Sandeep's note (Thomas, 2026-10-13): the README uses Claude Code, but leave room for readers to try other LLMs/agents.
+  The client picker offers Claude Code, Claude Desktop (JSON for claude_desktop_config.json), Cursor (JSON for
+  ~/.cursor/mcp.json) and Something else (just the URL, http://127.0.0.1:50390/mcp). Proposed sentence (not applied): "This
+  step uses Claude Code. Other agents that support MCP can connect to the same server: the client list also offers Claude
+  Desktop and Cursor, or the URL for any other client."
+- OLD (superseded) MCP section list, still to settle on a clean first-time pass (start from vscode-deb-claude, or the current VM): the first-time menu path and whether
   **Turn It On** exists; the default state of Agent write access (the draft says cannot commit is the default, from
   Thomas; confirm) and whether the loss-ratio question works with cannot commit (untested; the test ran with can commit); whether the first question hits
   ModuleNotFoundError. (The agent's schema change is written in step 3 and the README quotes no numbers; both closed.)
