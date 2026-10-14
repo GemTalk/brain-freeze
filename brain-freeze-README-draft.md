@@ -4,6 +4,8 @@ Brain Freeze is a demo app for a fictional insurer that offers friendly coverage
 
 <!-- TODO: short "what's in this repo" paragraph (per Sandeep): dataset generator/loader, the brainfreeze data model, and the web app. Write once those pieces have been walked through. -->
 
+The Brain Freeze demo is designed to let you explore some of the basic properties of GemDB databases. But just as important, after you complete the demo, we want you to explore and see how GemDB can help you augment your current data warehouse practices. After you see how agent-friendly we have made GemDB, reach out to us to learn how to code with GemDB and launch your own application.
+
 Brain Freeze is a demo, not real insurance.
 
 **Note:** Found this repo on GitHub? To run the demo, install [GemDB Code](https://marketplace.visualstudio.com/items?itemName=GemTalkSystems.gemdb) and choose **Install Brain Freeze Demo** from its Getting Started page.
