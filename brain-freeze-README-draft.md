@@ -302,8 +302,6 @@ Claude Code reads the code in this folder and runs Python against the live datab
 
 Claude Code prompts you before the agent uses a GemDB tool, for example "Do you want to proceed with `mcp__gemdb__eval_python`?" Click **Details** to read the Python the agent will run. Choose **Yes** to allow it once, or **Yes, allow `mcp__gemdb__eval_python` for this project (just you)** to stop the prompts for that tool. Each GemDB tool has its own prompt, so expect several during one question.
 
-> **REVIEWER QUESTION:** The schema change by the agent is not written yet. The agent applies Steven's answer patch (`features/answers/step3.patch`) instead of writing the change itself, and a reader who did the schema step by hand already has the change. Options: (A) the reader runs `git restore brainfreeze web` and `gemdb tools/load.py`, then asks; (B) ask for a different change; (C) leave it out until Steven decides. See the DRAFT NOTES.
-
 ---
 
 <!--
@@ -322,7 +320,7 @@ git was already installed):
   brainfreeze, and brainfreeze_repo after refresh.
 - Launch the web app: banner, first start about 30 seconds, quote, plans, ID card BF-100900, claim, Policies
   (policy number order, 50 a page), Claims (newest first), Ctrl+C stop and restart keep the data.
-- Change the schema: edits a-e by hand, gemdb tools/load.py output (two lines), new form questions, new claim
+- Change the schema: manual edits a-e, gemdb tools/load.py output (two lines), new form questions, new claim
   shows flavour and toppings, old claim shows none.
 - Jupyter: kernel preselected; Run All runs without errors in about 15 seconds and cell 1 needs no
   BRAINFREEZE_REPO (Steven's fix works); the Refresh Notebook View toolbar button works and shows "This notebook
@@ -479,8 +477,8 @@ Open decisions:
 - Requirements statement (Thomas, 2026-10-13): add one near "Before you start": GemDB Code on a supported platform, a
   Claude account that can sign in to Claude Code, and a window large enough for the chat and the app. Write it after the
   clean pass; do not say anything about permission modes or effort levels (readers' settings vary).
-- MCP section, still to settle on a clean first-time pass (restore 1.6.0-before-mcp): the first-time menu path and whether
+- MCP section, still to settle on a clean first-time pass (start from vscode-deb-claude, or the current VM): the first-time menu path and whether
   **Turn It On** exists; the default state of Agent write access (the draft says cannot commit is the default, from
   Thomas; confirm) and whether the loss-ratio question works with cannot commit (untested; the test ran with can commit); whether the first question hits
-  ModuleNotFoundError; the numbers on a clean 900-policy book; the schema change by the agent (options A, B, C above).
+  ModuleNotFoundError. (The agent's schema change is written in step 3 and the README quotes no numbers; both closed.)
 -->
