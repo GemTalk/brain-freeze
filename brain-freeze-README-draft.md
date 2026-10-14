@@ -279,6 +279,8 @@ The notebook and the web app are separate sessions. Each session sees the databa
 
 Claude Code uses the Model Context Protocol (MCP) to work as an AI agent on your behalf with the database. GemDB installations include their own MCP server, which is off until you turn it on.
 
+This step uses Claude Code. Other agents that support MCP can connect to the same server: the client list also offers Claude Desktop and Cursor, or the URL for any other client.
+
 You already installed Claude Code and signed in when you had an agent make the schema change, so you are ready to connect it to GemDB.
 
 1. In the GemDB view, click the **⋯** menu and choose **Connect an AI Agent to GemDB**.
