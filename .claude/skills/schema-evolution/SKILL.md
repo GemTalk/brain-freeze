@@ -12,6 +12,11 @@ its new definition. The app serves the new code on its next request. Adding
 a field needs no migration, no reseed and no restart. Other changes do,
 and this skill says which.
 
+Every `gemdb` command here runs from the repo root. If your shell prints
+`gemdb: command not found`, run `../bin/gemdb` instead (step 5 has the one
+exception). Install Brain Freeze Demo puts this checkout at
+`<rootPath>/brain-freeze`, so GemDB's `bin/` is next door.
+
 Read these first:
 
 - README step 3, the change the tutorial makes.
@@ -128,7 +133,7 @@ committed copy without checking the file (GemTalk/Grail#1223).
 ## 5. Load it into the running app
 
 ```sh
-gemdb tools/load.py
+gemdb tools/load.py        # or, if gemdb is not found: ../bin/gemdb tools/load.py
 ```
 
 ```console
@@ -144,12 +149,16 @@ Reload the page: the running app serves what you loaded.
   - an object from before the change still loads and shows the default,
     for example claim CLM-001285 at `/policies/BF-100539/claims/CLM-001285`;
   - it reads the same from a fresh session:
-    `gemdb -c 'import gemdb; c = gemdb.root["brainfreeze"]["BF-100539"].claims[0]; print(c.claim_id, c.flavour)'`.
+    `gemdb -c 'import gemdb; c = gemdb.root["brainfreeze"]["BF-100539"].claims[0]; print(c.claim_id, c.flavour)'`
+    (`../bin/gemdb -c ...` if gemdb is not found).
 - Filing a claim or buying a policy to test writes into the person's book.
   Ask first, or let them do it.
 - A notebook, or any other open session, sees loaded code after
   `gemdb.refresh()`.
-- Run the tests inside the database: `gemdb tools/run_db_tests.py`.
+- Run the tests inside the database: `gemdb tools/run_db_tests.py`. If gemdb
+  is not found, put GemDB's `bin/` on the PATH for that one command, because
+  the runner starts each test module with a bare `gemdb` and `../bin/gemdb`
+  alone fails: `PATH="$(cd .. && pwd)/bin:$PATH" gemdb tools/run_db_tests.py`.
 
 ## 6. Reshape stored data
 
@@ -229,7 +238,8 @@ If the app writes the same objects in the meantime, the commit raises
 
 ### Last resort: reseed
 
-`gemdb tools/seed.py` rebuilds the book from `data/*.csv` and replaces
+`gemdb tools/seed.py` (`../bin/gemdb tools/seed.py` if gemdb is not found)
+rebuilds the book from `data/*.csv` and replaces
 `gemdb.root["brainfreeze"]` wholesale. That discards every policy, quote
 and claim the app has written. Run it only with the person's explicit
 go-ahead.
@@ -239,7 +249,8 @@ If the field belongs in the sample data too, the CSV columns,
 
 ## 7. Undo, or finish
 
-- **Undo**: revert the files and run `gemdb tools/load.py` again. The
+- **Undo**: revert the files and run `gemdb tools/load.py` again (or
+  `../bin/gemdb tools/load.py`). The
   acceptance suite does this after step 3. Objects written while the change
   was live keep the values they were given, but nothing reads them once the
   code is gone.
