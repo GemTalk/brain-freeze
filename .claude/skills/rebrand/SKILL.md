@@ -58,6 +58,12 @@ is the main colour, whatever its hue), and `app.css` uses all of them.
 - The card: open `/policies/BF-100539/card.svg` on its own, and check
   **Download image** gives a PNG that matches the page.
 - Tests: `python3 -m unittest discover`, then `gemdb tools/run_db_tests.py`.
+- If your shell prints `gemdb: command not found`, use `../bin/gemdb` in
+  place of `gemdb` in `gemdb web/app.py`, from the repo root. Install Brain
+  Freeze Demo puts this checkout at `<rootPath>/brain-freeze`, so GemDB's
+  `bin/` is next door. `tools/run_db_tests.py` starts each test module with a
+  bare `gemdb`, so for it put `bin/` on the PATH instead:
+  `PATH="$(cd .. && pwd)/bin:$PATH" gemdb tools/run_db_tests.py`.
 
 ## 5. Report
 
