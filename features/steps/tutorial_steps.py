@@ -23,12 +23,29 @@ README = os.path.join(REPO, "README.md")
 LONG_RUNNING = ("gemdb web/app.py",)
 
 
+#: The README does not number its steps. The features name them by number, and
+#: this says which heading each one is. Step 3 is the manual edits: they are
+#: the part of the schema change that shows commands to run. The agent's way
+#: of making the same change needs a language model, so it is not run here.
+STEP_HEADINGS = {
+    1: "## Load the demo data",
+    2: "## Launch the web app",
+    3: "### Make the change yourself",
+    4: "## Explore the data in a Jupyter notebook",
+    5: "## Connect an AI agent",
+}
+
+
 def readme_step(number):
-    """The text of `## <number>.` in the README, up to the next `## `."""
+    """The text under the heading for step `number`, up to the next heading
+    of the same level or higher, so its own subsections are part of it."""
+    heading = STEP_HEADINGS[number]
+    level = len(heading.split(" ")[0])
     with open(README, encoding="utf-8") as handle:
         text = handle.read()
-    match = re.search(r"^## %d\. .*?(?=^## |\Z)" % number, text, re.M | re.S)
-    assert match, "the README has no step %d" % number
+    match = re.search(r"^%s\s*$.*?(?=^#{1,%d} |\Z)" % (re.escape(heading), level),
+                      text, re.M | re.S)
+    assert match, "the README has no heading %r, for step %d" % (heading, number)
     return match.group(0)
 
 
@@ -307,7 +324,7 @@ def old_claim_loads(context):
 @then('the address step 2 of the README says to open is where the app serves')
 def readme_address(context):
     import serving
-    shown = re.findall(r"<(http://[^>]+)>", readme_step(2))
+    shown = re.findall(r"^\s*Open:\s+(http://\S+)", readme_step(2), re.M)
     assert shown, "step 2 of the README gives no address to open"
     if serving.configured_port(os.environ) != serving.DEFAULT_PORT:
         return                  # a run on another port cannot match the README
@@ -317,9 +334,10 @@ def readme_address(context):
             % (address, context.base_url))
 
 
-@then('the call step 4 of the README shows is the one the notebook made')
-def readme_refresh_call(context):
-    shown = re.findall(r"```python\n(.*?)```", readme_step(4), re.S)
-    assert [block.strip() for block in shown] == ["gemdb.refresh()"], (
-        "step 4 of the README shows %r; the notebook session refreshes with "
-        "gemdb.refresh(), so one of them has changed" % shown)
+@then('step 4 of the README tells the reader to refresh the notebook with its toolbar button')
+def readme_refresh_button(context):
+    section = readme_step(4)
+    assert "**Refresh Notebook View**" in section, (
+        "step 4 of the README does not name the Refresh Notebook View button; "
+        "the notebook session refreshes with gemdb.refresh(), the call the "
+        "button makes, so the README and the test have parted company")
