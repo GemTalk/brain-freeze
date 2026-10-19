@@ -25,6 +25,8 @@ import os
 import sys
 from datetime import date
 
+print("Seeding the database with the Brain Freeze Insurance dataset...")
+
 #: `gemdb tools/seed.py` puts *this* directory on `sys.path`, not the
 #: repository, so the model has to be pointed at. Every script in here that
 #: imports the model opens the same way.
