@@ -68,6 +68,8 @@ conflicts.py says what happens next. `/healthz` and `/metrics` are for the
 proxy and the monitoring agent (routes_ops.py).
 """
 
+print("Starting the Brain Freeze Insurance web app...")
+
 import os
 import sys
 
