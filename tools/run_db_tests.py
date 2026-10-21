@@ -9,8 +9,9 @@ That matters most for money, where they round differently (`round()` is
 half-up in the database, banker's outside it).
 
 Modules are read from disk and executed into a fresh namespace rather than
-imported, because the database can serve a compiled copy of a module that no
-longer matches its file (GemTalk/Grail#1223).
+imported, so the tests are never deployed: an imported module is recorded in
+the database under its name, pinned to the file it came from, and a run from
+another checkout whose copy differs would then be refused.
 """
 
 import os

@@ -25,7 +25,10 @@ import os
 import sys
 from datetime import date
 
-print("Seeding the database with the Brain Freeze Insurance dataset...")
+#: Said before the imports below, which take a while on a first load. Only
+#: when run: the tests and tools/load.py import this module too.
+if __name__ == "__main__":
+    print("Seeding the database with the Brain Freeze Insurance dataset...")
 
 #: `gemdb tools/seed.py` puts *this* directory on `sys.path`, not the
 #: repository, so the model has to be pointed at. Every script in here that
