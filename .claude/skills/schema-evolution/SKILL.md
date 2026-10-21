@@ -13,19 +13,26 @@ a field needs no migration, no reseed and no restart. Other changes do,
 and this skill says which.
 
 Every `gemdb` command here runs from the repo root. If your shell prints
-`gemdb: command not found`, run `../bin/gemdb` instead (step 5 has the one
+`gemdb: command not found`, run `../bin/gemdb` instead (step 6 has the one
 exception). Install Brain Freeze Demo puts this checkout at
 `<rootPath>/brain-freeze`, so GemDB's `bin/` is next door.
 
-Read these first:
+How a model change works here, whatever the class or field:
 
-- README step 3, the change the tutorial makes.
-- `features/answers/step3.patch`, the worked answer: `Claim.flavour` and
-  `Claim.toppings` from the model to the form, the claim page and the
-  JSON, end to end. Copy its shape.
-- The docstrings of `tools/load.py` (what loading does and doesn't do)
-  and `web/routes.py` (why loaded views are live, and what needs a
-  restart).
+- **The code is the schema.** A stored object is an instance of its class
+  in `brainfreeze/`, and reads whatever that class says now.
+- **A class-level default is the migration.** Objects from before the
+  change have no value of their own and read the class's.
+- **Loading is the deploy.** `gemdb tools/load.py` rebuilds the changed
+  modules in place, and the app serves them on its next request. Routes
+  and `web/app.py` are the exception: they need a restart.
+- **Find the layers from the code, not from a list.** Grep for an existing
+  field of the class you're changing and follow it through `web/`.
+
+The docstrings of `tools/load.py` and `web/routes.py` say what loading does
+and doesn't reach. README step 3 and `features/answers/step3.patch` are one
+worked example, an additive change to `Claim`. Read them to see the layers a
+field passes through, not as a shape to copy.
 
 ## 1. Work out what kind of change it is
 
@@ -36,7 +43,7 @@ Read these first:
   meaning, or moving it to another class. The objects already stored still
   hold the old shape, and loading code doesn't touch them. That usually
   still needs no migration script: read both shapes, and upgrade objects as
-  they're written (step 6). Agree the plan with the person before you start.
+  they're written (step 5). Agree the plan with the person before you start.
 - **A new route, or a change to `web/app.py`**: the app builds those once,
   when it starts, so they need a restart. Tell the person.
 
@@ -44,10 +51,10 @@ Also work out who the change is for:
 
 - **The reader doing the tutorial** (README step 3, or step 5's "ask it to
   make the change from step 3"): make the change in their working tree and
-  load it. Don't commit it. The tutorial and its acceptance suite need
+  load it. Don't write or run tests, and don't commit it. The tutorial and its acceptance suite need
   `main` without it.
 - **A lasting change to this repo**: work on a branch, with tests, and
-  open a PR (steps 4 and 7).
+  open a PR (steps 6 and 7).
 
 ## 2. Add the field to the class
 
@@ -89,8 +96,9 @@ class Claim:
 
 ## 3. Carry it through the app
 
-For `Claim`, the patch touches each of these. Other classes have the same
-layers.
+For `Claim`, the step 3 patch touches each of these. Another class has its
+own form, view and page, or none: find them by grepping for one of its
+existing fields.
 
 - **Choices**: `web/forms.py`, as module-level lists.
 - **The form**: `web/templates/claim_form.html`. Use `ui.chip` for one
@@ -113,24 +121,7 @@ won't update. In scripts, import `brainfreeze` modules as
 `import brainfreeze.module`, because the `from` form hands back the
 committed copy without checking the file (GemTalk/Grail#1223).
 
-## 4. Test it
-
-- Add unit tests in `tests/`:
-  - a new object carries the field;
-  - an object from before the change reads the default (simulate one with
-    `del obj.field`, as the `serials` test does, if the constructor always
-    sets it);
-  - the wire payload has the key;
-  - the form and the page show it.
-- Run `python3 -m unittest discover`.
-- `tests/test_tutorial_answer.py` checks that `features/answers/step3.patch`
-  still applies. A lasting change near the lines it touches, even a
-  reworded comment, can stop it applying. If so, make step 3 again on top
-  of your change and write the patch out afresh, with
-  `git diff -- brainfreeze web > features/answers/step3.patch`. Do this on
-  a scratch copy, and take the step 3 change back out afterwards.
-
-## 5. Load it into the running app
+## 4. Load it and look
 
 ```sh
 gemdb tools/load.py        # or, if gemdb is not found: ../bin/gemdb tools/load.py
@@ -144,23 +135,23 @@ Reload the page: the running app serves what you loaded.
 - If it prints "Nothing had changed", the file wasn't saved, or the code
   isn't in `brainfreeze/` or `web/`.
 - Leave the app running. Check the change by reloading pages
-  (http://127.0.0.1:5050/), not by restarting:
+  (http://127.0.0.1:5050/), not by restarting. One look of each is enough:
   - the form, or `curl` it, shows the new inputs;
   - an object from before the change still loads and shows the default,
     for example claim CLM-001285 at `/policies/BF-100539/claims/CLM-001285`;
-  - it reads the same from a fresh session:
+  - it reads the same from a fresh session, for the step 3 change:
     `gemdb -c 'import gemdb; c = gemdb.root["brainfreeze"]["BF-100539"].claims[0]; print(c.claim_id, c.flavour)'`
     (`../bin/gemdb -c ...` if gemdb is not found).
 - Filing a claim or buying a policy to test writes into the person's book.
   Ask first, or let them do it.
 - A notebook, or any other open session, sees loaded code after
   `gemdb.refresh()`.
-- Run the tests inside the database: `gemdb tools/run_db_tests.py`. If gemdb
-  is not found, put GemDB's `bin/` on the PATH for that one command, because
-  the runner starts each test module with a bare `gemdb` and `../bin/gemdb`
-  alone fails: `PATH="$(cd .. && pwd)/bin:$PATH" gemdb tools/run_db_tests.py`.
+- If something's wrong, fix the file and load again. Don't run test suites
+  while you're iterating: loading and reloading the page is the whole loop.
+- Show the person the result and check it's what they wanted before going
+  further.
 
-## 6. Reshape stored data
+## 5. Reshape stored data
 
 Adding a field never needs this: the class default from step 2 is enough.
 This step is for renaming or removing a field, or changing its type, units
@@ -246,6 +237,36 @@ go-ahead.
 
 If the field belongs in the sample data too, the CSV columns,
 `tools/seed.py` and `data/generate.py` change with it.
+
+## 6. Test it
+
+Only once the person agrees the change is the one they wanted.
+
+- **The tutorial, or any change left in their working tree**: skip this
+  step. Say the tests are there if they want them.
+- **A lasting change**: ask before you run anything.
+
+- Add unit tests in `tests/`:
+  - a new object carries the field;
+  - an object from before the change reads the default (simulate one with
+    `del obj.field`, as the `serials` test does, if the constructor always
+    sets it);
+  - the wire payload has the key;
+  - the form and the page show it.
+- Run the modules the change touches first, such as
+  `python3 -m unittest tests.test_brainfreeze tests.test_api`, and inside
+  the database `gemdb tools/run_db_tests.py brainfreeze api`.
+- Run the full suites once, just before you open the PR:
+  `python3 -m unittest discover`, and `gemdb tools/run_db_tests.py`. If gemdb
+  is not found, put GemDB's `bin/` on the PATH for that one command, because
+  the runner starts each test module with a bare `gemdb` and `../bin/gemdb`
+  alone fails: `PATH="$(cd .. && pwd)/bin:$PATH" gemdb tools/run_db_tests.py`.
+- `tests/test_tutorial_answer.py` checks that `features/answers/step3.patch`
+  still applies. A lasting change near the lines it touches, even a
+  reworded comment, can stop it applying. If so, make step 3 again on top
+  of your change and write the patch out afresh, with
+  `git diff -- brainfreeze web > features/answers/step3.patch`. Do this on
+  a scratch copy, and take the step 3 change back out afterwards.
 
 ## 7. Undo, or finish
 

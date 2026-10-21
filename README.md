@@ -113,7 +113,7 @@ First, an AI agent makes the change for you. Then, if you are curious about the 
 
 ### Use an Ice Cream Brain Freeze agent to make the change
 
-The repository includes a `schema-evolution` skill for Claude Code, [`.claude/skills/schema-evolution/SKILL.md`](.claude/skills/schema-evolution/SKILL.md). GemDB designed it to change the data schema using Python. The agent adds a field to the classes that GemDB stores and carries the field through the claim form, the claim page, and the JSON API. Finally, the agent loads the changes into the running database and runs the unit tests to ensure the schema changes are live and ready to use. All of this happens without shutting down the Ice Cream Brain Freeze app.
+The repository includes a `schema-evolution` skill for Claude Code, [`.claude/skills/schema-evolution/SKILL.md`](.claude/skills/schema-evolution/SKILL.md). GemDB designed it to change the data schema using Python. The agent adds a field to the classes that GemDB stores and carries the field through the claim form, the claim page, and the JSON API. Finally, the agent loads the changes into the running database and checks them in the running app, so the schema changes are live and ready to use. All of this happens without shutting down the Ice Cream Brain Freeze app.
 
 Before you start, ensure you have the **Claude Code for VS Code** extension from Anthropic installed in VS Code. When VS Code prompts you to trust the publisher, choose **Trust Publisher & Install**. Then sign in to Claude Code using your credentials.
 
@@ -125,7 +125,7 @@ Before you start, ensure you have the **Claude Code for VS Code** extension from
    ```
 
 3. Answer the agent's questions. The agent may show a form with a tab for each question, such as **Flavours** and **Toppings**. Click each tab at the top of the form to answer its question. To give your own list, choose **Other**, type the list in the box that appears, and then click **Submit answers**. **Submit answers** stays unavailable until you answer every tab.
-4. Wait for the agent to finish, which takes about 90 seconds after you submit your answers. It edits the files, loads the change into the database with `gemdb tools/load.py`, and runs tests to inspect results from the changes. Finally it summarizes what it changed. Depending on your permission mode, Claude Code may prompt you before it edits a file or runs a command. Choose **Yes** to continue.
+4. Wait for the agent to finish. It edits the files, loads the change into the database with `gemdb tools/load.py`, and checks a page or two in the running app. Finally it summarizes what it changed. It doesn't run the test suite for a tutorial change, but it can if you ask. Depending on your permission mode, Claude Code may prompt you before it edits a file or runs a command. Choose **Yes** to continue.
 
 The agent does not commit the change to Git. Review the results of your changes in a browser. If your browser is still open, reload the page; otherwise, open a new browser window at `http://127.0.0.1:5050/`.
 
@@ -157,7 +157,7 @@ The restore reverts the code, but not the data committed in the database. A clai
 
 ### Make the change yourself
 
-The manual steps in the rest of this section make the primary changes the agent completed and tested in about 90 seconds. Follow them if you are curious to see and try those changes yourself.
+The manual steps in the rest of this section make the primary changes the agent completed. Follow them if you are curious to see and try those changes yourself.
 
 Before you start the edits, ensure that you reverted the agent's changes, as described in the previous section.
 
