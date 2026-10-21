@@ -117,9 +117,7 @@ existing fields.
 
 In `web/`, reach another module through its name, as in `lookups.book()` or
 `pages.render(...)`. `from module import name` takes a copy that loading
-won't update. In scripts, import `brainfreeze` modules as
-`import brainfreeze.module`, because the `from` form hands back the
-committed copy without checking the file (GemTalk/Grail#1223).
+won't update.
 
 ## 4. Load it and look
 

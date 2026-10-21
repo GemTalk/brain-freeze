@@ -74,8 +74,8 @@ class LoadKnowsEveryModule(unittest.TestCase):
                          "app.py is the entry point; importing it serves nothing")
 
     def test_submodules_are_named_the_way_grail_rebuilds_them(self):
-        """`brainfreeze.money`, never a bare `money`: `import package.module`
-        is the form that checks the file (GemTalk/Grail#1223)."""
+        """`brainfreeze.money`, never a bare `money`: a bare name would be a
+        second, unrelated module, not the one the database rebuilds."""
         bare = {m.split(".", 1)[1] for m in package_modules()}
         for name in self.load().modules():
             if name in bare:

@@ -246,7 +246,7 @@ gemdb tools/load.py
 ```
 
 ```console
-Loaded brainfreeze, brainfreeze.model, forms, lookups, pages, routes_api, routes_html, routes_ops, wire. Committed.
+Loaded brainfreeze, brainfreeze.model, forms, pages, routes_api, routes_html, wire. Committed.
 Reload the page: the running app serves what you loaded.
 ```
 

@@ -2,16 +2,10 @@
 
 Run: python3 -m unittest tests.test_ctrl_c -v
 
-It does not yet, and this is marked an expected failure so that the suite says
-so without going red. On GemDB Code 1.5.4 a real Ctrl-C
--- `\\x03` through a terminal, not a signal from `kill` -- makes topaz report a
-soft break (error 6003) and wait at its own `topaz 1>` prompt, still holding a
-session, until someone types `exit`. It is GemDB's `gemdb` command, not the
-app: any long-running `gemdb` script does the same.
-
-When GemDB fixes it this reports an UNEXPECTED SUCCESS. That is the cue to take
-the `expectedFailure` off -- and nothing in the README has to change, because
-the README already says what should happen.
+A real Ctrl-C -- `\\x03` through a terminal, not a signal from `kill`. Before
+GemDB Code 1.6 it made topaz report a soft break (error 6003) and wait at its
+own `topaz 1>` prompt, still holding a session, until someone typed `exit`
+(fixed by GemTalk/GemDB_Code#88). This keeps it fixed.
 
 CPython-side, because it SPAWNS the app in a session of its own.
 """
@@ -54,7 +48,6 @@ def read_until(fd, wanted, seconds):
 @unittest.skipUnless(gemdb_command(), "needs GemDB: no gemdb command here")
 class CtrlCStopsTheApp(unittest.TestCase):
 
-    @unittest.expectedFailure
     def test_ctrl_c_stops_it(self):
         pid, fd = pty.fork()
         if pid == 0:

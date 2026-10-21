@@ -28,7 +28,7 @@ drives the payloads under CPython from a seeded book.
 
 from datetime import date
 
-import brainfreeze.analysis as analysis
+from brainfreeze import analysis
 import brainfreeze.money
 
 

@@ -19,9 +19,7 @@ finding an object in `lookups.py`, rendering in `pages.py`, serving in
 An edit to any of them except this one is live in the running app once it is
 loaded with `gemdb tools/load.py`, because the routes look everything up by
 name on each request (routes.py). An edit to a template is live on the next
-request with no load at all: the templates are files, read as they change. `web/` is not a package because
-`from package import module` is still served stale after an edit
-(GemTalk/Grail#1223).
+request with no load at all: the templates are files, read as they change.
 
 NO PERSISTENCE LAYER
 
