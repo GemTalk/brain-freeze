@@ -357,6 +357,13 @@ class TheApp(unittest.TestCase):
         self.assertIn('href="/quote"', body)
         self.assertIn("%s policyholders" % "{:,}".format(len(self.book())), body)
 
+    def test_the_home_page_and_the_card_page_offer_a_free_scoop(self):
+        home = self.client.get("/").data.decode()
+        card = self.client.get("/policies/%s/card" % ACTIVE_READONLY).data.decode()
+        for body in (home, card):
+            self.assertIn("Want a free scoop?", body)
+            self.assertIn('href="https://github.com/GemTalk/brain-freeze"', body)
+
     def test_the_home_page_prices_come_from_the_model(self):
         # Each plan a month in every band, rounded as a quote rounds it --
         # read off underwriting, not typed into a template.

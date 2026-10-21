@@ -4,6 +4,7 @@
 
     `with context` is not optional: Grail answers `dict.keys()` with a list,
     and Jinja's plain import subtracts that from a set, which raises. -#}
+{% import "_brand.html" as brand with context %}
 
 {#- A 24x24 stroked icon, by name. -#}
 {% macro icon(name, size=18) -%}
@@ -51,4 +52,18 @@
   <li class="{{ 'now' if step == 2 else '' }}"><b>2</b> Choose a plan</li>
   <li><b>{{ icon('card', 14) }}</b> ID card</li>
 </ol>
+{%- endmacro %}
+
+{#- The free-scoop banner: under the ID card, and under the home page's hero. -#}
+{% macro scoop_ad() -%}
+<aside class="scoop-ad no-print" aria-label="Free ice cream">
+  <svg class="lockup" viewBox="0 0 311 179" aria-hidden="true">
+    {{ brand.lockup_shapes(brand.colors.blue, brand.colors.red, brand.colors.yellow, brand.colors.paper) }}
+  </svg>
+  <div class="pitch">
+    <p class="kicker">Want a free scoop?</p>
+    <p>Complete our tutorial on GitHub and we&rsquo;ll send you a gift card for ice cream!</p>
+  </div>
+  <a class="btn" href="https://github.com/GemTalk/brain-freeze" target="_blank" rel="noopener">Start the tutorial {{ icon('arrow') }}</a>
+</aside>
 {%- endmacro %}
