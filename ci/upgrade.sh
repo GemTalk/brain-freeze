@@ -18,7 +18,7 @@
 #     from the JSON;
 #   - brain-freeze's own suites pass on the upgraded database: in the database,
 #     the unit suite, and the acceptance features against it
-#     (BRAINFREEZE_DB=existing -- none of them builds a database of its own).
+#     (BRAINFREEZE_DB=existing), all but step 1's, which needs an empty one.
 #
 # The suites come last: they reseed the book, so the record is taken first.
 # Ends with a PASS/FAIL summary and stops everything it started.
@@ -242,7 +242,10 @@ suite() {
 SEED=$(suite seed gemdb tools/seed.py)
 DB_TESTS=$(suite db-tests gemdb tools/run_db_tests.py)
 UNIT=$(suite unit python3 -m unittest discover)
-ACCEPT=$(BRAINFREEZE_DB=existing suite acceptance "$VENV/bin/behave")
+# Step 1's feature is the one that needs a database with nothing of ours in
+# it -- it checks seed.py says "Wrote", where a reseed says "Replaced" -- so it
+# is the one left out here; tutorial.sh runs it on a brand-new database.
+ACCEPT=$(BRAINFREEZE_DB=existing suite acceptance "$VENV/bin/behave" --exclude 1_load_data)
 tally() { grep -E "$2" "$LOGS/$1.log" | tail -${3:-1} | tr '\n' ' '; }
 
 # -- summary ---------------------------------------------------------------------
