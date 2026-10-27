@@ -492,7 +492,7 @@ def after_scenario(context, scenario):
             shoot(context, "FAILED")
         except Exception:
             pass
-    elif not os.listdir(context.shot_dir):
+    elif scenario.status == "passed" and not os.listdir(context.shot_dir):
         # A scenario that passes and leaves nothing behind is a scenario
         # nobody can check afterwards. The suite exists to be read as much as
         # to be run.
