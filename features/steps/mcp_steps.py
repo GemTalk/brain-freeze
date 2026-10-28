@@ -30,13 +30,20 @@ GRAIL_TOOLSET = "McpGrailToolset"
 
 
 def database():
-    """What topaz needs to reach the database this run's `gemdb` uses."""
+    """What topaz needs to reach the database this run's `gemdb` uses.
+
+    The account is the one `gemdb` logs in as, read from its run script's
+    `set user` line: Grail is installed in that account's dictionaries, so
+    the MCP server is filed in and started as it, as GemDB Code does."""
     wrapper = shutil.which("gemdb", path=gemdb_env()["PATH"])
     with open(wrapper) as handle:
         text = handle.read()
     value = {k: re.search(r'^%s="(.*)"$' % k, text, re.M).group(1)
              for k in ("ROOT", "GEMSTONE", "GRAIL_DIR", "STONE")}
     root, stone = value["ROOT"], value["STONE"]
+    with open(os.path.join(root, "bin", "gemdb-run.tpz")) as handle:
+        account = re.search(r"^set user (\S+) pass (\S+)$", handle.read(), re.M)
+    value["USER"], value["PASSWORD"] = account.groups()
     env = dict(os.environ)
     env.update({
         "GEMSTONE": value["GEMSTONE"],
@@ -48,7 +55,7 @@ def database():
         "GEMSTONE_NRS_ALL": "#netldi:%sldi#dir:%s" % (stone, root),
         "GRAIL_DIR": value["GRAIL_DIR"],
         "PATH": os.path.join(value["GEMSTONE"], "bin") + os.pathsep + os.environ["PATH"],
-        "GS_STONE": stone, "GS_USER": "DataCurator", "GS_PASS": "swordfish",
+        "GS_STONE": stone, "GS_USER": value["USER"], "GS_PASS": value["PASSWORD"],
         "MCP_PORT": str(PORT),
     })
     return env, value
@@ -83,7 +90,7 @@ def turn_on_mcp(context):
         % (installed.stdout[-2000:], installed.stderr[-2000:]))
 
     started = topaz(env, "\n".join([
-        "set user DataCurator pass swordfish",
+        "set user %s pass %s" % (value["USER"], value["PASSWORD"]),
         "set gemstone %s" % value["STONE"],
         "login",
         "run",
@@ -150,7 +157,7 @@ PREAMBLE = (
     "import sys\n"
     "sys.path.insert(0, %r)\n"
     "import gemdb\n"
-    "import brainfreeze.analysis as analysis\n"
+    "from brainfreeze import analysis\n"
     "book = gemdb.root['brainfreeze']\n" % REPO)
 
 #: What the agent is asked. The same code is then run directly in a session of

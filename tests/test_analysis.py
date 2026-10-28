@@ -15,7 +15,7 @@ from what these functions returned.
 import unittest
 from datetime import date
 
-import brainfreeze.analysis as analysis  # not `from brainfreeze import`: #86
+from brainfreeze import analysis
 from brainfreeze.money import usd
 import seed
 

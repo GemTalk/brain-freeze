@@ -14,8 +14,7 @@ from datetime import date
 from flask import Response, abort, redirect, request, url_for
 
 import brainfreeze
-import brainfreeze.money as money
-import brainfreeze.underwriting as underwriting
+from brainfreeze import money, underwriting
 import forms
 import gemdb
 import lookups
@@ -143,7 +142,7 @@ def quote_result():
     try:
         answers = forms.answers_from(request.form)
     except ValueError as bad:
-        pages.refuse(400, str(bad))
+        abort(400, str(bad))
     offer = brainfreeze.quote(**answers)
     the_book = lookups.book()
     saved = the_book.add_quote(brainfreeze.SavedQuote(

@@ -98,10 +98,36 @@ echo "==> starting stone '$STONE' in $ROOT" >&2
 startstone -l "$ROOT/db/log/$STONE.log" "$STONE" >/dev/null
 startnetldi -a "$(id -un)" -g -l "$ROOT/db/log/$NETLDI.log" "$NETLDI" >/dev/null
 
+# The account gemdb logs in as. GemDB's run script names it and its password
+# on its `set user` line, and that script is copied here below, so the account
+# is made to match it: what GemDB Code's own setup does as DataCurator, with
+# the password it generated for ~/GemDB.
+read -r GEMDB_USER GEMDB_PASSWORD < <(sed -n 's/^set user \([^ ]*\) pass \([^ ]*\)$/\1 \2/p' "$GEMDB_HOME/bin/gemdb-run.tpz")
+[ -n "$GEMDB_USER" ] || die "no 'set user' line in $GEMDB_HOME/bin/gemdb-run.tpz"
+if [ "$GEMDB_USER" != DataCurator ]; then
+    echo "==> creating the $GEMDB_USER account" >&2
+    topaz -lq > "$ROOT/db/log/account.log" 2>&1 <<TOPAZ || die "could not create the $GEMDB_USER account. See $ROOT/db/log/account.log"
+set gemstone $STONE
+set user DataCurator pass swordfish
+login
+iferr 1 exit 1
+run
+| u |
+u := AllUsers addNewUserWithId: '$GEMDB_USER' password: '$GEMDB_PASSWORD'
+    createNewSecurityPolicy: true.
+u addPrivilege: #CodeModification.
+u addPrivilege: #CreateOnetimePassword.
+System commitTransaction
+%
+logout
+exit
+TOPAZ
+fi
+
 echo "==> installing Grail with GemDB's installer (this takes a few minutes)" >&2
 rsync -a --exclude .topazini "$GEMDB_HOME/grail/" "$ROOT/grail/"
 (
-    export GEMDB_STONE="$STONE" GEMDB_USER=DataCurator GEMDB_PASSWORD=swordfish
+    export GEMDB_STONE="$STONE" GEMDB_USER GEMDB_PASSWORD
     export GRAIL_DIR="$ROOT/grail"
     export PYTHON_PACKAGE_PATH="$ROOT/grail/src/python"
     export SHIM_LIB_PATH="$ROOT/grail/src/c/shim/libcpython_ua.dylib"
@@ -111,7 +137,8 @@ rsync -a --exclude .topazini "$GEMDB_HOME/grail/" "$ROOT/grail/"
 ) || die "Grail did not install. See $ROOT/db/log/install-grail.log"
 
 # The gemdb command, pointed here: GemDB's own wrapper with its root, Grail and
-# stone substituted, and its run script logging in to this stone.
+# stone substituted, and its run script logging in to this stone. The init
+# script (GemDB Code 1.6 on) names no stone, so it is copied as it is.
 sed -e "s|^ROOT=.*|ROOT=\"$ROOT\"|" \
     -e "s|^GRAIL_DIR=.*|GRAIL_DIR=\"$ROOT/grail\"|" \
     -e "s|^STONE=.*|STONE=\"$STONE\"|" \
@@ -119,6 +146,7 @@ sed -e "s|^ROOT=.*|ROOT=\"$ROOT\"|" \
 chmod +x "$ROOT/bin/gemdb"
 sed -e "s|^set gemstone .*|set gemstone $STONE|" \
     "$GEMDB_HOME/bin/gemdb-run.tpz" > "$ROOT/bin/gemdb-run.tpz"
+cp "$GEMDB_HOME/bin/gemdb-run-init.tpz" "$ROOT/bin/gemdb-run-init.tpz"
 
 "$ROOT/bin/gemdb" -c 'import re, gemdb; assert re.match("a+", "aaa"); assert "brainfreeze" not in gemdb.root; print("fresh database answers")' >&2 \
     || die "the new database does not run Python. See $ROOT/db/log/"

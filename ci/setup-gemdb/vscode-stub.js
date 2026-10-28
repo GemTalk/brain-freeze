@@ -7,9 +7,10 @@
 // a harmless no-op, because a headless setup has nothing to show them on.
 // Telemetry is a no-op too: nothing is sent anywhere.
 //
-// A message with buttons is answered as dismissed. Setup asks one such
-// question, whether to configure shared memory, and only when it is not
-// configured yet -- CI runs GemDB's own script for that first.
+// A message with buttons is answered as dismissed, unless GEMDB_PRESS names
+// the button (ci/upgrade.sh presses the ones an engine upgrade offers). Setup
+// asks one such question, whether to configure shared memory, and only when it
+// is not configured yet -- CI runs GemDB's own script for that first.
 
 const path = require('path');
 const fs = require('fs');
@@ -40,6 +41,10 @@ const disposable = () => ({ dispose() {} });
 const event = () => () => disposable();
 
 const registry = new Map();
+
+// Every error message GemDB showed, so a caller can stop waiting for a setup
+// GemDB has already said failed.
+const errorsShown = [];
 const commands = {
   async execute(id, ...args) {
     const fn = registry.get(id);
@@ -80,8 +85,26 @@ function settingsDefaults(packageJSON) {
 
 function makeVscode(packageJSON, extensionPath) {
   const defaults = settingsDefaults(packageJSON);
-  const say = (level) => async (message) => {
+  // The buttons a reader presses, by label, when GemDB offers one of them:
+  // GEMDB_PRESS, separated by `|`. Anything else is dismissed.
+  const press = (process.env.GEMDB_PRESS || '').split('|').filter(Boolean);
+  const say = (level) => async (message, ...rest) => {
     console.log(`[GemDB ${level}] ${message}`);
+    if (level === 'error') errorsShown.push(message);
+    const options = rest[0] && typeof rest[0] === 'object' && !('title' in rest[0]) ? rest.shift() : {};
+    if (options.detail) console.log(`[GemDB ${level}]   ${options.detail}`);
+    const label = (item) => (typeof item === 'string' ? item : item && item.title);
+    const chosen = rest.find((item) => press.includes(label(item)));
+    if (chosen !== undefined) {
+      // After a reader's pause, not at once: a button is pressed once the
+      // message is on screen, by which time whatever showed it has finished.
+      // Answered at once, a start a message offers joins the start that
+      // showed it, which is still failing.
+      await new Promise((r) => setTimeout(r, Number(process.env.GEMDB_PRESS_DELAY_MS || 3000)));
+      console.log(`[GemDB ${level}]   pressed: ${label(chosen)}`);
+      return chosen;
+    }
+    if (rest.length) console.log(`[GemDB ${level}]   dismissed: ${rest.map(label).join(', ')}`);
     return undefined;              // a button nobody pressed
   };
 
@@ -231,4 +254,4 @@ function makeContext(vscode, packageJSON, extensionPath, storage) {
   };
 }
 
-module.exports = { makeVscode, makeContext, commands };
+module.exports = { makeVscode, makeContext, commands, errorsShown };

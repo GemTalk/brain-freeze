@@ -15,9 +15,8 @@ keeps its identity and every object already committed under it reads the new
 definition. The commit is what makes that visible to other sessions, and the
 app takes a fresh view before every request.
 
-Imported as `import package.module`, never `from package import module`:
-the second form hands back the committed copy without checking the file
-(GemTalk/Grail#1223, #86).
+Imported as `import package.module`, so each module is named the way the
+database records it.
 
 WHAT IT DOES NOT DO
 

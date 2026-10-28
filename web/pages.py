@@ -26,7 +26,7 @@ import jinja2
 from flask import current_app, url_for
 
 import brainfreeze
-import brainfreeze.money as money
+from brainfreeze import money
 
 #: Where the Environment lives on the app: `app.extensions[TEMPLATES]`.
 TEMPLATES = "brainfreeze.templates"
@@ -74,20 +74,6 @@ def cover_state(policy, today):
     if today < policy.policy_start_date:
         return ("Starts %s" % policy.policy_start_date, "tag")
     return ("Term ended %s" % policy.policy_end_date, "no")
-
-
-def refuse(code, message):
-    """Stop the request with `code`, and say `message` to whoever made it.
-
-    What `abort(code, message)` should do, but Grail's werkzeug `abort`
-    drops the message. Setting it on the exception works there and in real
-    Werkzeug. Removing it is GemTalk/brain-freeze#87, once GemTalk/Grail#1290
-    ships.
-    """
-    from werkzeug.exceptions import default_exceptions
-    refusal = default_exceptions[code]()
-    refusal.description = message
-    raise refusal
 
 
 

@@ -47,7 +47,7 @@ ATTEMPTS = 5
 #: The longest wait before a new run, in seconds, grown with each loss.
 BACKOFF = 0.05
 
-#: The answer once every run has lost. A Response, not `pages.refuse`:
+#: The answer once every run has lost. A Response, not `abort(503, ...)`:
 #: Grail's werkzeug has no 503 to raise.
 BUSY = ("Too many people are writing to the book at once. Nothing you sent "
         "was saved. Try again.")
