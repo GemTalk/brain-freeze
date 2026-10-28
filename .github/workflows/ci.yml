@@ -66,9 +66,13 @@ jobs:
 
   # The half that needs a database: GemDB set up the way a reader sets it up,
   # then the in-database suite, the notebook, and the tutorial from step 1 on
-  # a brand-new database.
+  # a brand-new database -- as two jobs side by side (ci/tutorial.sh's
+  # second argument), because the tutorial builds its own brand-new database
+  # and needs nothing from the in-database half. One job ran them in turn in
+  # about 22 minutes: 12.5 for the book and the in-database suite, 7 for the
+  # tutorial.
   tutorial:
-    name: Tutorial, on GemDB ${{ matrix.gemdb }}
+    name: Tutorial, on GemDB ${{ matrix.gemdb }} (${{ matrix.part }})
     runs-on: macos-15
     timeout-minutes: 60
     strategy:
@@ -76,6 +80,7 @@ jobs:
         # The GemDB Code release a reader installs. Its engine is pinned by
         # the release, so this is also the engine cache's key.
         gemdb: ["1.8.0"]
+        part: [database, acceptance]
     env:
       VSIX: gemdb-darwin-arm64-${{ matrix.gemdb }}.vsix
       GH_TOKEN: ${{ github.token }}
@@ -116,20 +121,20 @@ jobs:
       # Code's own setup, headless, then runs the in-database suite, the
       # notebook, and the tutorial from a brand-new database.
       - name: Set up GemDB, then the tutorial
-        run: ci/tutorial.sh "$RUNNER_TEMP/$VSIX"
+        run: ci/tutorial.sh "$RUNNER_TEMP/$VSIX" "${{ matrix.part }}"
 
       - name: Keep the screenshots
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: tutorial-screenshots
+          name: tutorial-screenshots-${{ matrix.part }}
           path: artifacts/
           if-no-files-found: ignore
       - name: Keep GemDB's logs
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: gemdb-logs
+          name: gemdb-logs-${{ matrix.part }}
           path: |
             ~/GemDB/db/log/
           if-no-files-found: ignore

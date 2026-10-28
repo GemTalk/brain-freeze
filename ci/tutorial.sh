@@ -2,12 +2,17 @@
 # The CI tutorial job, as one script, so that running it locally is running
 # what CI runs.
 #
-#   ci/tutorial.sh path/to/gemdb-<platform>-<version>.vsix
+#   ci/tutorial.sh path/to/gemdb-<platform>-<version>.vsix [all|database|acceptance]
 #
 # Sets GemDB up the way a reader does (ci/setup-gemdb/run.js, GemDB Code's own
 # setup without an editor), loads the book, runs the in-database suite and the
 # unit suite with gemdb there to run, then the acceptance suite from a
 # brand-new database.
+#
+# The second argument runs half of that after the setup, so CI can run the
+# halves side by side: `database` is the book, the in-database suite and the
+# unit suite; `acceptance` is the acceptance suite, which builds a brand-new
+# database of its own and so needs nothing from the other half. Default: all.
 #
 # It uses $HOME/GemDB, so run it locally with HOME pointed somewhere empty:
 #
@@ -19,6 +24,11 @@
 set -euo pipefail
 
 VSIX="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
+PART=${2:-all}
+case "$PART" in
+    all|database|acceptance) ;;
+    *) echo "usage: $0 <vsix> [all|database|acceptance]" >&2; exit 2 ;;
+esac
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO"
 
@@ -46,19 +56,25 @@ node ci/setup-gemdb/run.js "$VSIX"
 export PATH="$HOME/GemDB/bin:$PATH"
 export GEMDB_EXTENSION="$REPO/ci/setup-gemdb/.gemdb-extension/extension"
 
-step "the acceptance suite's browser"
-if [ ! -x .venv-acceptance/bin/behave ]; then
-    python3 -m venv .venv-acceptance
-    .venv-acceptance/bin/pip install --quiet behave playwright
+if [ "$PART" != database ]; then
+    step "the acceptance suite's browser"
+    if [ ! -x .venv-acceptance/bin/behave ]; then
+        python3 -m venv .venv-acceptance
+        .venv-acceptance/bin/pip install --quiet behave playwright
+    fi
+    .venv-acceptance/bin/playwright install chromium
 fi
-.venv-acceptance/bin/playwright install chromium
 
-step "load the book, then the tests inside the database"
-gemdb tools/seed.py
-gemdb tools/run_db_tests.py
+if [ "$PART" != acceptance ]; then
+    step "load the book, then the tests inside the database"
+    gemdb tools/seed.py
+    gemdb tools/run_db_tests.py
 
-step "the unit suite, with gemdb here for the tests that start their own"
-python3 -m unittest discover
+    step "the unit suite, with gemdb here for the tests that start their own"
+    python3 -m unittest discover
+fi
 
-step "the tutorial, from a brand-new database"
-.venv-acceptance/bin/behave
+if [ "$PART" != database ]; then
+    step "the tutorial, from a brand-new database"
+    .venv-acceptance/bin/behave
+fi
