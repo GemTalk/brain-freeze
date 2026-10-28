@@ -71,7 +71,12 @@ BASE_URL = "http://%s:%d" % (HOST, PORT)
 #: showing all 900 -- and a cold first render also compiles the template into
 #: the database. A tight timeout would fail on a slow machine.
 PAGE_TIMEOUT_MS = 60000
-APP_START_TIMEOUT_S = 120
+#: A brand-new database's first start compiles flask and the app into it, the
+#: slowest start of a run. 120s was enough until a slow CI runner took longer
+#: (main, run 40626974635: the same commit passed on rerun). Each start's time
+#: goes into artifacts/app.log, which CI uploads with every run, so the margin
+#: can be read off any run.
+APP_START_TIMEOUT_S = 300
 
 
 #: The modules that declare routes. Read rather than imported: they import
@@ -265,11 +270,17 @@ def start_app(context):
         stdout=context.app_log, stderr=subprocess.STDOUT,
         start_new_session=True)
 
-    deadline = time.time() + APP_START_TIMEOUT_S
+    started = time.time()
+    deadline = started + APP_START_TIMEOUT_S
     while time.time() < deadline:
         if context.app_state["process"].poll() is not None:
             raise RuntimeError("the app exited before it served; see artifacts/app.log")
         if port_is_open():
+            took = "the app served after %.0fs (limit %ds)" % (
+                time.time() - started, APP_START_TIMEOUT_S)
+            print("  " + took, flush=True)
+            context.app_log.write("[suite] %s\n" % took)
+            context.app_log.flush()
             break
         time.sleep(1)
     else:
