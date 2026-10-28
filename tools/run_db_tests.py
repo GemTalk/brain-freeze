@@ -16,7 +16,9 @@ another checkout whose copy differs would then be refused.
 
 import os
 import sys
+import time
 import types
+import tempfile
 import subprocess
 import unittest
 
@@ -35,6 +37,21 @@ if WEB not in sys.path:
 MODULES = ["test_money", "test_brainfreeze", "test_seed", "test_analysis",
            "test_packaging", "test_serving", "test_metrics", "test_api",
            "test_app"]
+
+#: How many module sessions run at once. They can share the database: only
+#: test_app touches it -- its setUpClass re-seeds gemdb.root and commits, and
+#: it is the only module that reads gemdb.root -- while every other module
+#: tests an in-memory book of its own (seed.load()). 1 runs them one at a
+#: time, in MODULES order, as before.
+SESSIONS = max(1, int(os.environ.get("BF_DB_TEST_SESSIONS", "3")))
+
+#: The order sessions start in when several run at once: longest first, so
+#: the slowest module is never left to start last. Measured on CI (macos-15,
+#: run 40716400776): test_app 4.1 min, test_seed 2.5, test_serving 2.0,
+#: test_analysis 1.4, test_api 1.1, the rest seconds.
+LONGEST_FIRST = ["test_app", "test_seed", "test_serving", "test_analysis",
+                 "test_api", "test_packaging", "test_brainfreeze",
+                 "test_metrics", "test_money"]
 
 
 def load_module_from_file(name, path):
@@ -70,24 +87,56 @@ def run_each_in_its_own_session():
     and the run dies of `AlmostOutOfStack` reported against whichever
     `setUpClass` was running, hiding the real failures (#85).
 
+    Up to SESSIONS of them run at once. Each child writes its output to a file
+    of its own (BF_DB_TEST_OUTPUT; Grail's subprocess cannot hand a child a
+    file), printed whole when the child finishes, so two modules' lines never
+    interleave.
+
     A child gets its module name on the command line and so takes the other
     branch in `run_db_tests`, which is what stops this recursing.
     """
+    order = MODULES if SESSIONS == 1 else LONGEST_FIRST
+    assert sorted(order) == sorted(MODULES), "LONGEST_FIRST must name every module"
+    waiting = list(order)
+    running = {}            # name -> (process, output path, start time)
+    outputs = tempfile.mkdtemp(prefix="bf-db-tests-")
     failed = []
-    for name in MODULES:
-        print("\n=== %s ===" % name, flush=True)
-        finished = subprocess.run(
-            ["gemdb", os.path.join("tools", "run_db_tests.py"), name],
-            cwd=REPO)
-        if finished.returncode != 0:
-            failed.append(name)
+    started = time.time()
+    while waiting or running:
+        while waiting and len(running) < SESSIONS:
+            name = waiting.pop(0)
+            out = os.path.join(outputs, name + ".out")
+            child = subprocess.Popen(
+                ["gemdb", os.path.join("tools", "run_db_tests.py"), name],
+                cwd=REPO, env=dict(os.environ, BF_DB_TEST_OUTPUT=out),
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            running[name] = (child, out, time.time())
+        for name in list(running):
+            child, out, began = running[name]
+            if child.poll() is None:
+                continue
+            del running[name]
+            print("\n=== %s (%.0fs) ===" % (name, time.time() - began), flush=True)
+            if os.path.exists(out):
+                with open(out) as handle:
+                    sys.stdout.write(handle.read())
+            else:
+                print("(no output: the session ended before the module ran)")
+            if child.returncode:
+                print("exit status %d" % child.returncode)
+            sys.stdout.flush()
+            if child.returncode != 0:
+                failed.append(name)
+        if running:
+            time.sleep(1)
 
     print()
     if failed:
         print("FAILED in %d of %d modules: %s"
               % (len(failed), len(MODULES), ", ".join(failed)))
         return 1
-    print("OK -- %d modules, each in a session of its own." % len(MODULES))
+    print("OK -- %d modules, each in a session of its own, %d at a time, in %.0fs."
+          % (len(MODULES), SESSIONS, time.time() - started))
     return 0
 
 
@@ -96,6 +145,10 @@ def run_db_tests():
               for a in sys.argv[1:]]
     if not wanted:
         return run_each_in_its_own_session()
+    output = os.environ.get("BF_DB_TEST_OUTPUT")
+    if output:
+        # A child of run_each_in_its_own_session: everything to its file.
+        sys.stdout = sys.stderr = open(output, "w", buffering=1)
     worst = 0
     for name in wanted:
         worst = max(worst, run_one_module(name))
