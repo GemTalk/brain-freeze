@@ -79,7 +79,15 @@ jobs:
       matrix:
         # The GemDB Code release a reader installs. Its engine is pinned by
         # the release, so this is also the engine cache's key.
-        gemdb: ["1.8.0"]
+        #
+        # Only the current release: the README sends readers to the
+        # Marketplace, which installs the latest, and nothing here promises
+        # support for older ones. With each GemDB Code release, replace this
+        # version with the new one (`gh release list -R GemTalk/GemDB_Code`),
+        # rather than adding to the list -- the a8 release, when it is
+        # published, replaces 1.9.0. Moving GemDB from one release to the
+        # next is ci/upgrade.sh's job, not this matrix's.
+        gemdb: ["1.9.0"]
         part: [database, acceptance]
     env:
       VSIX: gemdb-darwin-arm64-${{ matrix.gemdb }}.vsix
