@@ -7,7 +7,8 @@
 # WHAT "BRAND NEW" MEANS
 #
 # What a reader has after installing GemDB Code and before step 1 of the
-# tutorial: the engine's stock empty extent, Grail filed in by GemDB's own
+# tutorial: the engine's stock empty extent (the image GemDB created its own
+# database from), Grail filed in by GemDB's own
 # installer, and nothing of ours committed. It is built from the GemDB already
 # installed on this machine -- the same engine, the same Grail payload, the
 # same installer -- so a run against it tests what a new user gets, not a
@@ -91,7 +92,14 @@ STN_TRAN_LOG_DIRECTORIES = "$ROOT/db/data/";
 STN_TRAN_LOG_SIZES = 1000;
 CONF
 cp "$GEMSTONE/sys/community.starter.key" "$ROOT/db/conf/$STONE.key"
-cp "$GEMSTONE/bin/extent0.dbf" "$ROOT/db/data/extent0.dbf"
+# The engine image the extent starts from: the one ~/GemDB was created from.
+# GemDB Code 1.9 on creates it from bin/extent0.rowan3.dbf, because Grail
+# installs through Rowan, and records that in db/conf/image; its installer
+# refuses an extent without Rowan. Before 1.9 there is no record, and the
+# image was the plain bin/extent0.dbf.
+IMAGE="$(cat "$GEMDB_HOME/db/conf/image" 2>/dev/null || echo extent0.dbf)"
+[ -f "$GEMSTONE/bin/$IMAGE" ] || die "no engine image at $GEMSTONE/bin/$IMAGE"
+cp "$GEMSTONE/bin/$IMAGE" "$ROOT/db/data/extent0.dbf"
 chmod 644 "$ROOT/db/data/extent0.dbf"
 
 echo "==> starting stone '$STONE' in $ROOT" >&2
