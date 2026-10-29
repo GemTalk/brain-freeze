@@ -371,7 +371,9 @@ def before_all(context):
             [os.path.join(REPO, "tools", "fresh_database.sh"), "create",
              context.fresh_db], capture_output=True, text=True)
         if built.returncode != 0:
-            raise RuntimeError("could not build a fresh database:\n%s%s"
+            keep_fresh_db_logs(context)
+            raise RuntimeError("could not build a fresh database (its logs are "
+                               "in artifacts/fresh-database-log/):\n%s%s"
                                % (built.stdout[-2000:], built.stderr[-2000:]))
         os.environ[GEMDB_BIN] = os.path.join(context.fresh_db, "bin")
 
@@ -379,6 +381,21 @@ def before_all(context):
     context.playwright = sync_playwright().start()
     context.browser = context.playwright.chromium.launch()
     context.base_url = BASE_URL
+
+
+def keep_fresh_db_logs(context):
+    """Copy the fresh database's logs into artifacts/, which CI uploads on
+    every run. They are written under the database's temporary directory --
+    Grail's install-grail.log, the stone's and the NetLDI's -- and that is
+    either destroyed at the end or, when the build fails, left where CI never
+    looks. Best effort: never the reason a run fails.
+    """
+    try:
+        shutil.copytree(os.path.join(context.fresh_db, "db", "log"),
+                        os.path.join(ARTIFACTS, "fresh-database-log"),
+                        dirs_exist_ok=True)
+    except Exception:
+        pass
 
 
 def after_all(context):
@@ -398,6 +415,7 @@ def after_all(context):
         context.app_log.close()
 
     if context.fresh_db:
+        keep_fresh_db_logs(context)
         if os.environ.get("BRAINFREEZE_KEEP_DB"):
             print("\n  kept the fresh database in %s" % context.fresh_db, flush=True)
         else:
